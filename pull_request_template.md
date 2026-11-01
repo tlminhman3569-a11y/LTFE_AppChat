@@ -7,3 +7,6 @@
 
 ## Lưu ý cho người Review
 - Cần chú ý file cấu hình hay database nào không?
+
+## Ảnh chụp màn hình / Demo (Nếu làm Frontend)
+*(Chèn ảnh hoặc gif giao diện vào đây)*
