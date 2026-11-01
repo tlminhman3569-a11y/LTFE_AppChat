@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Không đưa thư mục thư viện của cả FE và BE lên GitHub
+backend/node_modules/
+frontend/node_modules/
+
+# Không đưa các file chứa mật khẩu, chìa khóa bí mật (Environment Variables)
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Bỏ qua các thư mục sinh ra khi build dự án để nộp
+backend/dist/
+frontend/dist/
+
+# Bỏ qua các file rác của hệ điều hành
+.DS_Store
+Thumbs.db
