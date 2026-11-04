@@ -39,3 +39,6 @@ frontend/dist/
 # Bỏ qua các file rác của hệ điều hành
 .DS_Store
 Thumbs.db
+
+# Cấu hình Codex riêng trên máy
+.codex/
