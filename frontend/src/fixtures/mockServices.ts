@@ -1,6 +1,9 @@
 import type { ApiResult } from '../types/api'
+import type { Message } from '../types/message'
 import type { RoomReadResult } from '../types/room'
 import type { RecentConversation, UserPresence } from '../types/user'
+import { createConversationKey } from '../utils/conversationKey'
+import { chatHistory } from './chat'
 import { conversationsSuccess } from './conversations'
 import { roomReadWithoutMetadata, rooms } from './rooms'
 import { users } from './users'
@@ -21,7 +24,7 @@ export async function checkOnline(username: string): Promise<ApiResult<UserPrese
     return { status: 'success', data: user.presence }
 }
 
-export async function loadRoom(name: string, page: number): Promise<ApiResult<RoomReadResult>> {
+export async function loadRoom(name: string, page: number): Promise<ApiResult<RoomReadResult<Message>>> {
     if (!Number.isInteger(page) || page < 1) {
         return { status: 'error', error: { kind: 'business', message: 'Trang phải từ 1 trở lên' } }
     }
@@ -31,12 +34,19 @@ export async function loadRoom(name: string, page: number): Promise<ApiResult<Ro
         return { status: 'error', error: { kind: 'business', message: 'Không có dữ liệu phòng này trong fixture' } }
     }
 
-    if (name === 'nhom_hoc' && page === 2) return roomReadWithoutMetadata
+    const key = createConversationKey({ kind: 'room', name })
+    const messages = chatHistory[key]?.[page] ?? []
 
-    const data: RoomReadResult = {
+    if (name === 'nhom_hoc' && page === 2) {
+        if (roomReadWithoutMetadata.status !== 'success') return roomReadWithoutMetadata
+
+        return { status: 'success', data: { ...roomReadWithoutMetadata.data, messages } }
+    }
+
+    const data: RoomReadResult<Message> = {
         roomName: room.name,
         page,
-        messages: [],
+        messages,
         ownerKnown: room.ownerKnown,
         membersKnown: room.membersKnown,
         membership: room.membership,
