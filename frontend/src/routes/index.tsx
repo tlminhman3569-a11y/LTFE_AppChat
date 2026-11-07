@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { useAppSelector } from '../store/hooks'
-import LoginPlaceholder from '../components/LoginPlaceholder'
+import LoginPage from '../features/auth/LoginPage'
 import ChatLayout from '../components/ChatLayout'
 import ProtectedRoute from './ProtectedRoute'
 
@@ -18,7 +18,7 @@ export default function AppRoutes() {
         <Routes>
             <Route path="/login" element={authStatus === 'authenticated'
                 ? <Navigate to="/chat" replace />
-                : <LoginPlaceholder />} />
+                : <LoginPage />} />
             <Route element={<ProtectedRoute />}>
                 <Route path="/chat" element={<ChatLayout key={sessionGeneration} />} />
             </Route>
