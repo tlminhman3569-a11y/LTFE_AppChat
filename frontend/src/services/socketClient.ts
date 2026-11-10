@@ -3,10 +3,24 @@ import type { ConnectionStatus } from '../types/api'
 type SocketResponse = { event: string; [key: string]: unknown }
 type EventListener = (response: SocketResponse) => void
 
+export class SocketRequestError extends Error {
+    readonly kind: 'timeout' | 'connection'
+    // Đã gọi WebSocket.send thành công. Việc máy chủ nhận vẫn cần đối chiếu.
+    readonly wasSent: boolean
+
+    constructor(message: string, kind: 'timeout' | 'connection', wasSent: boolean) {
+        super(message)
+        this.name = 'SocketRequestError'
+        this.kind = kind
+        this.wasSent = wasSent
+    }
+}
+
 interface WaitingRequest {
     message: string
     resolve: (response: SocketResponse) => void
     reject: (error: Error) => void
+    timer?: ReturnType<typeof setTimeout>
 }
 
 interface Connection {
@@ -18,6 +32,21 @@ interface Connection {
 
 let connection: Connection | null = null
 const listeners = new Map<string, Set<EventListener>>()
+const responseTimeoutMs = 10_000
+
+function rejectRequests(requests: Connection['requests'], timedOut?: WaitingRequest) {
+    for (const queue of requests.values()) {
+        for (const request of queue) {
+            clearTimeout(request.timer)
+            const wasSent = request.timer !== undefined
+            const error = request === timedOut
+                ? new SocketRequestError('Hết thời gian chờ phản hồi.', 'timeout', wasSent)
+                : new SocketRequestError('Kết nối đã ngắt khi đang chờ kết quả.', 'connection', wasSent)
+            request.reject(error)
+        }
+    }
+    requests.clear()
+}
 
 function connect(url: string): Promise<void> {
     if (connection && connection.socket.readyState !== WebSocket.CLOSED) {
@@ -40,16 +69,15 @@ function connect(url: string): Promise<void> {
     const requests = new Map<string, WaitingRequest[]>()
     const opened = new Promise<void>((resolve, reject) => {
         socket.onopen = () => resolve()
-        socket.onerror = () => reject(new Error('Không mở được kết nối WebSocket.'))
+        socket.onerror = () => {
+            reject(new Error('Không mở được kết nối WebSocket.'))
+            socket.close()
+            rejectRequests(requests)
+        }
         socket.onclose = () => {
             reject(new Error('Kết nối đã đóng trước khi mở.'))
             if (connection?.socket === socket) connection = null
-            for (const queue of requests.values()) {
-                for (const request of queue) {
-                    request.reject(new Error('Kết nối đã đóng khi đang chờ kết quả.'))
-                }
-            }
-            requests.clear()
+            rejectRequests(requests)
             socket.onopen = null
             socket.onerror = null
             socket.onclose = null
@@ -67,7 +95,9 @@ function connect(url: string): Promise<void> {
 }
 
 function disconnect() {
-    connection?.socket.close()
+    if (!connection) return
+    connection.socket.close()
+    rejectRequests(connection.requests)
 }
 
 function getStatus(): ConnectionStatus {
@@ -100,16 +130,26 @@ function subscribe(event: string, listener: EventListener) {
 }
 
 function sendNext(current: Connection, event: string, queue: WaitingRequest[]) {
+    const request = queue[0]
     try {
         if (connection !== current || current.socket.readyState !== WebSocket.OPEN) {
             throw new Error('WebSocket chưa sẵn sàng để gửi.')
         }
-        current.socket.send(queue[0].message)
+        current.socket.send(request.message)
     } catch (error) {
         current.requests.delete(event)
-        const sendError = error instanceof Error ? error : new Error('Không gửi được yêu cầu.')
+        const message = error instanceof Error ? error.message : 'Không gửi được yêu cầu.'
+        const sendError = new SocketRequestError(message, 'connection', false)
         for (const request of queue) request.reject(sendError)
+        return
     }
+
+    request.timer = setTimeout(() => {
+        if (current.requests.get(event)?.[0] !== request) return
+        // Event không có mã đối chiếu. Đóng socket cũ để loại phản hồi đến muộn.
+        current.socket.close()
+        rejectRequests(current.requests, request)
+    }, responseTimeoutMs)
 }
 
 function handleMessage(current: Connection, data: unknown) {
@@ -127,7 +167,11 @@ function handleMessage(current: Connection, data: unknown) {
     const queue = current.requests.get(event)
     if (queue) {
         // Mỗi event chỉ có một yêu cầu đã gửi đang chờ phản hồi.
-        queue.shift()?.resolve(response)
+        const request = queue.shift()
+        if (request) {
+            clearTimeout(request.timer)
+            request.resolve(response)
+        }
         if (queue.length === 0) current.requests.delete(event)
         else sendNext(current, event, queue)
     }
@@ -148,7 +192,7 @@ async function request(event: string, data?: Record<string, unknown>): Promise<S
 
     const current = connection
     if (!current || current.socket.readyState !== WebSocket.OPEN) {
-        throw new Error('WebSocket chưa sẵn sàng để gửi.')
+        throw new SocketRequestError('WebSocket chưa sẵn sàng để gửi.', 'connection', false)
     }
 
     let responseEvent = event
