@@ -8,6 +8,7 @@
 ## Chạy lại trong WebStorm
 
 Mở dự án, chọn **Terminal** và dùng PowerShell. Từ thư mục gốc repo, chạy đoạn sau với Node.js 26 rồi nhập tài khoản thử khi được hỏi
+Tài khoản thử: username "test", password "123456"
 
 ```powershell
 cd frontend
