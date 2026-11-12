@@ -3,7 +3,7 @@ import { logout } from '../services/authApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
-import SidebarPlaceholder from './SidebarPlaceholder'
+import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
 import { mockChatService } from '../fixtures/mockChatService'
 import { createConversationKey } from '../utils/conversationKey'
@@ -34,7 +34,7 @@ export default function ChatLayout() {
                 </button>
             </header>
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
-                <SidebarPlaceholder onSelectConversation={setSelectedConversation} />
+                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={setSelectedConversation} />
                 <ChatPage
                     conversation={selectedConversation}
                     conversationKey={selectedConversation ? createConversationKey(selectedConversation) : null}
