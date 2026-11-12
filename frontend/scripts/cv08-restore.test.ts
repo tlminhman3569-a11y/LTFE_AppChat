@@ -32,15 +32,17 @@ describe('Khôi phục phiên khi mở trang', () => {
     })
 
     it('giữ trạng thái kiểm tra cho tới khi RE_LOGIN thành công', async () => {
-        const reply = Promise.withResolvers<Awaited<ReturnType<typeof reLogin>>>()
-        vi.mocked(reLogin).mockReturnValue(reply.promise)
+        type Reply = Awaited<ReturnType<typeof reLogin>>
+        let resolveReply!: (res: Reply) => void
+        const reply = new Promise<Reply>(resolve => { resolveReply = resolve })
+        vi.mocked(reLogin).mockReturnValue(reply)
 
         const restoring = restoreSession()
 
         expect(store.getState().auth).toMatchObject({ authStatus: 'checking', currentUser: null })
         expect(reLogin).toHaveBeenCalledExactlyOnceWith(fakeSession)
 
-        reply.resolve({ status: 'success', data: { ...fakeSession, reLoginCode: 'new-code' } })
+        resolveReply({ status: 'success', data: { ...fakeSession, reLoginCode: 'new-code' } })
         await restoring
 
         expect(store.getState().auth).toMatchObject({ authStatus: 'authenticated', currentUser: 'demo' })
