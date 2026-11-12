@@ -14,6 +14,7 @@ export async function login(username: string, password: string): Promise<ApiResu
         const response = await socketClient.request('LOGIN', { user: username, pass: password })
 
         if (response.status === 'error') {
+            socketClient.disconnect()
             return { status: 'error', error: { kind: 'business', message: 'Đăng nhập không thành công' } }
         }
 
