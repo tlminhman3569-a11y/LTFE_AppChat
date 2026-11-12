@@ -15,7 +15,7 @@ if (!username || !password) {
 }
 
 const base = new URL('../src/services/', import.meta.url).href
-const { login } = await import(base + 'authApi.ts')
+const { login, logout } = await import(base + 'authApi.ts')
 const { socketClient } = await import(base + 'socketClient.ts')
 const deadline = setTimeout(() => {
     console.error('FAIL: API probe timed out')
@@ -30,8 +30,13 @@ try {
     assert.ok(reply.data.every(row => row && typeof row.name === 'string'
         && (row.type === 0 || row.type === 1) && typeof row.actionTime === 'string'), 'Unexpected list entry shape')
     console.log(`PASS: LOGIN and GET_USER_LIST (${reply.data.length} entries)`)
+    if (process.argv.includes('--logout')) {
+        const result = await logout()
+        assert.ok(result.status === 'success', 'LOGOUT did not succeed')
+        console.log('PASS: LOGOUT')
+    }
 } catch {
-    console.error('FAIL: LOGIN or GET_USER_LIST did not match the expected response')
+    console.error('FAIL: API check did not match the expected response')
     process.exitCode = 1
 } finally {
     clearTimeout(deadline)

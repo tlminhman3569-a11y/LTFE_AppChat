@@ -1,11 +1,15 @@
+import { useEffect } from 'react'
 import AppRoutes from './routes'
-import SessionPreview from './components/SessionPreview'
+import { socketClient } from './services/socketClient'
+import { useAppDispatch } from './store/hooks'
+import { connectionStatusChanged } from './store/slices/authSlice'
 
 export default function App() {
-    return (
-        <>
-            {import.meta.env.DEV && <SessionPreview />}
-            <AppRoutes />
-        </>
-    )
+    const dispatch = useAppDispatch()
+
+    useEffect(() => {
+        return socketClient.subscribeStatus(status => dispatch(connectionStatusChanged(status)))
+    }, [dispatch])
+
+    return <AppRoutes />
 }

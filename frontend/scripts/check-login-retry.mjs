@@ -91,8 +91,23 @@ try {
     assert.equal(result.status, 'success')
     assert.equal(result.data.reLoginCode, 'new')
     console.log('PASS: LOGIN timeout stays unknown and retry ignores the old response')
-    socketClient.disconnect()
+    const statuses = []
+    const unsubscribe = socketClient.subscribeStatus(status => statuses.push(status))
+    socketClient.clearSessionListeners()
+    third.close()
     third.finishClose()
+    assert.deepEqual(statuses, ['connected', 'disconnected'])
+
+    const reopened = socketClient.connect('wss://chat.longapp.io.vn/chat/chat')
+    const fourth = TestSocket.sockets[3]
+    assert.deepEqual(statuses, ['connected', 'disconnected', 'connecting'])
+    unsubscribe()
+    fourth.open()
+    await reopened
+    assert.deepEqual(statuses, ['connected', 'disconnected', 'connecting'])
+    socketClient.disconnect()
+    fourth.finishClose()
+    console.log('PASS: socket close updates status and unsubscribe stops updates')
 } finally {
     mock.timers.reset()
 }
