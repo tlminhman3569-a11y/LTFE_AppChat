@@ -78,7 +78,11 @@ export default function AuthForm({ mode, onRegistered, initialUsername = '', isS
                 return
             }
             if (result.status !== 'success') {
-                setFormError(result.error.message)
+                if (isRegister && result.error.code === 'username_taken') {
+                    setFieldErrors({ ...errors, username: result.error.message })
+                } else {
+                    setFormError(result.error.message)
+                }
                 return
             }
             setPassword('')

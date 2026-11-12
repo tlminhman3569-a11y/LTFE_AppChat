@@ -27,15 +27,23 @@ assert.deepEqual(calls, [
     ['connect', 'wss://chat.longapp.io.vn/chat/chat'],
     ['REGISTER', { user: 'demo', pass: 'sample' }],
 ])
-reply = { status: 'error' }
-assert.equal((await register('demo', 'sample')).error.kind, 'business')
+reply = { status: 'error', mes: 'User already exists!' }
+assert.deepEqual(await register('demo', 'sample'), {
+    status: 'error',
+    error: { kind: 'business', code: 'username_taken', message: 'Tên đăng nhập đã được sử dụng' },
+})
+reply = { status: 'error', mes: 'Other registration error' }
+assert.deepEqual(await register('demo', 'sample'), {
+    status: 'error',
+    error: { kind: 'business', message: 'Đăng ký không thành công' },
+})
 reply = {}
 const invalidReply = await register('demo', 'sample')
 assert.equal(invalidReply.status, 'unknown')
 assert.equal(invalidReply.error.kind, 'parse')
 reply = new SocketRequestError('timeout', 'timeout', true)
 assert.equal((await register('demo', 'sample')).status, 'unknown')
-console.log('PASS: REGISTER payload, success, refusal, invalid response and timeout')
+console.log('PASS: REGISTER payload, success, duplicate username, other errors and timeout')
 
 calls.length = 0
 reply = { status: 'success', data: 'logged out' }

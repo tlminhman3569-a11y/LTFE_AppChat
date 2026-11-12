@@ -32,6 +32,7 @@ export type ApiErrorKind =
 
 export interface ApiError {
     kind: ApiErrorKind
+    code?: 'username_taken'
     message: string
 }
 

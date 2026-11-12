@@ -57,6 +57,12 @@ export async function register(username: string, password: string): Promise<ApiR
     try {
         await socketClient.connect(socketUrl)
         const response = await socketClient.request('REGISTER', { user: username, pass: password })
+        if (response.status === 'error' && response.mes === 'User already exists!') {
+            return {
+                status: 'error',
+                error: { kind: 'business', code: 'username_taken', message: 'Tên đăng nhập đã được sử dụng' },
+            }
+        }
         return commandResult(response.status, 'Đăng ký không thành công')
     } catch (error) {
         return commandFailure(error, 'đăng ký')
