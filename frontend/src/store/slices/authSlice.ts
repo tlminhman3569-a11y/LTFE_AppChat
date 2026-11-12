@@ -28,6 +28,7 @@ const authSlice = createSlice({
         },
         sessionStarted(state, action: PayloadAction<string>) {
             state.authStatus = 'authenticated'
+            state.connectionStatus = 'connected'
             state.currentUser = action.payload
             state.sessionGeneration += 1
         },
