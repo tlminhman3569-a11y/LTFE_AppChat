@@ -6,6 +6,8 @@ import UserSearch from '../features/users/UserSearch'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
 import type { OnSelectConversation, RecentConversation } from '../types/user'
 import { filterRecentConversations } from '../utils/filterRecentConversations'
+import { applyConversationLoad } from '../utils/conversationLoadState'
+import type { ConversationLoadState } from '../utils/conversationLoadState'
 import ConversationList from './ConversationList'
 import './ConversationSidebar.css'
 
@@ -19,16 +21,16 @@ interface Props {
 }
 
 export default function ConversationSidebar({
-    selectedConversation,
-    onSelectConversation,
-    loadConversations = getRecentConversations,
-}: Props) {
+                                                selectedConversation,
+                                                onSelectConversation,
+                                                loadConversations = getRecentConversations,
+                                            }: Props) {
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState<SuggestionFilter>('all')
     const [mockMode, setMockMode] = useState<MockMode>('success')
-    const [conversations, setConversations] = useState<RecentConversation[]>([])
+    const [listState, setListState] = useState<ConversationLoadState>({ conversations: [], error: '' })
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState('')
+    const { conversations, error } = listState
     const [attempt, setAttempt] = useState(0)
 
     useEffect(() => {
@@ -48,17 +50,10 @@ export default function ConversationSidebar({
 
                 if (!active) return
 
-                if (result.status === 'success') {
-                    setConversations(result.data)
-                    setError('')
-                } else {
-                    setConversations([])
-                    setError(result.error.message)
-                }
+                setListState(previous => applyConversationLoad(previous, result))
             } catch {
                 if (!active) return
-                setConversations([])
-                setError('Không tải được danh sách hội thoại gần đây.')
+                setListState(previous => ({ ...previous, error: 'Không tải được danh sách hội thoại gần đây.' }))
             } finally {
                 if (active) setLoading(false)
             }
@@ -70,7 +65,7 @@ export default function ConversationSidebar({
 
     function retry() {
         setLoading(true)
-        setError('')
+        setListState(previous => ({ ...previous, error: '' }))
         if (mockMode === 'error' || mockMode === 'unknown') {
             setMockMode('success')
         } else {
@@ -81,7 +76,7 @@ export default function ConversationSidebar({
     function changeMockMode(mode: MockMode) {
         setMockMode(mode)
         setLoading(true)
-        setError('')
+        setListState(previous => ({ ...previous, error: '' }))
     }
 
     const suggestions = filterRecentConversations(conversations, query)
@@ -118,10 +113,11 @@ export default function ConversationSidebar({
             )}
 
             <div className="cv39-results" aria-busy={loading}>
-                {loading && <p role="status" className="cv39-notice">Đang tải danh sách hội thoại...</p>}
+                {loading && <p role="status" className="cv39-notice">{conversations.length > 0 ? 'Đang làm mới danh sách hội thoại...' : 'Đang tải danh sách hội thoại...'}</p>}
 
                 {!loading && error && (
-                    <div className="cv39-notice" role="alert">
+                    <div className={`cv39-notice${conversations.length > 0 ? ' cv39-stale-warning' : ''}`} role="alert">
+                        {conversations.length > 0 && <p>Không thể làm mới danh sách. Dữ liệu đang hiển thị có thể đã cũ.</p>}
                         <p>{error}</p>
                         <button type="button" onClick={retry}>Thử lại</button>
                     </div>
@@ -133,7 +129,7 @@ export default function ConversationSidebar({
                     </p>
                 )}
 
-                {!loading && !error && conversations.length > 0 && (
+                {conversations.length > 0 && (
                     <>
                         <section className="cv39-section" aria-label="Gợi ý gần đây">
                             <h3>Gợi ý tìm kiếm</h3>

@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createConversationKey } from '../src/utils/conversationKey.ts'
 import { filterRecentConversations } from '../src/utils/filterRecentConversations.ts'
+import { applyConversationLoad } from '../src/utils/conversationLoadState.ts'
 import {
     recentConversations,
+    conversationsSuccess,
     conversationsEmpty,
     conversationsError,
     conversationsUnknown,
@@ -139,6 +141,54 @@ check('Danh sach phan biet trung ten va tra kind name', () => {
 check('Hai component chi lay dung loai', () => {
     assert.match(userSearch, /filterRecentConversations\(conversations, query, 'people'\)/)
     assert.match(roomSearch, /filterRecentConversations\(conversations, query, 'room'\)/)
+})
+
+check('Sau 6 hoi thoai lam moi loi van giu 6 va thu lai thanh cong', () => {
+    let state = { conversations: [], error: '' }
+    state = applyConversationLoad(state, conversationsSuccess)
+    assert.equal(state.conversations.length, 6)
+    const oldList = state.conversations
+
+    state = applyConversationLoad(state, conversationsError)
+    assert.equal(state.conversations.length, 6)
+    assert.strictEqual(state.conversations, oldList)
+    assert.match(state.error, /Không tải/)
+
+    state = applyConversationLoad(state, conversationsSuccess)
+    assert.equal(state.conversations.length, 6)
+    assert.equal(state.error, '')
+})
+
+check('Loi ngay lan tai dau khong tao danh sach gia', () => {
+    const state = applyConversationLoad({ conversations: [], error: '' }, conversationsError)
+    assert.equal(state.conversations.length, 0)
+    assert.notEqual(state.error, '')
+})
+
+check('Loi chua xac dinh khi lam moi cung giu 6 muc cu', () => {
+    const initial = applyConversationLoad({ conversations: [], error: '' }, conversationsSuccess)
+    const state = applyConversationLoad(initial, conversationsUnknown)
+    assert.equal(state.conversations.length, 6)
+    assert.notEqual(state.error, '')
+})
+
+check('Tai thanh cong danh sach rong moi thay du lieu cu', () => {
+    const initial = applyConversationLoad({ conversations: [], error: '' }, conversationsSuccess)
+    const state = applyConversationLoad(initial, conversationsEmpty)
+    assert.deepEqual(state, { conversations: [], error: '' })
+})
+
+check('Khi loi bat ngo thi sidebar cung khong xoa danh sach cu', () => {
+    assert.match(sidebar, /setListState\(previous => \(\{ \.\.\.previous, error:/)
+    assert.doesNotMatch(sidebar, /setConversations\(\[\]\)/)
+})
+
+check('Sidebar canh bao cu, hien 6 muc va nut Thu lai khi loi lam moi', () => {
+    assert.match(sidebar, /Dữ liệu đang hiển thị có thể đã cũ/)
+    assert.match(sidebar, /conversations\.length > 0 && <p>Không thể làm mới/)
+    assert.match(sidebar, /\{conversations\.length > 0 && \(/)
+    assert.doesNotMatch(sidebar, /!loading && !error && conversations\.length > 0/)
+    assert.match(sidebar, /onClick=\{retry\}>Thử lại/)
 })
 
 console.log(`${passed}/${passed} checks passed`)

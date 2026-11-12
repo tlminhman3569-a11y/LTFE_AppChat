@@ -197,3 +197,14 @@
         padding: 12px;
     }
 }
+
+.cv39-stale-warning {
+    margin-bottom: 12px;
+    color: #92400e;
+    background: #fffbeb;
+    border-color: #fcd34d;
+}
+
+.cv39-stale-warning p {
+    margin: 0 0 6px;
+}
