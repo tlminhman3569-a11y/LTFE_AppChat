@@ -32,6 +32,7 @@ interface Connection {
 
 let connection: Connection | null = null
 const listeners = new Map<string, Set<EventListener>>()
+const statusListeners = new Set<(status: ConnectionStatus) => void>()
 const responseTimeoutMs = 10_000
 
 function rejectRequests(requests: Connection['requests'], timedOut?: WaitingRequest) {
@@ -71,7 +72,10 @@ function connect(url: string): Promise<void> {
 
     const requests = new Map<string, WaitingRequest[]>()
     const opened = new Promise<void>((resolve, reject) => {
-        socket.onopen = () => resolve()
+        socket.onopen = () => {
+            resolve()
+            if (connection?.socket === socket) notifyStatus()
+        }
         socket.onerror = () => {
             reject(new Error('Không mở được kết nối WebSocket'))
             socket.close()
@@ -79,7 +83,10 @@ function connect(url: string): Promise<void> {
         }
         socket.onclose = () => {
             reject(new Error('Kết nối đã đóng trước khi mở'))
-            if (connection?.socket === socket) connection = null
+            if (connection?.socket === socket) {
+                connection = null
+                notifyStatus()
+            }
             rejectRequests(requests)
             socket.onopen = null
             socket.onerror = null
@@ -94,6 +101,7 @@ function connect(url: string): Promise<void> {
         if (connection !== current || socket.readyState !== WebSocket.OPEN) return
         handleMessage(current, data)
     }
+    notifyStatus()
     return opened
 }
 
@@ -108,6 +116,17 @@ function getStatus(): ConnectionStatus {
     if (readyState === WebSocket.CONNECTING) return 'connecting'
     if (readyState === WebSocket.OPEN) return 'connected'
     return 'disconnected'
+}
+
+function subscribeStatus(listener: (status: ConnectionStatus) => void) {
+    statusListeners.add(listener)
+    listener(getStatus())
+    return () => { statusListeners.delete(listener) }
+}
+
+function notifyStatus() {
+    const status = getStatus()
+    for (const listener of statusListeners) listener(status)
 }
 
 function send(message: string) {
@@ -215,4 +234,4 @@ function clearSessionListeners() {
     listeners.clear()
 }
 
-export const socketClient = { connect, disconnect, getStatus, send, subscribe, request, clearSessionListeners }
+export const socketClient = { connect, disconnect, getStatus, send, subscribe, request, clearSessionListeners, subscribeStatus }

@@ -29,10 +29,12 @@ const authSlice = createSlice({
             state.connectionStatus = 'disconnected'
             state.sessionGeneration += 1
         },
+        connectionStatusChanged(state, action: PayloadAction<ConnectionStatus>) {
+            state.connectionStatus = action.payload
+        },
         sessionStarted(state, action: PayloadAction<string>) {
             state.logoutNotConfirmed = false
             state.authStatus = 'authenticated'
-            state.connectionStatus = 'connected'
             state.currentUser = action.payload
             state.sessionGeneration += 1
         },
@@ -46,5 +48,5 @@ const authSlice = createSlice({
     },
 })
 
-export const { sessionChecking, sessionStarted, sessionCleared } = authSlice.actions
+export const { sessionChecking, connectionStatusChanged, sessionStarted, sessionCleared } = authSlice.actions
 export default authSlice.reducer
