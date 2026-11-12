@@ -51,7 +51,10 @@ function rejectRequests(requests: Connection['requests'], timedOut?: WaitingRequ
 function connect(url: string): Promise<void> {
     if (connection && connection.socket.readyState !== WebSocket.CLOSED) {
         if (connection.socket.readyState === WebSocket.CLOSING) {
-            return Promise.reject(new Error('Kết nối cũ đang đóng'))
+            const socket = connection.socket
+            return new Promise<void>(resolve => {
+                socket.addEventListener('close', () => resolve(), { once: true })
+            }).then(() => connect(url))
         }
         if (connection.url !== url) {
             return Promise.reject(new Error('Đóng kết nối hiện tại trước khi đổi địa chỉ'))
