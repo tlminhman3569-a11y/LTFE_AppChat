@@ -70,7 +70,7 @@
     background: #fff;
 }
 
-.auth-field input:focus-visible, .auth-preview select:focus-visible {
+.auth-field input:focus-visible {
     outline: 2px solid #2563eb;
     outline-offset: 2px;
 }
@@ -148,28 +148,6 @@
     display: block;
     border: 0;
     margin: 20px auto 0;
-}
-
-.auth-preview {
-    font-size: 13px;
-    display: grid;
-    gap: 8px;
-    margin-top: 24px;
-    padding: 12px;
-    border: 1px dashed #94a3b8;
-    border-radius: 6px;
-}
-
-.auth-preview select {
-    font: inherit;
-    padding: 8px;
-    width: 100%;
-    background: #fff;
-}
-
-.auth-preview small {
-    line-height: 1.5;
-    color: #64748b;
 }
 
 @media (max-width: 640px) {
