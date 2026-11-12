@@ -4,6 +4,7 @@ import { useAppDispatch } from '../../store/hooks'
 import { sessionStarted } from '../../store/slices/authSlice'
 import { login, register } from '../../services/authApi'
 import { socketClient } from '../../services/socketClient'
+import { saveSession } from '../../services/sessionStorage'
 import PasswordField from './PasswordField'
 
 function validateUsername(username: string) {
@@ -87,8 +88,12 @@ export default function AuthForm({ mode, onRegistered, initialUsername = '', isS
             }
             setPassword('')
             setConfirmPassword('')
-            if (isRegister) onRegistered(username)
-            else dispatch(sessionStarted(username))
+            if (result.data) {
+                saveSession(result.data)
+                dispatch(sessionStarted(result.data.username))
+            } else {
+                onRegistered(username)
+            }
         } catch {
             if (isMounted.current) setFormError('Có lỗi xảy ra, vui lòng thử lại')
         } finally {
