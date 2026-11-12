@@ -4,11 +4,13 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
 import SidebarPlaceholder from './SidebarPlaceholder'
-import ChatPlaceholder from './ChatPlaceholder'
+import ChatPage from '../features/chat/ChatPage'
+import { mockChatService } from '../fixtures/mockChatService'
+import { createConversationKey } from '../utils/conversationKey'
 
 export default function ChatLayout() {
     const dispatch = useAppDispatch()
-    const { currentUser, connectionStatus } = useAppSelector(state => state.auth)
+    const { currentUser, authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -33,7 +35,16 @@ export default function ChatLayout() {
             </header>
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
                 <SidebarPlaceholder onSelectConversation={setSelectedConversation} />
-                <ChatPlaceholder conversation={selectedConversation} onBack={() => setSelectedConversation(null)} />
+                <ChatPage
+                    conversation={selectedConversation}
+                    conversationKey={selectedConversation ? createConversationKey(selectedConversation) : null}
+                    currentUser={currentUser}
+                    authStatus={authStatus}
+                    connectionStatus={connectionStatus}
+                    sessionGeneration={sessionGeneration}
+                    loadHistory={mockChatService.loadHistory}
+                    onBack={() => setSelectedConversation(null)}
+                />
             </div>
         </main>
     )

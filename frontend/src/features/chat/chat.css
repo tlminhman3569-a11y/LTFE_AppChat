@@ -1,0 +1,121 @@
+.chat-content.chat-page {
+    display: flex;
+    flex-direction: column;
+    height: max(24rem, calc(100dvh - 72px));
+    padding: 0;
+}
+
+.chat-heading,
+.chat-composer-slot {
+    padding: 16px 24px;
+}
+
+.chat-heading {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.chat-heading h2 {
+    margin: 0;
+}
+
+.chat-heading p,
+.chat-message small {
+    color: #475569;
+}
+
+.chat-heading p,
+.chat-history-notice p {
+    margin: 4px 0 0;
+}
+
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    overflow-anchor: none;
+    padding: 16px 24px;
+}
+
+.chat-history-notice,
+.chat-no-selection,
+.chat-history > p {
+    text-align: center;
+}
+
+.chat-no-selection {
+    margin: auto;
+    padding: 16px;
+}
+
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.chat-message {
+    align-self: flex-start;
+    max-width: min(85%, 42rem);
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #f1f5f9;
+}
+
+.chat-message-own {
+    align-self: flex-end;
+    background: #dbeafe;
+}
+
+.chat-message p {
+    margin: 4px 0;
+    white-space: pre-wrap;
+}
+
+.chat-composer-slot {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.chat-composer-slot input {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+}
+
+.chat-page button:disabled {
+    cursor: default;
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.chat-preview-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@media (max-width: 640px) {
+    .chat-columns:not(.has-conversation) .chat-page {
+        display: none;
+    }
+
+    .chat-columns.has-conversation .chat-content.chat-page {
+        display: flex;
+        height: max(24rem, calc(100dvh - 100px));
+    }
+
+    .chat-heading,
+    .chat-history,
+    .chat-composer-slot {
+        padding: 12px 16px;
+    }
+
+    .chat-heading .mobile-back {
+        margin-bottom: 12px;
+    }
+}
