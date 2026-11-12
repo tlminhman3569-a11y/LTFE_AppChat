@@ -4,7 +4,7 @@ import { reLogin } from '../src/services/authApi'
 import { clearStoredSession, readStoredSession } from '../src/services/sessionStorage'
 import { socketClient } from '../src/services/socketClient'
 import { store } from '../src/store'
-import { sessionCleared } from '../src/store/slices/authSlice'
+import { sessionCleared, sessionStarted } from '../src/store/slices/authSlice'
 
 vi.mock('../src/services/authApi', () => ({ reLogin: vi.fn() }))
 vi.mock('../src/services/sessionStorage', () => ({
@@ -17,7 +17,7 @@ const fakeSession = { username: 'demo', reLoginCode: 'old-code' }
 
 beforeEach(() => {
     vi.resetAllMocks()
-    store.dispatch(sessionCleared())
+    store.dispatch(sessionCleared({}))
     vi.mocked(readStoredSession).mockReturnValue(fakeSession)
 })
 
@@ -58,13 +58,40 @@ describe('Khôi phục phiên khi mở trang', () => {
 
         expect(clearStoredSession).toHaveBeenCalledOnce()
         expect(socketClient.disconnect).toHaveBeenCalledOnce()
-        expect(store.getState().auth).toMatchObject({ authStatus: 'unauthenticated', currentUser: null })
+        expect(store.getState().auth).toMatchObject({
+            authStatus: 'unauthenticated',
+            currentUser: null,
+            restoreError: 'Phiên đã hết hạn, vui lòng đăng nhập lại',
+        })
+    })
+
+    it('báo lỗi khôi phục nếu RE_LOGIN bị timeout', async () => {
+        vi.mocked(reLogin).mockResolvedValue({
+            status: 'unknown',
+            error: { kind: 'timeout', message: 'Chưa xác định được kết quả khôi phục phiên' },
+        })
+
+        await restoreSession()
+
+        expect(clearStoredSession).toHaveBeenCalledOnce()
+        expect(store.getState().auth).toMatchObject({
+            authStatus: 'unauthenticated',
+            restoreError: 'Không thể khôi phục phiên, vui lòng đăng nhập lại',
+        })
+    })
+
+    it('bỏ thông báo khôi phục lỗi sau khi đăng nhập lại', () => {
+        store.dispatch(sessionCleared({ restoreError: 'Phiên đã hết hạn, vui lòng đăng nhập lại' }))
+
+        store.dispatch(sessionStarted('demo'))
+
+        expect(store.getState().auth).toMatchObject({ authStatus: 'authenticated', restoreError: null })
     })
 
     it('không mở lại phiên nếu kết quả thành công đến sau khi phiên đã đổi', async () => {
         vi.mocked(reLogin).mockImplementation(async () => {
             // Phiên có thể bị xóa trong khi đang chờ server xác nhận
-            store.dispatch(sessionCleared())
+            store.dispatch(sessionCleared({}))
             return { status: 'success', data: { ...fakeSession, reLoginCode: 'new-code' } }
         })
 

@@ -20,7 +20,7 @@ export default function ChatLayout() {
         setIsLoggingOut(true)
 
         const result = await logout()
-        dispatch(sessionCleared(result.status !== 'success'))
+        dispatch(sessionCleared({ logoutNotConfirmed: result.status !== 'success' }))
     }
 
     return (

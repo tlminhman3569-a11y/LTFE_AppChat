@@ -22,5 +22,8 @@ export async function restoreSession() {
 
     clearStoredSession()
     socketClient.disconnect()
-    store.dispatch(sessionCleared())
+    const restoreError = res.error.kind === 'session'
+        ? res.error.message
+        : 'Không thể khôi phục phiên, vui lòng đăng nhập lại'
+    store.dispatch(sessionCleared({ restoreError }))
 }
