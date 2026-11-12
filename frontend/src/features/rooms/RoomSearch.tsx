@@ -1,4 +1,7 @@
+import ConversationList from '../../components/ConversationList'
+import type { ConversationRef } from '../../types/api'
 import type { OnSelectConversation, RecentConversation } from '../../types/user'
+import { filterRecentConversations } from '../../utils/filterRecentConversations'
 
 interface Props {
     conversations: RecentConversation[]
@@ -6,51 +9,36 @@ interface Props {
     loading?: boolean
     error?: string | null
     onRetry?: () => void
+    selectedConversation?: ConversationRef | null
     onSelectConversation: OnSelectConversation
 }
 
 export default function RoomSearch({
-    conversations,
-    query,
-    loading = false,
-    error = null,
-    onRetry,
-    onSelectConversation,
-}: Props) {
-    const keyword = query.trim().toLowerCase()
-    const rooms = conversations.filter((item) =>
-        item.kind === 'room' && item.name.toLowerCase().includes(keyword)
-    )
-
-    if (loading) {
-        return <p role="status">Đang tải phòng...</p>
-    }
+                                       conversations, query, loading = false, error = null,
+                                       onRetry, selectedConversation, onSelectConversation,
+                                   }: Props) {
+    if (loading) return <p role="status">Đang tải phòng...</p>
 
     if (error) {
         return (
-            <div role="alert">
-                <p>Không tải được phòng: {error}</p>
+            <div role="alert" className="cv39-notice">
+                <p>{error}</p>
                 {onRetry && <button type="button" onClick={onRetry}>Thử lại</button>}
             </div>
         )
     }
 
-    if (rooms.length === 0) {
-        return <p>Không có phòng phù hợp trong danh sách gần đây. Có thể phòng vẫn tồn tại trên hệ thống.</p>
+    const matches = filterRecentConversations(conversations, query, 'room')
+
+    if (matches.length === 0) {
+        return <p className="cv39-empty">Không có phòng phù hợp trong dữ liệu gần đây. Phòng vẫn có thể tồn tại trên hệ thống.</p>
     }
 
     return (
-        <ul aria-label="Gợi ý phòng">
-            {rooms.map((room) => (
-                <li key={`room:${room.name}`}>
-                    <button
-                        type="button"
-                        onClick={() => onSelectConversation({ kind: 'room', name: room.name })}
-                    >
-                        {room.name}
-                    </button>
-                </li>
-            ))}
-        </ul>
+        <ConversationList
+            conversations={matches}
+            selectedConversation={selectedConversation}
+            onSelectConversation={onSelectConversation}
+        />
     )
 }

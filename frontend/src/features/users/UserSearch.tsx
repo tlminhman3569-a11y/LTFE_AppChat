@@ -1,4 +1,7 @@
+import ConversationList from '../../components/ConversationList'
+import type { ConversationRef } from '../../types/api'
 import type { OnSelectConversation, RecentConversation } from '../../types/user'
+import { filterRecentConversations } from '../../utils/filterRecentConversations'
 
 interface Props {
     conversations: RecentConversation[]
@@ -6,51 +9,36 @@ interface Props {
     loading?: boolean
     error?: string | null
     onRetry?: () => void
+    selectedConversation?: ConversationRef | null
     onSelectConversation: OnSelectConversation
 }
 
 export default function UserSearch({
-    conversations,
-    query,
-    loading = false,
-    error = null,
-    onRetry,
-    onSelectConversation,
-}: Props) {
-    const keyword = query.trim().toLowerCase()
-    const users = conversations.filter((item) =>
-        item.kind === 'people' && item.name.toLowerCase().includes(keyword)
-    )
-
-    if (loading) {
-        return <p role="status">Đang tải người dùng...</p>
-    }
+                                       conversations, query, loading = false, error = null,
+                                       onRetry, selectedConversation, onSelectConversation,
+                                   }: Props) {
+    if (loading) return <p role="status">Đang tải người dùng...</p>
 
     if (error) {
         return (
-            <div role="alert">
-                <p>Không tải được người dùng: {error}</p>
+            <div role="alert" className="cv39-notice">
+                <p>{error}</p>
                 {onRetry && <button type="button" onClick={onRetry}>Thử lại</button>}
             </div>
         )
     }
 
-    if (users.length === 0) {
-        return <p>Không có gợi ý phù hợp trong danh sách gần đây. Có thể người dùng vẫn tồn tại trên hệ thống.</p>
+    const matches = filterRecentConversations(conversations, query, 'people')
+
+    if (matches.length === 0) {
+        return <p className="cv39-empty">Không có người dùng phù hợp trong dữ liệu gần đây. Người dùng vẫn có thể tồn tại trên hệ thống.</p>
     }
 
     return (
-        <ul aria-label="Gợi ý người dùng">
-            {users.map((user) => (
-                <li key={`people:${user.name}`}>
-                    <button
-                        type="button"
-                        onClick={() => onSelectConversation({ kind: 'people', name: user.name })}
-                    >
-                        {user.name}
-                    </button>
-                </li>
-            ))}
-        </ul>
+        <ConversationList
+            conversations={matches}
+            selectedConversation={selectedConversation}
+            onSelectConversation={onSelectConversation}
+        />
     )
 }
