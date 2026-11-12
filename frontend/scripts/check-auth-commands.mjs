@@ -20,6 +20,7 @@ socketClient.request = async (...args) => {
     return reply
 }
 socketClient.disconnect = () => calls.push(['disconnect'])
+socketClient.clearSessionListeners = () => calls.push(['clearSessionListeners'])
 
 assert.deepEqual(await register('demo', 'sample'), { status: 'success', data: null })
 assert.deepEqual(calls, [
@@ -38,8 +39,10 @@ console.log('PASS: REGISTER payload, success, refusal, invalid response and time
 
 calls.length = 0
 reply = { status: 'success', data: 'logged out' }
-assert.deepEqual(await logout(), { status: 'success', data: null })
-assert.deepEqual(calls, [['LOGOUT'], ['disconnect']])
+const loggingOut = logout()
+assert.equal(logout(), loggingOut)
+assert.deepEqual(await loggingOut, { status: 'success', data: null })
+assert.deepEqual(calls, [['LOGOUT'], ['disconnect'], ['clearSessionListeners']])
 
 for (const [response, status, kind] of [
     [{ status: 'error' }, 'error', 'business'],
@@ -51,11 +54,11 @@ for (const [response, status, kind] of [
     const result = await logout()
     assert.equal(result.status, status)
     assert.equal(result.error.kind, kind)
-    assert.deepEqual(calls, [['LOGOUT'], ['disconnect']])
+    assert.deepEqual(calls, [['LOGOUT'], ['disconnect'], ['clearSessionListeners']])
 }
 
 calls.length = 0
 socketClient.getStatus = () => 'disconnected'
 assert.equal((await logout()).error.kind, 'connection')
-assert.deepEqual(calls, [['disconnect']])
-console.log('PASS: LOGOUT sends no payload and closes socket on every path')
+assert.deepEqual(calls, [['disconnect'], ['clearSessionListeners']])
+console.log('PASS: LOGOUT blocks duplicate requests and clears socket and listeners on every path')

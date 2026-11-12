@@ -83,6 +83,7 @@ Kiệt chốt các giới hạn frontend về độ dài, số runs và byte gó
 - Nháp chỉ ở bộ nhớ; đổi chat/mất mạng giữ, reload/logout mất theo đặc tả. Đừng hứa phục hồi nháp sau refresh.
 - sessionStorage chỉ giữ username/code để RE_LOGIN; không lưu mật khẩu. Đừng coi socket OPEN là đã xác thực. Xóa dữ liệu phiên cũ trước khi render tài khoản mới.
 - GET_USER_LIST là gần đây. Tìm một phần tên chỉ lọc tập đó; kiểm tra username đầy đủ không phải tìm toàn hệ thống theo một phần tên. JOIN là thao tác ghi, không chạy chỉ vì gõ tìm.
+- Khi kết thúc đăng xuất, Mẫn dispatch `sessionCleared` kể cả khi máy chủ chưa xác nhận. Kiệt và Khôi dùng action này trong `extraReducers` để đặt lại state chat, nháp và phòng nếu lưu trong Redux. ChatLayout được tháo khi về đăng nhập. Khi tích hợp nháp, nối `hasAnyDraft()` vào nút đăng xuất để xác nhận trước khi gửi LOGOUT
 - Presence là kết quả kiểm tra có thời điểm, lỗi là unknown. Chưa xem là dữ liệu cục bộ, không phải đã đọc/đã giao server.
 - UI thu hẹp là cùng website React, không phải làm app Android/iOS. Back trong UI khác rời phòng/logout.
 

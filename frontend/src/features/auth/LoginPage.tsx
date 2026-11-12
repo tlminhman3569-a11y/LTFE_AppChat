@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useAppSelector } from '../../store/hooks'
 import AuthForm from './AuthForm'
 import './auth.css'
 
 export default function LoginPage() {
+    const logoutNotConfirmed = useAppSelector(state => state.auth.logoutNotConfirmed)
     const [mode, setMode] = useState<'login' | 'register'>('login')
     const [registeredUser, setRegisteredUser] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -34,6 +36,11 @@ export default function LoginPage() {
                     <button type="button" disabled={isSubmitting} aria-pressed={!isRegister} onClick={() => changeMode('login')}>Đăng nhập</button>
                     <button type="button" disabled={isSubmitting} aria-pressed={isRegister} onClick={() => changeMode('register')}>Đăng ký</button>
                 </div>
+                {logoutNotConfirmed && (
+                    <p role="status" className="auth-notice">
+                        Đã đăng xuất trên thiết bị này, chưa có xác nhận từ máy chủ
+                    </p>
+                )}
                 {registeredUser && <p role="status" className="auth-notice">Đăng ký thành công, vui lòng đăng nhập</p>}
                 <AuthForm key={`${mode}-${registeredUser}`} mode={mode}
                     initialUsername={registeredUser} onRegistered={handleRegistered}

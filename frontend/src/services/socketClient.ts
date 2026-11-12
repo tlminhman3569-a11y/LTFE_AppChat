@@ -211,4 +211,8 @@ async function request(event: string, data?: Record<string, unknown>): Promise<S
     })
 }
 
-export const socketClient = { connect, disconnect, getStatus, send, subscribe, request }
+function clearSessionListeners() {
+    listeners.clear()
+}
+
+export const socketClient = { connect, disconnect, getStatus, send, subscribe, request, clearSessionListeners }

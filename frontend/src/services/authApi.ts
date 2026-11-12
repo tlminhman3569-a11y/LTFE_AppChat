@@ -63,7 +63,16 @@ export async function register(username: string, password: string): Promise<ApiR
     }
 }
 
-export async function logout(): Promise<ApiResult<null>> {
+let pendingLogout: Promise<ApiResult<null>> | undefined
+
+export function logout(): Promise<ApiResult<null>> {
+    if (!pendingLogout) {
+        pendingLogout = finishLogout().finally(() => { pendingLogout = undefined })
+    }
+    return pendingLogout
+}
+
+async function finishLogout(): Promise<ApiResult<null>> {
     try {
         if (socketClient.getStatus() !== 'connected') {
             return { status: 'error', error: { kind: 'connection', message: 'Mất kết nối nên chưa báo được máy chủ' } }
@@ -74,5 +83,6 @@ export async function logout(): Promise<ApiResult<null>> {
         return commandFailure(error, 'đăng xuất')
     } finally {
         socketClient.disconnect()
+        socketClient.clearSessionListeners()
     }
 }
