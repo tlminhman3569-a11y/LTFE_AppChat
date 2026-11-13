@@ -28,7 +28,7 @@ const deadline = setTimeout(() => {
 try {
     const session = await login(username, password)
     if (session.status !== 'success') throw new Error('LOGIN thất bại')
-    const result = await loadHistory({ kind: 'people', name: target }, 1)
+    const result = await loadHistory({ kind: 'people', name: target }, 1, session.data.username)
     if (result.status !== 'success') throw new Error('Không đọc được trang 1')
 
     const messages = result.data.messages

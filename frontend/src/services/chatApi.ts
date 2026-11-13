@@ -20,7 +20,7 @@ function invalidHistory(): ApiResult<never> {
     return { status: 'error', error: { kind: 'parse', message: 'Phản hồi lịch sử không hợp lệ' } }
 }
 
-export async function loadHistory(conversation: ConversationRef, page: number): Promise<ApiResult<HistoryPage>> {
+export async function loadHistory(conversation: ConversationRef, page: number, currentUser: string): Promise<ApiResult<HistoryPage>> {
     if (!conversation.name.trim() || !Number.isInteger(page) || page < 1) {
         return { status: 'error', error: { kind: 'business', message: 'Cần tên hội thoại và số trang hợp lệ' } }
     }
@@ -33,6 +33,10 @@ export async function loadHistory(conversation: ConversationRef, page: number): 
         return { status: 'error', error: { kind: 'parse', message: 'Chưa có hợp đồng dữ liệu lịch sử phòng từ CV45' } }
     }
 
+    if (!currentUser.trim()) {
+        return { status: 'error', error: { kind: 'session', message: 'Cần tài khoản hiện tại để đọc lịch sử chat riêng' } }
+    }
+
     try {
         const reply = await socketClient.request('GET_PEOPLE_CHAT_MES', { name: conversation.name, page })
         if (reply.status === 'error') {
@@ -43,7 +47,10 @@ export async function loadHistory(conversation: ConversationRef, page: number): 
         const messages: Message[] = []
         for (const item of reply.data) {
             const message = readPrivateMessage(item)
-            if (!message || (message.name !== conversation.name && message.to !== conversation.name)) {
+            if (!message) return invalidHistory()
+            const isIncoming = message.name === conversation.name && message.to === currentUser
+            const isOutgoing = message.name === currentUser && message.to === conversation.name
+            if (!isIncoming && !isOutgoing) {
                 return invalidHistory()
             }
             messages.push(message)
