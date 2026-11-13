@@ -53,8 +53,22 @@ function connect(url: string): Promise<void> {
     if (connection && connection.socket.readyState !== WebSocket.CLOSED) {
         if (connection.socket.readyState === WebSocket.CLOSING) {
             const socket = connection.socket
-            return new Promise<void>(resolve => {
-                socket.addEventListener('close', () => resolve(), { once: true })
+            return new Promise<void>((resolve, reject) => {
+                function onClose() {
+                    clearTimeout(timer)
+                    resolve()
+                }
+
+                const timer = setTimeout(() => {
+                    socket.removeEventListener('close', onClose)
+                    if (connection?.socket === socket) {
+                        rejectRequests(connection.requests)
+                        connection = null
+                    }
+                    reject(new Error('Hết thời gian chờ đóng WebSocket'))
+                }, responseTimeoutMs)
+
+                socket.addEventListener('close', onClose, { once: true })
             }).then(() => connect(url))
         }
         if (connection.url !== url) {
@@ -72,16 +86,28 @@ function connect(url: string): Promise<void> {
 
     const requests = new Map<string, WaitingRequest[]>()
     const opened = new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error('Hết thời gian mở kết nối WebSocket'))
+            if (connection?.socket === socket) {
+                connection = null
+                socket.close()
+                notifyStatus()
+            }
+        }, responseTimeoutMs)
+
         socket.onopen = () => {
+            clearTimeout(timer)
             resolve()
             if (connection?.socket === socket) notifyStatus()
         }
         socket.onerror = () => {
+            clearTimeout(timer)
             reject(new Error('Không mở được kết nối WebSocket'))
             socket.close()
             rejectRequests(requests)
         }
         socket.onclose = () => {
+            clearTimeout(timer)
             reject(new Error('Kết nối đã đóng trước khi mở'))
             if (connection?.socket === socket) {
                 connection = null

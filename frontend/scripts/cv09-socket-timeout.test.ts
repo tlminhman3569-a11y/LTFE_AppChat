@@ -127,3 +127,22 @@ describe('timeout của socketClient', () => {
         expect(res).toMatchObject({ status: 'unknown', error: { kind: 'timeout' } })
     })
 })
+
+describe('mở kết nối socket', () => {
+    it('cho mở socket mới nếu socket cũ không mở đúng hạn', async () => {
+        const pending = socketClient.connect(URL).catch(err => err)
+        const oldSocket = FakeSocket.instances[0]
+
+        await vi.advanceTimersByTimeAsync(10_000)
+        const err = await pending
+
+        expect(err).toMatchObject({ message: 'Hết thời gian mở kết nối WebSocket' })
+        expect(oldSocket.readyState).toBe(FakeSocket.CLOSING)
+
+        const newSocket = await openSocket()
+        oldSocket.finishClose()
+
+        expect(newSocket).not.toBe(oldSocket)
+        expect(socketClient.getStatus()).toBe('connected')
+    })
+})
