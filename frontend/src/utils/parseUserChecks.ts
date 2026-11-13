@@ -36,10 +36,16 @@ function validateResponse(value: unknown, event: string): ApiResult<Response> {
 }
 
 export function parseUserExists(value: unknown): ApiResult<boolean> {
+    if (isRecord(value) && value.event === 'CHECK_USER_EXIST'
+        && value.status === undefined && isRecord(value.data)
+        && typeof value.data.status === 'boolean') {
+        return { status: 'success', data: value.data.status }
+    }
+
     const validated = validateResponse(value, 'CHECK_USER_EXIST')
     if (validated.status !== 'success') return validated
 
-    const answer = readField(validated.data.data, ['exists', 'exist', 'isExist', 'isExisting'])
+    const answer = readField(validated.data.data, ['status', 'exists', 'exist', 'isExist', 'isExisting'])
     const exists = readBoolean(answer)
     if (exists === null) {
         return { status: 'error', error: { kind: 'parse', message: 'Máy chủ chưa trả kết quả tồn tại rõ ràng.' } }

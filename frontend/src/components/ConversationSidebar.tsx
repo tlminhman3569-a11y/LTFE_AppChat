@@ -21,9 +21,10 @@ type MockMode = 'api' | 'success' | 'empty' | 'error' | 'unknown'
 interface Props {
     selectedConversation: ConversationRef | null
     onSelectConversation: OnSelectConversation
+    onMockModeChange?: (usingMock: boolean) => void
 }
 
-export default function ConversationSidebar({ selectedConversation, onSelectConversation }: Props) {
+export default function ConversationSidebar({ selectedConversation, onSelectConversation, onMockModeChange }: Props) {
     const dispatch = useAppDispatch()
     const { authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const apiList = useAppSelector(state => state.conversations)
@@ -100,6 +101,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
 
     function changeMockMode(mode: MockMode) {
         setMockMode(mode)
+        onMockModeChange?.(mode !== 'api')
         if (mode !== 'api') {
             setMockLoading(true)
             setListState(previous => ({ ...previous, error: '' }))

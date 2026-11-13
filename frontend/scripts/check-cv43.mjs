@@ -32,6 +32,8 @@ function copyTs(path) {
 const paths = [
     'src/services/usersApi.ts',
     'src/services/socketClient.ts',
+    'src/services/chatApi.ts',
+    'src/services/roomsApi.ts',
     'src/utils/parseUserChecks.ts',
     'src/utils/normalizeRecentConversations.ts',
 ]
@@ -42,6 +44,7 @@ try {
 
     const parser = await import(pathToFileURL(join(temp, 'utils/parseUserChecks.ts')).href)
     const service = await import(pathToFileURL(join(temp, 'services/usersApi.ts')).href)
+    const chatApi = await import(pathToFileURL(join(temp, 'services/chatApi.ts')).href)
     const { socketClient, SocketRequestError } = await import(pathToFileURL(join(temp, 'services/socketClient.ts')).href)
 
     const existsResponse = data => ({ event: 'CHECK_USER_EXIST', status: 'success', data })
@@ -58,6 +61,34 @@ try {
     })
     await check('F09: object exists false duoc doc', () => {
         assert.deepEqual(parser.parseUserExists(existsResponse({ exists: false })), { status: 'success', data: false })
+    })
+    await check('F09: server chi tra data.status true, khong co status ngoai', () => {
+        assert.deepEqual(parser.parseUserExists({ event: 'CHECK_USER_EXIST', data: { status: true } }), { status: 'success', data: true })
+    })
+    await check('F09: server chi tra data.status false, khong co status ngoai', () => {
+        assert.deepEqual(parser.parseUserExists({ event: 'CHECK_USER_EXIST', data: { status: false } }), { status: 'success', data: false })
+    })
+    await check('F09: CHECK_USER_EXIST data.status true duoc nhan', () => {
+        assert.deepEqual(parser.parseUserExists(existsResponse({ status: true })), { status: 'success', data: true })
+    })
+    await check('F09: CHECK_USER_EXIST data.status false duoc nhan', () => {
+        assert.deepEqual(parser.parseUserExists(existsResponse({ status: false })), { status: 'success', data: false })
+    })
+    await check('F09: data.status so 1 duoc hieu la true', () => {
+        assert.equal(parser.parseUserExists(existsResponse({ status: 1 })).data, true)
+    })
+    await check('F09: data.status chuoi false duoc hieu la false', () => {
+        assert.equal(parser.parseUserExists(existsResponse({ status: 'false' })).data, false)
+    })
+    await check('F09: data.status khong phai gia tri boolean hop le bao parse', () => {
+        const result = parser.parseUserExists(existsResponse({ status: 'success' }))
+        assert.equal(result.status, 'error')
+        assert.equal(result.error.kind, 'parse')
+    })
+    await check('F09: outer error khong bi data.status true ghi de', () => {
+        const result = parser.parseUserExists({ event: 'CHECK_USER_EXIST', status: 'error', data: { status: true } })
+        assert.equal(result.status, 'error')
+        assert.equal(result.error.kind, 'business')
     })
     await check('F09: isExist la co boolean ro rang', () => {
         assert.equal(parser.parseUserExists(existsResponse({ isExist: true })).data, true)
@@ -150,6 +181,14 @@ try {
         const result = await service.checkExists('khong_co')
         assert.deepEqual(result, { status: 'success', data: false })
     })
+    await check('API: checkExists dung ket qua data.status true', async () => {
+        reply = existsResponse({ status: true })
+        assert.deepEqual(await service.checkExists('nguoi_mau'), { status: 'success', data: true })
+    })
+    await check('API: checkExists dung ket qua data.status false', async () => {
+        reply = existsResponse({ status: false })
+        assert.deepEqual(await service.checkExists('khong_co'), { status: 'success', data: false })
+    })
     await check('API: timeout tra unknown', async () => {
         reply = new SocketRequestError('time out', 'timeout', true)
         const result = await service.checkExists('ban_mau')
@@ -189,12 +228,37 @@ try {
         assert.deepEqual(calls, [{ event: 'GET_USER_LIST', data: {} }])
     })
 
+    await check('CV24: lich su people ngoai fixture goi GET_PEOPLE_CHAT_MES', async () => {
+        calls = []
+        reply = { event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+                { type: 0, name: 'nguoi_ngoai_fixture', to: 'tai_khoan_thu', mes: 'Tin nhan hop le', id: 5 },
+            ] }
+        const result = await chatApi.loadHistory({ kind: 'people', name: 'nguoi_ngoai_fixture' }, 1, 'tai_khoan_thu')
+        assert.equal(result.status, 'success')
+        assert.equal(result.data.messages.length, 1)
+        assert.deepEqual(calls, [{ event: 'GET_PEOPLE_CHAT_MES', data: { name: 'nguoi_ngoai_fixture', page: 1 } }])
+    })
+    await check('CV24: lich su chat rieng rong la thanh cong', async () => {
+        calls = []
+        reply = { event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [] }
+        const result = await chatApi.loadHistory({ kind: 'people', name: 'nguoi_ngoai_fixture' }, 2, 'tai_khoan_thu')
+        assert.equal(result.status, 'success')
+        assert.equal(result.data.messages.length, 0)
+    })
+    await check('CV24: server tu choi lich su khong coi la mang rong', async () => {
+        calls = []
+        reply = { event: 'GET_PEOPLE_CHAT_MES', status: 'error' }
+        const result = await chatApi.loadHistory({ kind: 'people', name: 'nguoi_ngoai_fixture' }, 1, 'tai_khoan_thu')
+        assert.equal(result.status, 'error')
+    })
+
     const sourceApi = read('src/services/usersApi.ts')
     const socket = read('src/services/socketClient.ts')
     const checkUser = read('src/features/users/CheckUser.tsx')
     const sidebar = read('src/components/ConversationSidebar.tsx')
     const presence = read('src/store/slices/presenceSlice.ts')
     const appStore = read('src/store/index.ts')
+    const chatLayout = read('src/components/ChatLayout.tsx')
 
     await check('Transport: CHECK_USER_EXIST dung event reply', () => {
         assert.match(socket, /'CHAT_CHECK_USER_EXIST'\) responseEvent = 'CHECK_USER_EXIST'/)
@@ -258,6 +322,22 @@ try {
     })
     await check('Presence: dang ky trong Redux store', () => {
         assert.match(appStore, /presence: presenceReducer/)
+    })
+    await check('CV24: ChatLayout su dung adapter lich su that cho people', () => {
+        assert.match(chatLayout, /import \{ loadHistory as loadChatHistory \} from '\.\.\/services\/chatApi'/)
+        assert.match(chatLayout, /return loadChatHistory\(conversation, page, user\)/)
+        assert.match(chatLayout, /loadHistory=\{loadSelectedHistory\}/)
+    })
+    await check('CV24: mock tu chon van doc fixture', () => {
+        assert.match(chatLayout, /if \(usingMockData \|\| conversation\.kind === 'room'\)/)
+        assert.match(chatLayout, /return mockChatService\.loadHistory\(conversation, page, user\)/)
+    })
+    await check('CV43: sidebar thong bao doi che do cho ChatLayout', () => {
+        assert.match(sidebar, /onMockModeChange\?\.\(mode !== 'api'\)/)
+        assert.match(chatLayout, /onMockModeChange=\{setUsingMockData\}/)
+    })
+    await check('CV43: khong tu mo socket hay JOIN_ROOM khi xem lich su', () => {
+        assert.doesNotMatch(chatLayout, /new WebSocket|JOIN_ROOM|CHAT_CHECK_USER_EXIST/)
     })
     await check('API: khong co REST hoac socket moi', () => {
         assert.doesNotMatch(sourceApi, /new WebSocket|fetch\(|axios/)
