@@ -8,6 +8,7 @@ import { getRoomRequest, sendRoomRequest, subscribeRoomRequests } from './roomRe
 import type { RoomRequestStatus } from './roomRequestState'
 import { useAppSelector } from '../../store/hooks'
 import { store } from '../../store'
+import { resetLeaveAfterJoin } from './leaveRoomRequestState'
 
 type RequestUpdate = {
     name: string
@@ -96,9 +97,12 @@ export default function JoinRoom({
             update => onRequestChange?.({ name: update.name, sessionGeneration: update.sessionGeneration, status: update.status }),
         )
 
-        if (result?.status === 'success' && isOpen.current) {
-            onJoined?.(result.data)
-            onSelectConversation?.({ kind: 'room', name: result.data.name })
+        if (result?.status === 'success' && result.data.name === roomName) {
+            resetLeaveAfterJoin(sessionGeneration, roomName)
+            if (isOpen.current) {
+                onJoined?.(result.data)
+                onSelectConversation?.({ kind: 'room', name: result.data.name })
+            }
         }
     }
 
