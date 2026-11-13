@@ -13,6 +13,7 @@ class FakeSocket {
 
     readyState = FakeSocket.CONNECTING
     onopen: (() => void) | null = null
+    onerror: (() => void) | null = null
     onclose: (() => void) | null = null
     onmessage: ((event: { data: string }) => void) | null = null
     send = vi.fn()
@@ -144,5 +145,23 @@ describe('mở kết nối socket', () => {
 
         expect(newSocket).not.toBe(oldSocket)
         expect(socketClient.getStatus()).toBe('connected')
+    })
+})
+
+describe('lỗi khi mở socket', () => {
+    it('chỉ đóng một lần nếu close phát thêm error', async () => {
+        const pending = socketClient.connect(URL).catch(err => err)
+        const socket = FakeSocket.instances[0]
+        const close = vi.spyOn(socket, 'close').mockImplementation(() => {
+            socket.onerror?.()
+            socket.finishClose()
+        })
+
+        socket.onerror?.()
+        const err = await pending
+
+        expect(err).toMatchObject({ message: 'Không mở được kết nối WebSocket' })
+        expect(close).toHaveBeenCalledOnce()
+        expect(socketClient.getStatus()).toBe('disconnected')
     })
 })

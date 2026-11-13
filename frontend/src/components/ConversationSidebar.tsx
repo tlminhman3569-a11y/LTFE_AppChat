@@ -17,19 +17,23 @@ type MockMode = 'success' | 'empty' | 'error' | 'unknown'
 interface Props {
     selectedConversation: ConversationRef | null
     onSelectConversation: OnSelectConversation
+    reconnectCount?: number
     loadConversations?: () => Promise<ApiResult<RecentConversation[]>>
 }
 
 export default function ConversationSidebar({
                                                 selectedConversation,
                                                 onSelectConversation,
+                                                reconnectCount = 0,
                                                 loadConversations = getRecentConversations,
                                             }: Props) {
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState<SuggestionFilter>('all')
     const [mockMode, setMockMode] = useState<MockMode>('success')
     const [listState, setListState] = useState<ConversationLoadState>({ conversations: [], error: '' })
-    const [loading, setLoading] = useState(true)
+    const [isLoading, setLoading] = useState(true)
+    const [loadedReconnectCount, setLoadedReconnectCount] = useState(reconnectCount)
+    const loading = isLoading || loadedReconnectCount !== reconnectCount
     const { conversations, error } = listState
     const [attempt, setAttempt] = useState(0)
 
@@ -55,13 +59,16 @@ export default function ConversationSidebar({
                 if (!active) return
                 setListState(previous => ({ ...previous, error: 'Không tải được danh sách hội thoại gần đây.' }))
             } finally {
-                if (active) setLoading(false)
+                if (active) {
+                    setLoadedReconnectCount(reconnectCount)
+                    setLoading(false)
+                }
             }
         }
 
         void load()
         return () => { active = false }
-    }, [attempt, loadConversations, mockMode])
+    }, [attempt, loadConversations, mockMode, reconnectCount])
 
     function retry() {
         setLoading(true)

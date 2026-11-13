@@ -103,8 +103,13 @@ function connect(url: string): Promise<void> {
         socket.onerror = () => {
             clearTimeout(timer)
             reject(new Error('Không mở được kết nối WebSocket'))
-            socket.close()
             rejectRequests(requests)
+
+            // Một số WebSocket trên Node phát error ngay khi close được gọi
+            socket.onerror = null
+            if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
+                socket.close()
+            }
         }
         socket.onclose = () => {
             clearTimeout(timer)
