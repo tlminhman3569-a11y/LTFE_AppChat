@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConversationKey, ConversationRef } from '../../types/api'
-import type { ChatPageProps, ChatService, Message } from '../../types/message'
+import type { ChatPageProps, ChatService, ComposerProps, Message } from '../../types/message'
+import Composer from './Composer'
 import MessageList from './MessageList'
 import './chat.css'
 
-interface ChatProps extends ChatPageProps {
+interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
+    sentPreview: boolean
     conversationKey: ConversationKey | null
     loadHistory: ChatService['loadHistory']
     onBack: () => void
@@ -145,6 +147,7 @@ function ChatHistory({ conversation, currentUser, loadHistory }: HistoryProps) {
 
 export default function ChatPage({
     conversation, conversationKey, currentUser, sessionGeneration, loadHistory, onBack,
+    draft, canSend, onDraftChange, onSend, sentPreview,
 }: ChatProps) {
     return (
         <section className="chat-content chat-page" aria-label="Nội dung hội thoại">
@@ -161,10 +164,15 @@ export default function ChatPage({
                         currentUser={currentUser}
                         loadHistory={loadHistory}
                     />
-                    <footer className="chat-composer-slot">
-                        <input aria-label="Tin nhắn" placeholder="Soạn tin nhắn" disabled />
-                        <button type="button" disabled>Gửi</button>
-                    </footer>
+                    {sentPreview && <p role="status" className="chat-composer-status">Đã thử thao tác gửi. Tin nhắn chưa được gửi lên máy chủ.</p>}
+                    <Composer
+                        key={conversationKey}
+                        conversation={conversation}
+                        draft={draft}
+                        canSend={canSend}
+                        onDraftChange={onDraftChange}
+                        onSend={onSend}
+                    />
                 </>
             ) : <p className="chat-no-selection">Chọn một hội thoại để xem tin nhắn.</p>}
         </section>

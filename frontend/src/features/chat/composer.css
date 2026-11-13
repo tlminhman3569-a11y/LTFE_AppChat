@@ -1,0 +1,35 @@
+.chat-composer {
+    display: grid;
+    gap: 8px;
+    padding: 12px 24px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.chat-composer-toolbar,
+.chat-composer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-composer-actions {
+    justify-content: space-between;
+}
+
+.chat-composer textarea {
+    width: 100%;
+    min-height: 3rem;
+    max-height: 9rem;
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    resize: vertical;
+    font: inherit;
+}
+
+@media (max-width: 640px) {
+    .chat-composer {
+        padding: 10px 16px;
+    }
+}
