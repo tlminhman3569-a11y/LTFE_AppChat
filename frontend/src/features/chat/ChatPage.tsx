@@ -38,7 +38,7 @@ function ChatHistory({ conversation, currentUser, loadHistory }: HistoryProps) {
 
         async function loadFirstPage() {
             try {
-                const result = await loadHistory({ kind, name }, 1)
+                const result = await loadHistory({ kind, name }, 1, currentUser)
                 if (!active) return
 
                 if (result.status === 'success') {
@@ -59,7 +59,7 @@ function ChatHistory({ conversation, currentUser, loadHistory }: HistoryProps) {
             active = false
             olderRequest.current?.abort()
         }
-    }, [attempt, kind, name, loadHistory])
+    }, [attempt, kind, name, currentUser, loadHistory])
 
     useLayoutEffect(() => {
         const history = historyRef.current
@@ -80,7 +80,7 @@ function ChatHistory({ conversation, currentUser, loadHistory }: HistoryProps) {
         setLoadingOlder(true)
         setOlderError('')
         try {
-            const result = await loadHistory({ kind, name }, page + 1)
+            const result = await loadHistory({ kind, name }, page + 1, currentUser)
             if (request.signal.aborted) return
 
             if (result.status !== 'success') {

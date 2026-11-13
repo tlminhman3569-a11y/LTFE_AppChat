@@ -60,11 +60,7 @@ export default function ChatLayout() {
                 </button>
             </header>
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
-                <ConversationSidebar
-                    selectedConversation={selectedConversation}
-                    onSelectConversation={selectConversation}
-                    reconnectCount={reconnectCount}
-                />
+                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                 <ChatPage
                     conversation={selectedConversation}
                     conversationKey={conversationKey}

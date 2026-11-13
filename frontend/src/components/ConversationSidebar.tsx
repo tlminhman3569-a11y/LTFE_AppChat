@@ -3,6 +3,8 @@ import { conversationsEmpty, conversationsError, conversationsUnknown } from '..
 import { getRecentConversations } from '../fixtures/mockServices'
 import RoomSearch from '../features/rooms/RoomSearch'
 import UserSearch from '../features/users/UserSearch'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { refreshConversations } from '../store/slices/conversationsSlice'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
 import type { OnSelectConversation, RecentConversation } from '../types/user'
 import { filterRecentConversations } from '../utils/filterRecentConversations'
@@ -12,81 +14,88 @@ import ConversationList from './ConversationList'
 import './ConversationSidebar.css'
 
 type SuggestionFilter = 'all' | ConversationKind
-type MockMode = 'success' | 'empty' | 'error' | 'unknown'
+type MockMode = 'api' | 'success' | 'empty' | 'error' | 'unknown'
 
 interface Props {
     selectedConversation: ConversationRef | null
     onSelectConversation: OnSelectConversation
-    reconnectCount?: number
-    loadConversations?: () => Promise<ApiResult<RecentConversation[]>>
 }
 
-export default function ConversationSidebar({
-                                                selectedConversation,
-                                                onSelectConversation,
-                                                reconnectCount = 0,
-                                                loadConversations = getRecentConversations,
-                                            }: Props) {
+export default function ConversationSidebar({ selectedConversation, onSelectConversation }: Props) {
+    const dispatch = useAppDispatch()
+    const { authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
+    const apiList = useAppSelector(state => state.conversations)
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState<SuggestionFilter>('all')
-    const [mockMode, setMockMode] = useState<MockMode>('success')
-    const [listState, setListState] = useState<ConversationLoadState>({ conversations: [], error: '' })
-    const [isLoading, setLoading] = useState(true)
-    const [loadedReconnectCount, setLoadedReconnectCount] = useState(reconnectCount)
-    const loading = isLoading || loadedReconnectCount !== reconnectCount
-    const { conversations, error } = listState
-    const [attempt, setAttempt] = useState(0)
+    const [mockMode, setMockMode] = useState<MockMode>('api')
+    const [mockListState, setListState] = useState<ConversationLoadState>({ conversations: [], error: '' })
+    const [mockLoading, setMockLoading] = useState(false)
+    const [mockLoaded, setMockLoaded] = useState(false)
+    const [mockAttempt, setMockAttempt] = useState(0)
 
     useEffect(() => {
+        if (mockMode !== 'api' || authStatus !== 'authenticated' || connectionStatus !== 'connected') return
+        void dispatch(refreshConversations(sessionGeneration))
+    }, [authStatus, connectionStatus, dispatch, mockMode, sessionGeneration])
+
+    useEffect(() => {
+        if (mockMode === 'api') return
         let active = true
 
-        async function load() {
+        const timer = setTimeout(async () => {
             try {
-                if (import.meta.env.DEV) {
-                    await new Promise(resolve => setTimeout(resolve, 300))
-                }
-
                 let result: ApiResult<RecentConversation[]>
                 if (mockMode === 'empty') result = conversationsEmpty
                 else if (mockMode === 'error') result = conversationsError
                 else if (mockMode === 'unknown') result = conversationsUnknown
-                else result = await loadConversations()
+                else result = await getRecentConversations()
 
                 if (!active) return
-
                 setListState(previous => applyConversationLoad(previous, result))
+                if (result.status === 'success') setMockLoaded(true)
             } catch {
                 if (!active) return
                 setListState(previous => ({ ...previous, error: 'Không tải được danh sách hội thoại gần đây.' }))
             } finally {
-                if (active) {
-                    setLoadedReconnectCount(reconnectCount)
-                    setLoading(false)
-                }
+                if (active) setMockLoading(false)
             }
-        }
+        }, 250)
 
-        void load()
-        return () => { active = false }
-    }, [attempt, loadConversations, mockMode, reconnectCount])
+        return () => {
+            active = false
+            clearTimeout(timer)
+        }
+    }, [mockAttempt, mockMode])
+
+    const isMock = mockMode !== 'api'
+    const conversations = isMock ? mockListState.conversations : apiList.items
+    const loading = isMock ? mockLoading : apiList.loading
+    const loaded = isMock ? mockLoaded : apiList.loaded
+    const disconnected = !isMock && authStatus === 'authenticated'
+        && (connectionStatus === 'disconnected' || connectionStatus === 'reconnecting')
+    const error = isMock
+        ? mockListState.error
+        : apiList.error || (disconnected ? 'Kết nối bị gián đoạn. Chưa thể cập nhật danh sách.' : '')
+    const suggestions = filterRecentConversations(conversations, query)
 
     function retry() {
-        setLoading(true)
-        setListState(previous => ({ ...previous, error: '' }))
-        if (mockMode === 'error' || mockMode === 'unknown') {
-            setMockMode('success')
+        if (isMock) {
+            setMockLoading(true)
+            setListState(previous => ({ ...previous, error: '' }))
+            if (mockMode === 'error' || mockMode === 'unknown') setMockMode('success')
+            else setMockAttempt(value => value + 1)
         } else {
-            setAttempt(value => value + 1)
+            void dispatch(refreshConversations(sessionGeneration))
         }
     }
 
     function changeMockMode(mode: MockMode) {
         setMockMode(mode)
-        setLoading(true)
-        setListState(previous => ({ ...previous, error: '' }))
+        if (mode !== 'api') {
+            setMockLoading(true)
+            setListState(previous => ({ ...previous, error: '' }))
+        }
     }
-
-    const suggestions = filterRecentConversations(conversations, query)
 
     return (
         <aside className="chat-sidebar cv39-sidebar" aria-label="Danh sách hội thoại">
@@ -106,11 +115,13 @@ export default function ConversationSidebar({
                 autoComplete="off"
             />
             <p className="cv39-hint">Chỉ tìm trong hội thoại gần đây, không tìm trên toàn hệ thống.</p>
+            <p className="cv39-hint">Nguồn: {isMock ? 'Dữ liệu mẫu CV38' : 'GET_USER_LIST từ máy chủ'}</p>
 
             {import.meta.env.DEV && (
                 <label className="cv39-demo-label">
                     Thử trạng thái mock
                     <select value={mockMode} onChange={event => changeMockMode(event.target.value as MockMode)}>
+                        <option value="api">API thật</option>
                         <option value="success">Có dữ liệu</option>
                         <option value="empty">Danh sách trống</option>
                         <option value="error">Lỗi tải</option>
@@ -120,7 +131,11 @@ export default function ConversationSidebar({
             )}
 
             <div className="cv39-results" aria-busy={loading}>
-                {loading && <p role="status" className="cv39-notice">{conversations.length > 0 ? 'Đang làm mới danh sách hội thoại...' : 'Đang tải danh sách hội thoại...'}</p>}
+                {loading && (
+                    <p role="status" className="cv39-notice">
+                        {conversations.length > 0 ? 'Đang làm mới danh sách hội thoại...' : 'Đang tải danh sách hội thoại...'}
+                    </p>
+                )}
 
                 {!loading && error && (
                     <div className={`cv39-notice${conversations.length > 0 ? ' cv39-stale-warning' : ''}`} role="alert">
@@ -130,7 +145,11 @@ export default function ConversationSidebar({
                     </div>
                 )}
 
-                {!loading && !error && conversations.length === 0 && (
+                {!loading && !error && !loaded && (
+                    <p role="status" className="cv39-hint">Chưa tải danh sách. Hãy đợi kết nối hoặc nhấn Làm mới.</p>
+                )}
+
+                {!loading && !error && loaded && conversations.length === 0 && (
                     <p role="status" className="cv39-empty">
                         Chưa có hội thoại gần đây. Điều này không có nghĩa người dùng hoặc phòng không tồn tại.
                     </p>
