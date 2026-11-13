@@ -7,7 +7,6 @@ import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
 import { rooms } from '../fixtures/rooms'
-import { mockChatService } from '../fixtures/mockChatService'
 import { createConversationKey } from '../utils/conversationKey'
 
 export default function ChatLayout() {
@@ -58,7 +57,6 @@ export default function ChatLayout() {
                     authStatus={authStatus}
                     connectionStatus={connectionStatus}
                     sessionGeneration={sessionGeneration}
-                    loadHistory={mockChatService.loadHistory}
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
                     canSend={canSend}
                     onDraftChange={(conversation, draft) => {
