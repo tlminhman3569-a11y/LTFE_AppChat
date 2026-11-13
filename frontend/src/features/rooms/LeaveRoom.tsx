@@ -4,13 +4,9 @@ import type { ApiResult } from '../../types/api'
 import type { Room, RoomConversationRef } from '../../types/room'
 import { useAppSelector } from '../../store/hooks'
 import { store } from '../../store'
-
-type LeaveStatus = 'pending' | 'unknown' | 'error' | 'success'
-
-type LeaveRequest = {
-    status: LeaveStatus
-    message: string
-}
+import { getLeaveRequest, subscribeLeaveRequests, updateLeaveRequest } from './leaveRoomRequestState'
+import type { LeaveRequest, LeaveStatus } from './leaveRoomRequestState'
+import { clearRoomRequest, getRoomRequest } from './roomRequestState'
 
 type Props = {
     room: Room
@@ -21,23 +17,6 @@ type Props = {
     onLeaveConfirmed: (conversation: RoomConversationRef) => void
     onStatusChange?: (conversation: RoomConversationRef, status: LeaveStatus) => void
     leaveRoom?: (name: string) => Promise<ApiResult<{ roomName: string }>>
-}
-
-const requests = new Map<string, LeaveRequest>()
-const listeners = new Set<() => void>()
-
-function requestKey(sessionGeneration: number, name: string) {
-    return JSON.stringify([sessionGeneration, name])
-}
-
-function subscribe(listener: () => void) {
-    listeners.add(listener)
-    return () => { listeners.delete(listener) }
-}
-
-function updateRequest(key: string, request: LeaveRequest) {
-    requests.set(key, request)
-    listeners.forEach(listener => listener())
 }
 
 async function mockLeaveRoom(room: Room): Promise<ApiResult<{ roomName: string }>> {
@@ -66,8 +45,7 @@ export default function LeaveRoom({
                                   }: Props) {
     const sessionGeneration = useAppSelector(state => state.auth.sessionGeneration)
     const conversation: RoomConversationRef = { kind: 'room', name: room.name }
-    const key = requestKey(sessionGeneration, room.name)
-    const request = useSyncExternalStore(subscribe, () => requests.get(key) ?? null, () => null)
+    const request = useSyncExternalStore(subscribeLeaveRequests, () => getLeaveRequest(sessionGeneration, room.name), () => null)
     const status = request?.status
     const isOwner = room.ownerKnown
         ? !!currentUser && room.owner === currentUser
@@ -75,16 +53,17 @@ export default function LeaveRoom({
     const hasLeft = room.membership === 'left'
     const locked = status === 'pending' || status === 'unknown' || status === 'success'
     const cannotLeave = isOwner || hasLeft || !currentUser
+    const closeLabel = status === 'pending' || status === 'unknown' || status === 'success' ? 'Đóng' : 'Hủy'
 
     async function confirm(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
         if (cannotLeave || locked) return
         if (store.getState().auth.sessionGeneration !== sessionGeneration) return
-        const previous = requests.get(key)
+        const previous = getLeaveRequest(sessionGeneration, room.name)
         if (previous && previous.status !== 'error') return
 
         const pending: LeaveRequest = { status: 'pending', message: 'Đang chờ xác nhận rời phòng.' }
-        updateRequest(key, pending)
+        updateLeaveRequest(sessionGeneration, room.name, pending)
         onStatusChange?.(conversation, 'pending')
 
         let result: ApiResult<{ roomName: string }>
@@ -94,28 +73,31 @@ export default function LeaveRoom({
             result = { status: 'unknown', error: { kind: 'connection', message: 'Mất kết nối, chưa rõ đã rời phòng hay chưa.' } }
         }
 
-        if (store.getState().auth.sessionGeneration !== sessionGeneration || requests.get(key) !== pending) return
+        if (store.getState().auth.sessionGeneration !== sessionGeneration || getLeaveRequest(sessionGeneration, room.name) !== pending) return
 
         if (result.status === 'success' && result.data.roomName === room.name) {
-            updateRequest(key, { status: 'success', message: 'Đã rời phòng (theo kết quả xác nhận).' })
+            updateLeaveRequest(sessionGeneration, room.name, { status: 'success', message: 'Đã rời phòng (theo kết quả xác nhận).' })
+            if (getRoomRequest('join', room.name, sessionGeneration)?.status === 'success') {
+                clearRoomRequest('join', room.name, sessionGeneration)
+            }
             onStatusChange?.(conversation, 'success')
             onLeaveConfirmed(conversation)
             return
         }
 
         if (result.status === 'success') {
-            updateRequest(key, { status: 'unknown', message: 'Phản hồi không khớp tên phòng. Cần kiểm tra lại quyền phòng.' })
+            updateLeaveRequest(sessionGeneration, room.name, { status: 'unknown', message: 'Phản hồi không khớp tên phòng. Cần kiểm tra lại quyền phòng.' })
             onStatusChange?.(conversation, 'unknown')
             return
         }
 
         if (result.status === 'unknown' || result.error.kind !== 'business') {
-            updateRequest(key, { status: 'unknown', message: `${result.error.message} Chưa rõ kết quả. Hãy kiểm tra lại trước khi thao tác tiếp.` })
+            updateLeaveRequest(sessionGeneration, room.name, { status: 'unknown', message: `${result.error.message} Chưa rõ kết quả. Hãy kiểm tra lại trước khi thao tác tiếp.` })
             onStatusChange?.(conversation, 'unknown')
             return
         }
 
-        updateRequest(key, { status: 'error', message: result.error.message })
+        updateLeaveRequest(sessionGeneration, room.name, { status: 'error', message: result.error.message })
         onStatusChange?.(conversation, 'error')
     }
 
@@ -162,7 +144,7 @@ export default function LeaveRoom({
                 )}
 
                 <form onSubmit={confirm} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-                    <button type="button" onClick={onClose} style={buttonStyle}>Hủy</button>
+                    <button type="button" onClick={onClose} style={buttonStyle}>{closeLabel}</button>
                     <button
                         type="submit"
                         disabled={cannotLeave || locked}
