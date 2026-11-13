@@ -3,7 +3,7 @@ import { logout } from '../services/authApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
-import SidebarPlaceholder from './SidebarPlaceholder'
+import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
 import { rooms } from '../fixtures/rooms'
@@ -36,7 +36,7 @@ export default function ChatLayout() {
         setIsLoggingOut(true)
 
         const result = await logout()
-        dispatch(sessionCleared(result.status !== 'success'))
+        dispatch(sessionCleared({ logoutNotConfirmed: result.status !== 'success' }))
     }
 
     return (
@@ -50,7 +50,7 @@ export default function ChatLayout() {
                 </button>
             </header>
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
-                <SidebarPlaceholder onSelectConversation={selectConversation} />
+                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                 <ChatPage
                     conversation={selectedConversation}
                     conversationKey={conversationKey}

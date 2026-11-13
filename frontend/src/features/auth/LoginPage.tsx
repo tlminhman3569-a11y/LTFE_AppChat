@@ -4,7 +4,7 @@ import AuthForm from './AuthForm'
 import './auth.css'
 
 export default function LoginPage() {
-    const logoutNotConfirmed = useAppSelector(state => state.auth.logoutNotConfirmed)
+    const { logoutNotConfirmed, restoreError } = useAppSelector(state => state.auth)
     const [mode, setMode] = useState<'login' | 'register'>('login')
     const [registeredUser, setRegisteredUser] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,6 +36,7 @@ export default function LoginPage() {
                     <button type="button" disabled={isSubmitting} aria-pressed={!isRegister} onClick={() => changeMode('login')}>Đăng nhập</button>
                     <button type="button" disabled={isSubmitting} aria-pressed={isRegister} onClick={() => changeMode('register')}>Đăng ký</button>
                 </div>
+                {restoreError && <p role="alert" className="auth-error">{restoreError}</p>}
                 {logoutNotConfirmed && (
                     <p role="status" className="auth-notice">
                         Đã đăng xuất trên thiết bị này, chưa có xác nhận từ máy chủ
