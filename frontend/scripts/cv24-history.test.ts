@@ -39,7 +39,7 @@ it('phân biệt máy chủ từ chối, mất kết nối và timeout', async (
     request.mockRejectedValueOnce(new SocketRequestError('timeout', 'timeout', true))
     expect(await loadHistory(people, 1, 'kiet_demo')).toMatchObject({ status: 'error', error: { kind: 'business' } })
     expect(await loadHistory(people, 1, 'kiet_demo')).toMatchObject({ status: 'error', error: { kind: 'connection' } })
-    expect(await loadHistory(people, 1, 'kiet_demo')).toMatchObject({ status: 'unknown', error: { kind: 'timeout' } })
+    expect(await loadHistory(people, 1, 'kiet_demo')).toMatchObject({ status: 'error', error: { kind: 'timeout' } })
 })
 
 it('từ chối số trang sai và giao lịch sử phòng cho adapter của Khôi', async () => {
@@ -63,6 +63,6 @@ it('chỉ chấp nhận tin giữa tài khoản hiện tại và người bên k
         request.mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [sample, message] })
         expect(await loadHistory(people, 1, 'kiet_demo')).toMatchObject({ status: 'error', error: { kind: 'parse' } })
     }
-    expect(await loadHistory(people, 1, '')).toMatchObject({ status: 'error', error: { kind: 'session' } })
+    expect(await loadHistory(people, 1, null)).toMatchObject({ status: 'error', error: { kind: 'session' } })
     expect(request).toHaveBeenCalledTimes(3)
 })

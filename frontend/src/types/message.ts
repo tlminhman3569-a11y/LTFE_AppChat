@@ -51,7 +51,7 @@ export interface SendMessageInput {
 }
 
 export interface ChatService {
-    loadHistory(conversation: ConversationRef, page: number): Promise<ApiResult<HistoryPage>>
+    loadHistory(conversation: ConversationRef, page: number, currentUser: string | null): Promise<ApiResult<HistoryPage>>
     send(message: SendMessageInput): Promise<ApiResult<void>>
 }
 

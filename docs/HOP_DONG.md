@@ -54,7 +54,7 @@ Mẫn giữ khung trang; Kiệt giữ component nội dung chat; Khôi giữ sid
 | JOIN_ROOM | name | JOIN_ROOM | Khôi |
 | OUT_ROOM | name | OUT_ROOM | Khôi |
 | GET_ROOM_CHAT_MES | name, page | GET_ROOM_CHAT_MES theo phép thử trước | Khôi |
-| CHAT_PEOPLE_GET_MES | name, page | CHAT_PEOPLE_GET_MES | Kiệt |
+| GET_PEOPLE_CHAT_MES | name, page | GET_PEOPLE_CHAT_MES | Kiệt |
 | SEND_CHAT | type: people/room, to, mes | SEND_CHAT vừa có thể nhận tin vừa có phản hồi | Kiệt |
 
 Envelope theo bảng: {"action":"onchat","data":{"event":"...","data":{...}}}. LOGOUT là ngoại lệ không có data con theo ví dụ. Response status/event/data hoặc mes ngoài phải được kiểm tra theo từng lệnh.
@@ -126,7 +126,7 @@ một mục trong danh sách.
 - [types/message.ts](../frontend/src/types/message.ts) dùng lại `ConversationRef`, `ConversationKey` và `ApiResult` của CV02. Dùng `createConversationKey` cho lịch sử và nháp để phân biệt người và phòng cùng tên.
 - `Message` giữ `name` của tác giả, `to`, loại, `mes` thô và ID/giờ máy chủ nếu có. `PendingMessage` giữ mã cục bộ riêng cùng trạng thái chờ, chưa xác nhận hoặc thất bại.
 - `ChatPageProps` nhận hội thoại được chọn và trạng thái phiên/kết nối từ khung. `ComposerProps` nhận nháp và quyền gửi, trả `onDraftChange(conversation, draft)` hoặc `onSend(conversation, draft)`. Phần xử lý gửi chụp hội thoại và nháp lúc nhận callback, kiểm tra quyền rồi tạo mã đối chiếu. Việc chọn hội thoại tiếp tục dùng callback của sidebar ở trên.
-- Mock và service thật dùng chung `ChatService`. `loadHistory(conversation, page)` trả hội thoại, số trang và danh sách tin. Trang bắt đầu từ 1, trang rỗng kết thúc lịch sử, còn lỗi trả qua `ApiResult`. Lịch sử phòng lấy từ kết quả chuẩn hóa của `roomsApi.loadRoom`; fixture dùng chung mock đọc phòng.
+- Mock và service thật dùng chung `ChatService`. `loadHistory(conversation, page, currentUser)` trả hội thoại, số trang và danh sách tin. Trang bắt đầu từ 1, trang rỗng kết thúc lịch sử, còn lỗi trả qua `ApiResult`. Lịch sử phòng lấy từ kết quả chuẩn hóa của `roomsApi.loadRoom`; fixture dùng chung mock đọc phòng.
 - `send({ conversation, content })` trả kết quả tác vụ gửi. Chỉ chuyển sang đã lưu khi đối chiếu được đúng tin. Mock minh họa nhánh chưa xác nhận, không gọi WebSocket.
 - [Fixture chat](../frontend/src/fixtures/chat.ts) có text cũ, emoji, định dạng hợp lệ, JSON lỗi, text trông giống HTML, lịch sử nhiều trang và cặp người/phòng trùng tên. Đây là dữ liệu mẫu để dựng UI và kiểm tra tình huống trong các CV sau.
 

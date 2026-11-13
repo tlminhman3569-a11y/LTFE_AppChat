@@ -20,7 +20,7 @@ function invalidHistory(): ApiResult<never> {
     return { status: 'error', error: { kind: 'parse', message: 'Phản hồi lịch sử không hợp lệ' } }
 }
 
-export async function loadHistory(conversation: ConversationRef, page: number, currentUser: string): Promise<ApiResult<HistoryPage>> {
+export async function loadHistory(conversation: ConversationRef, page: number, currentUser: string | null): Promise<ApiResult<HistoryPage>> {
     if (!conversation.name.trim() || !Number.isInteger(page) || page < 1) {
         return { status: 'error', error: { kind: 'business', message: 'Cần tên hội thoại và số trang hợp lệ' } }
     }
@@ -33,7 +33,7 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
         return { status: 'error', error: { kind: 'parse', message: 'Chưa có hợp đồng dữ liệu lịch sử phòng từ CV45' } }
     }
 
-    if (!currentUser.trim()) {
+    if (!currentUser?.trim()) {
         return { status: 'error', error: { kind: 'session', message: 'Cần tài khoản hiện tại để đọc lịch sử chat riêng' } }
     }
 
@@ -59,7 +59,7 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
         return { status: 'success', data: { conversation, page, messages } }
     } catch (error) {
         if (error instanceof SocketRequestError && error.kind === 'timeout') {
-            return { status: 'unknown', error: { kind: 'timeout', message: 'Hết thời gian chờ lịch sử chat riêng' } }
+            return { status: 'error', error: { kind: 'timeout', message: 'Hết thời gian chờ lịch sử chat riêng' } }
         }
         return { status: 'error', error: { kind: 'connection', message: 'Không thể kết nối để tải lịch sử' } }
     }
