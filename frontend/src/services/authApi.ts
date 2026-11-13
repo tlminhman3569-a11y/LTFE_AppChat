@@ -1,11 +1,14 @@
 import type { ApiResult } from '../types/api'
 import { socketClient, SocketRequestError } from './socketClient'
+import { clearStoredSession, readStoredSession, saveSession } from './sessionStorage.ts'
+import type { LoginSession } from './sessionStorage.ts'
 
 const socketUrl = 'wss://chat.longapp.io.vn/chat/chat'
 
-interface LoginSession {
-    username: string
-    reLoginCode: string
+function readReLoginCode(data: unknown) {
+    if (!data || typeof data !== 'object' || !('RE_LOGIN_CODE' in data)) return null
+    const code = data.RE_LOGIN_CODE
+    return typeof code === 'string' && code.trim() ? code : null
 }
 
 export async function login(username: string, password: string): Promise<ApiResult<LoginSession>> {
@@ -18,12 +21,9 @@ export async function login(username: string, password: string): Promise<ApiResu
             return { status: 'error', error: { kind: 'business', message: 'Đăng nhập không thành công' } }
         }
 
-        const data = response.data
-        if (response.status === 'success' && data && typeof data === 'object' && 'RE_LOGIN_CODE' in data) {
-            const reLoginCode = data.RE_LOGIN_CODE
-            if (typeof reLoginCode === 'string' && reLoginCode.trim()) {
-                return { status: 'success', data: { username, reLoginCode } }
-            }
+        const reLoginCode = readReLoginCode(response.data)
+        if (response.status === 'success' && reLoginCode) {
+            return { status: 'success', data: { username, reLoginCode } }
         }
 
         // Máy chủ có thể đã xác thực socket dù mã phiên không dùng được
@@ -35,6 +35,31 @@ export async function login(username: string, password: string): Promise<ApiResu
         }
 
         return { status: 'error', error: { kind: 'connection', message: 'Không thể kết nối để đăng nhập' } }
+    }
+}
+
+export async function reLogin(session: LoginSession): Promise<ApiResult<LoginSession>> {
+    const { username, reLoginCode } = session
+    try {
+        await socketClient.connect(socketUrl)
+        const response = await socketClient.request('RE_LOGIN', { user: username, code: reLoginCode })
+        const newCode = readReLoginCode(response.data)
+        if (response.status === 'success' && newCode) {
+            const renewedSession = { username, reLoginCode: newCode }
+            const storedSession = readStoredSession()
+            if (storedSession?.username === username && storedSession.reLoginCode === reLoginCode) {
+                saveSession(renewedSession)
+            }
+            return { status: 'success', data: renewedSession }
+        }
+
+        socketClient.disconnect()
+        if (response.status === 'error') {
+            return { status: 'error', error: { kind: 'session', message: 'Phiên đã hết hạn, vui lòng đăng nhập lại' } }
+        }
+        return { status: 'error', error: { kind: 'parse', message: 'Phản hồi khôi phục phiên thiếu mã hợp lệ' } }
+    } catch (error) {
+        return commandFailure(error, 'khôi phục phiên')
     }
 }
 
@@ -73,6 +98,7 @@ let pendingLogout: Promise<ApiResult<null>> | undefined
 
 export function logout(): Promise<ApiResult<null>> {
     if (!pendingLogout) {
+        clearStoredSession()
         pendingLogout = finishLogout().finally(() => { pendingLogout = undefined })
     }
     return pendingLogout

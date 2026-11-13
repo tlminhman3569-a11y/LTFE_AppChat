@@ -4,7 +4,10 @@ import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router'
 import { store } from './store'
 import App from './App'
+import { restoreSession } from './features/auth/restoreSession'
 import './styles/global.css'
+
+void restoreSession()
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>

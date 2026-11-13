@@ -8,6 +8,7 @@ interface AuthState {
     currentUser: string | null
     sessionGeneration: number
     logoutNotConfirmed: boolean
+    restoreError: string | null
 }
 
 const initialState: AuthState = {
@@ -16,6 +17,7 @@ const initialState: AuthState = {
     currentUser: null,
     sessionGeneration: 0,
     logoutNotConfirmed: false,
+    restoreError: null,
 }
 
 const authSlice = createSlice({
@@ -23,6 +25,7 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         sessionChecking(state) {
+            state.restoreError = null
             state.logoutNotConfirmed = false
             state.authStatus = 'checking'
             state.currentUser = null
@@ -33,13 +36,15 @@ const authSlice = createSlice({
             state.connectionStatus = action.payload
         },
         sessionStarted(state, action: PayloadAction<string>) {
+            state.restoreError = null
             state.logoutNotConfirmed = false
             state.authStatus = 'authenticated'
             state.currentUser = action.payload
             state.sessionGeneration += 1
         },
-        sessionCleared(state, action: PayloadAction<boolean | undefined>) {
-            state.logoutNotConfirmed = action.payload === true
+        sessionCleared(state, action: PayloadAction<{ logoutNotConfirmed?: boolean; restoreError?: string } | undefined>) {
+            state.logoutNotConfirmed = action.payload?.logoutNotConfirmed ?? false
+            state.restoreError = action.payload?.restoreError ?? null
             state.authStatus = 'unauthenticated'
             state.currentUser = null
             state.connectionStatus = 'disconnected'
