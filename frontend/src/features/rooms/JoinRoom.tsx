@@ -6,14 +6,17 @@ import { mockJoinRoom } from './roomMockServices'
 import type { RoomMockMode } from './roomMockServices'
 import { getRoomRequest, sendRoomRequest, subscribeRoomRequests } from './roomRequestState'
 import type { RoomRequestStatus } from './roomRequestState'
+import { useAppSelector } from '../../store/hooks'
+import { store } from '../../store'
 
 type RequestUpdate = {
     name: string
+    sessionGeneration: number
     status: RoomRequestStatus
 }
 
 interface Props {
-    onClose: (request?: { name: string; status: 'pending' | 'unknown' }) => void
+    onClose: (request?: { name: string; sessionGeneration: number; status: 'pending' | 'unknown' }) => void
     onJoined?: (room: Room) => void
     onSelectConversation?: (conversation: ConversationRef) => void
     onRequestChange?: (request: RequestUpdate) => void
@@ -47,6 +50,7 @@ const buttonStyle: CSSProperties = {
 export default function JoinRoom({
                                      onClose, onJoined, onSelectConversation, onRequestChange, joinRoom, initialName = '', mockMode = 'normal',
                                  }: Props) {
+    const sessionGeneration = useAppSelector(state => state.auth.sessionGeneration)
     const [name, setName] = useState(initialName)
     const [inputError, setInputError] = useState('')
     const isOpen = useRef(true)
@@ -58,7 +62,7 @@ export default function JoinRoom({
 
     const request = useSyncExternalStore(
         subscribeRoomRequests,
-        () => getRoomRequest('join', name.trim()),
+        () => getRoomRequest('join', name.trim(), sessionGeneration),
         () => null,
     )
     const status = request?.status ?? 'idle'
@@ -66,9 +70,9 @@ export default function JoinRoom({
 
     function close() {
         isOpen.current = false
-        const latest = getRoomRequest('join', name.trim())
+        const latest = getRoomRequest('join', name.trim(), sessionGeneration)
         if (latest?.status === 'pending' || latest?.status === 'unknown') {
-            onClose({ name: latest.name, status: latest.status })
+            onClose({ name: latest.name, sessionGeneration: latest.sessionGeneration, status: latest.status })
         } else {
             onClose()
         }
@@ -86,8 +90,10 @@ export default function JoinRoom({
         const result = await sendRoomRequest(
             'join',
             roomName,
+            sessionGeneration,
+            () => store.getState().auth.sessionGeneration,
             () => joinRoom ? joinRoom(roomName) : mockJoinRoom(roomName, mockMode),
-            update => onRequestChange?.({ name: update.name, status: update.status }),
+            update => onRequestChange?.({ name: update.name, sessionGeneration: update.sessionGeneration, status: update.status }),
         )
 
         if (result?.status === 'success' && isOpen.current) {
