@@ -8,7 +8,7 @@ CV19 đặc tả vùng nội dung của `/chat`, từ tiêu đề hội thoại 
 
 - **Desktop** hiển thị sidebar bên trái và vùng chat bên phải. Khi chưa chọn hội thoại, vùng chat hướng dẫn chọn hoặc tìm hội thoại. Khi đã chọn, tiêu đề ở trên, danh sách tin cuộn ở giữa và ô soạn ở dưới.
 - **Mobile** hiển thị danh sách trước, sau đó mở vùng chat một cột. Nút **Quay lại danh sách** giữ nháp trong phiên và chỉ đổi màn hình. Giữ nút gửi và thanh soạn dễ chạm khi bàn phím mở.
-- **Chat riêng** hiện tên người và nhãn **Chat riêng**. Trạng thái online/offline/chưa xác định lấy từ dữ liệu kiểm tra của Khôi. Lịch sử dùng `CHAT_PEOPLE_GET_MES`.
+- **Chat riêng** hiện tên người và nhãn **Chat riêng**. Trạng thái online/offline/chưa xác định lấy từ dữ liệu kiểm tra của Khôi. Lịch sử dùng `GET_PEOPLE_CHAT_MES`.
 - **Phòng chat** hiện tên phòng, nhãn **Phòng chat**, thông tin thành viên khi đã tải và các nút phòng theo quyền. Bong bóng ghi rõ tác giả. Lịch sử dùng chung kết quả `roomsApi.loadRoom` với metadata và thành viên. Chọn phòng chỉ mở hội thoại.
 
 Khóa hội thoại gồm loại và tên, kể cả khi người dùng và phòng trùng tên. Bong bóng tin của mình và của người khác đặt ở hai phía, hiện giờ máy chủ khi có. Tin tạm dùng mã cục bộ và không gán giờ hoặc ID máy chủ giả.

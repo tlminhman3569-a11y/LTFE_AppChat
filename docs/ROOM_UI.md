@@ -71,7 +71,7 @@ Tài liệu này xác định bề mặt giao diện, hành vi người dùng, l
 | Tham gia/tham gia lại | `JOIN_ROOM` | `{name}` | `JOIN_ROOM` + kết quả nghiệp vụ/metadata | Khôi, rooms API |
 | Rời phòng | `OUT_ROOM` | `{name}` | `OUT_ROOM` + xác nhận/ lỗi | Khôi, rooms API |
 | Đọc chi tiết/thành viên/lịch sử phòng | `GET_ROOM_CHAT_MES` | `{name, page}` | `GET_ROOM_CHAT_MES` theo phép thử được ghi trong tài liệu; `own`, `userList`, `chatData` hoặc dạng hợp lệ cần chuẩn hóa | Khôi cung cấp **một** adapter `loadRoom` cho cả Khôi và Kiệt |
-| Mở lịch sử chat riêng sau kiểm tra | `CHAT_PEOPLE_GET_MES` | `{name, page}` | `CHAT_PEOPLE_GET_MES` | Kiệt, chat API |
+| Mở lịch sử chat riêng sau kiểm tra | `GET_PEOPLE_CHAT_MES` | `{name, page}` | `GET_PEOPLE_CHAT_MES` | Kiệt, chat API |
 
 Envelope WebSocket theo `docs/HOP_DONG.md`: `{"action":"onchat","data":{"event":"...","data":{...}}}`. Không tự thêm request ID mới vào giao thức. Tài liệu API có bất nhất ở ví dụ lịch sử phòng; sử dụng tên `GET_ROOM_CHAT_MES` đã được tài liệu nhóm ghi nhận là thử thành công, và kiểm chứng lại khi tích hợp.
 
