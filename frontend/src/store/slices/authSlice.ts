@@ -7,6 +7,7 @@ interface AuthState {
     connectionStatus: ConnectionStatus
     currentUser: string | null
     sessionGeneration: number
+    reconnectCount: number
     logoutNotConfirmed: boolean
     restoreError: string | null
 }
@@ -16,6 +17,7 @@ const initialState: AuthState = {
     connectionStatus: 'disconnected',
     currentUser: null,
     sessionGeneration: 0,
+    reconnectCount: 0,
     logoutNotConfirmed: false,
     restoreError: null,
 }
@@ -35,6 +37,10 @@ const authSlice = createSlice({
         connectionStatusChanged(state, action: PayloadAction<ConnectionStatus>) {
             state.connectionStatus = action.payload
         },
+        sessionReconnected(state) {
+            state.connectionStatus = 'connected'
+            state.reconnectCount += 1
+        },
         sessionStarted(state, action: PayloadAction<string>) {
             state.restoreError = null
             state.logoutNotConfirmed = false
@@ -53,5 +59,5 @@ const authSlice = createSlice({
     },
 })
 
-export const { sessionChecking, connectionStatusChanged, sessionStarted, sessionCleared } = authSlice.actions
+export const { sessionChecking, connectionStatusChanged, sessionReconnected, sessionStarted, sessionCleared } = authSlice.actions
 export default authSlice.reducer
