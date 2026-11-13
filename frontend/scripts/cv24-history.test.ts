@@ -11,30 +11,30 @@ const sample = { id: 12, type: 0, name: 'Ban_Mau', to: 'kiet_demo', mes: 'Chào 
 
 it('đọc đúng trang qua socket dùng chung và giữ nguyên dữ liệu', async () => {
     const request = vi.spyOn(socketClient, 'request').mockResolvedValue({
-        event: 'CHAT_PEOPLE_GET_MES', status: 'success', data: [sample],
+        event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [sample],
     })
     const connect = vi.spyOn(socketClient, 'connect')
     expect(await loadHistory(people, 2)).toEqual({
         status: 'success',
         data: { conversation: people, page: 2, messages: [{ id: sample.id, name: sample.name, to: sample.to, mes: sample.mes, createAt: sample.createAt, kind: 'people' }] },
     })
-    expect(request).toHaveBeenCalledExactlyOnceWith('CHAT_PEOPLE_GET_MES', { name: 'Ban_Mau', page: 2 })
+    expect(request).toHaveBeenCalledExactlyOnceWith('GET_PEOPLE_CHAT_MES', { name: 'Ban_Mau', page: 2 })
     expect(connect).not.toHaveBeenCalled()
 })
 
 it('phân biệt mảng rỗng với phản hồi sai kiểu hoặc sai hội thoại', async () => {
     const request = vi.spyOn(socketClient, 'request')
     for (const data of [null, [{ ...sample, name: 'Nguoi_Khac' }], [{ ...sample, type: 1 }]]) {
-        request.mockResolvedValueOnce({ event: 'CHAT_PEOPLE_GET_MES', status: 'success', data })
+        request.mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data })
         expect(await loadHistory(people, 1)).toMatchObject({ status: 'error', error: { kind: 'parse' } })
     }
-    request.mockResolvedValueOnce({ event: 'CHAT_PEOPLE_GET_MES', status: 'success', data: [] })
+    request.mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [] })
     expect(await loadHistory(people, 3)).toMatchObject({ status: 'success', data: { page: 3, messages: [] } })
 })
 
 it('phân biệt máy chủ từ chối, mất kết nối và timeout', async () => {
     const request = vi.spyOn(socketClient, 'request')
-    request.mockResolvedValueOnce({ event: 'CHAT_PEOPLE_GET_MES', status: 'error' })
+    request.mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'error' })
     request.mockRejectedValueOnce(new SocketRequestError('offline', 'connection', false))
     request.mockRejectedValueOnce(new SocketRequestError('timeout', 'timeout', true))
     expect(await loadHistory(people, 1)).toMatchObject({ status: 'error', error: { kind: 'business' } })

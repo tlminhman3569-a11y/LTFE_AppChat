@@ -34,7 +34,7 @@ export async function loadHistory(conversation: ConversationRef, page: number): 
     }
 
     try {
-        const reply = await socketClient.request('CHAT_PEOPLE_GET_MES', { name: conversation.name, page })
+        const reply = await socketClient.request('GET_PEOPLE_CHAT_MES', { name: conversation.name, page })
         if (reply.status === 'error') {
             return { status: 'error', error: { kind: 'business', message: 'Máy chủ từ chối tải lịch sử chat riêng' } }
         }
