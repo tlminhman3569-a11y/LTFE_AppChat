@@ -6,6 +6,12 @@ import { connectionStatusChanged, sessionCleared, sessionReconnected } from '../
 
 const retryDelays = [500, 1000, 2000]
 
+let retryConnection: (() => void) | undefined
+
+export function retrySocketConnection() {
+    retryConnection?.()
+}
+
 export function watchSocketConnection() {
     let retryTimer: ReturnType<typeof setTimeout> | undefined
     let activeRun: object | null = null
@@ -97,7 +103,23 @@ export function watchSocketConnection() {
         store.dispatch(connectionStatusChanged(status))
     })
 
+    function retry() {
+        const auth = store.getState().auth
+        if (activeRun || auth.authStatus !== 'authenticated' || auth.connectionStatus !== 'disconnected') return
+
+        const saved = readStoredSession()
+        if (!saved || saved.username !== auth.currentUser) {
+            store.dispatch(sessionCleared({ restoreError: 'Không thể khôi phục phiên, vui lòng đăng nhập lại' }))
+            return
+        }
+
+        startReconnect(auth.sessionGeneration, saved.username)
+    }
+
+    retryConnection = retry
+
     return () => {
+        if (retryConnection === retry) retryConnection = undefined
         activeRun = null
         unsubscribeStore()
         clearTimeout(retryTimer)

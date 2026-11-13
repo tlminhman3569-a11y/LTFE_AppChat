@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSocket } from '../hooks/useSocket'
+import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { logout } from '../services/authApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
@@ -49,6 +50,11 @@ export default function ChatLayout() {
                 <span role="status">{canUseSocket ? 'Đã kết nối'
                     : connectionStatus === 'reconnecting' ? 'Đang kết nối lại…'
                         : 'Mất kết nối'}</span>
+                {connectionStatus === 'disconnected' && (
+                    <button type="button" disabled={isLoggingOut} onClick={retrySocketConnection}>
+                        Thử kết nối lại
+                    </button>
+                )}
                 <button type="button" disabled={isLoggingOut} onClick={handleLogout}>
                     {isLoggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}
                 </button>

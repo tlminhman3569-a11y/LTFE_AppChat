@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { watchSocketConnection } from '../src/features/auth/reconnectSession'
+import { retrySocketConnection, watchSocketConnection } from '../src/features/auth/reconnectSession'
 import { reLogin } from '../src/services/authApi'
 import { clearStoredSession, readStoredSession } from '../src/services/sessionStorage'
 import { socketClient } from '../src/services/socketClient'
@@ -75,6 +75,37 @@ describe('Kết nối lại khi đang đăng nhập', () => {
 
         expect(reLogin).toHaveBeenCalledTimes(3)
         expect(store.getState().auth).toMatchObject({ authStatus: 'authenticated', connectionStatus: 'disconnected', reconnectCount })
+    })
+
+    it('thử lại sau khi hết lượt và chỉ tải lại sau RE_LOGIN thành công', async () => {
+        const login = vi.mocked(reLogin)
+        login.mockResolvedValue({
+            status: 'error', error: { kind: 'connection', message: 'Không thể kết nối' },
+        })
+        const { reconnectCount, sessionGeneration } = store.getState().auth
+
+        onStatus('disconnected')
+        await vi.advanceTimersByTimeAsync(3500)
+        expect(login).toHaveBeenCalledTimes(3)
+
+        let resolveReply!: (res: Reply) => void
+        login.mockReturnValueOnce(new Promise<Reply>(resolve => { resolveReply = resolve }))
+        retrySocketConnection()
+        retrySocketConnection()
+        await vi.advanceTimersByTimeAsync(500)
+        onStatus('connected')
+
+        expect(login).toHaveBeenCalledTimes(4)
+        expect(store.getState().auth).toMatchObject({ connectionStatus: 'reconnecting', reconnectCount })
+
+        resolveReply({ status: 'success', data: { ...fakeSession, reLoginCode: 'new-code' } })
+        await vi.advanceTimersByTimeAsync(0)
+
+        expect(store.getState().auth).toMatchObject({
+            connectionStatus: 'connected',
+            reconnectCount: reconnectCount + 1,
+            sessionGeneration,
+        })
     })
 
     it('về đăng nhập nếu server từ chối mã phiên', async () => {
