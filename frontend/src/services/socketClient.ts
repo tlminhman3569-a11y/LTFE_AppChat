@@ -167,10 +167,13 @@ function sendNext(current: Connection, event: string, queue: WaitingRequest[]) {
     }
 
     request.timer = setTimeout(() => {
-        if (current.requests.get(event)?.[0] !== request) return
-        // Event không có mã đối chiếu. Đóng socket cũ để loại phản hồi đến muộn
-        current.socket.close()
+        if (connection !== current || current.requests.get(event)?.[0] !== request) return
+
+        // Tách socket cũ ngay vì event không có mã đối chiếu
+        connection = null
         rejectRequests(current.requests, request)
+        current.socket.close()
+        notifyStatus()
     }, responseTimeoutMs)
 }
 
