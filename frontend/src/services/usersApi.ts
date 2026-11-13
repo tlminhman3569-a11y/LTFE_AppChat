@@ -1,7 +1,15 @@
 import type { ApiResult } from '../types/api'
-import type { RecentConversation } from '../types/user'
+import type { RecentConversation, UserPresence } from '../types/user'
 import { parseGetUserListResponse } from '../utils/normalizeRecentConversations'
+import { parseUserExists, parseUserOnline } from '../utils/parseUserChecks'
 import { socketClient, SocketRequestError } from './socketClient'
+
+function requestError(error: unknown, message: string): ApiResult<never> {
+    if (error instanceof SocketRequestError && error.kind === 'timeout') {
+        return { status: 'unknown', error: { kind: 'timeout', message: 'Hết thời gian chờ. Chưa xác định được kết quả.' } }
+    }
+    return { status: 'error', error: { kind: 'connection', message } }
+}
 
 export async function getRecentConversations(): Promise<ApiResult<RecentConversation[]>> {
     try {
@@ -19,5 +27,31 @@ export async function getRecentConversations(): Promise<ApiResult<RecentConversa
             status: 'error',
             error: { kind: 'connection', message: 'Không thể tải danh sách hội thoại qua kết nối hiện tại.' },
         }
+    }
+}
+
+export async function checkExists(user: string): Promise<ApiResult<boolean>> {
+    if (!user.trim()) {
+        return { status: 'error', error: { kind: 'business', message: 'Vui lòng nhập username đầy đủ.' } }
+    }
+
+    try {
+        const response = await socketClient.request('CHAT_CHECK_USER_EXIST', { user: user.trim() })
+        return parseUserExists(response)
+    } catch (error) {
+        return requestError(error, 'Không thể kiểm tra người dùng. Vui lòng thử lại.')
+    }
+}
+
+export async function checkOnline(user: string): Promise<ApiResult<UserPresence>> {
+    if (!user.trim()) {
+        return { status: 'error', error: { kind: 'business', message: 'Vui lòng nhập username cần kiểm tra.' } }
+    }
+
+    try {
+        const response = await socketClient.request('CHAT_CHECK_USER_ONLINE', { user: user.trim() })
+        return parseUserOnline(response, new Date().toISOString())
+    } catch (error) {
+        return requestError(error, 'Không thể kiểm tra trạng thái online.')
     }
 }
