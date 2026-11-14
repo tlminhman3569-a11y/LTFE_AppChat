@@ -9,6 +9,7 @@ import './chat.css'
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
     sentPreview: boolean
     conversationKey: ConversationKey | null
+    reconnectCount?: number
     onBack: () => void
 }
 
@@ -71,7 +72,7 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 }
 
 export default function ChatPage({
-    conversation, conversationKey, currentUser, sessionGeneration, onBack,
+    conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack,
     draft, canSend, onDraftChange, onSend, sentPreview,
 }: ChatProps) {
     return (
@@ -84,7 +85,7 @@ export default function ChatPage({
                         <p>{conversation.kind === 'room' ? 'Phòng chat' : 'Chat riêng'}</p>
                     </header>
                     <ChatHistory
-                        key={JSON.stringify([sessionGeneration, conversationKey])}
+                        key={JSON.stringify([sessionGeneration, conversationKey, reconnectCount])}
                         conversation={conversation}
                         currentUser={currentUser}
                     />

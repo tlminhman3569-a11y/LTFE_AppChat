@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { loadHistory } from '../src/services/chatApi'
 import { store } from '../src/store'
-import { connectionStatusChanged, sessionCleared, sessionStarted } from '../src/store/slices/authSlice'
+import { connectionStatusChanged, sessionCleared, sessionReconnected, sessionStarted } from '../src/store/slices/authSlice'
 import { fetchHistoryPage } from '../src/store/slices/messagesSlice'
 import type { ConversationRef } from '../src/types/api'
 import type { Message } from '../src/types/message'
@@ -85,4 +85,31 @@ it('gắn phản hồi trễ vào đúng hội thoại và loại bỏ phản h�
     resolveOld(success(people, 2, [message(2)]))
     await old
     expect(history(people)?.messages).toEqual([message(4)])
+})
+
+it('đảo theo thứ tự máy chủ khi tin cùng giây hoặc thiếu thời gian', async () => {
+    const sameTime = message(4).createAt
+    read.mockResolvedValueOnce(success(people, 1, [
+        message(4), { ...message(3), createAt: sameTime }, { ...message(2), createAt: undefined },
+    ]))
+    await fetchPage(people, 1)
+    expect(history(people)?.messages.map(item => item.id)).toEqual([2, 3, 4])
+})
+
+it('cho tải lại trang đầu sau reconnect và giữ lịch sử đã có', async () => {
+    read.mockResolvedValueOnce(success(room, 1, [{ ...message(2), kind: 'room' }]))
+    await fetchPage(room, 1)
+    const roomHistory = history(room)
+
+    read.mockResolvedValueOnce({ status: 'error', error: { kind: 'connection', message: 'Mất kết nối' } })
+    await fetchPage(people, 1)
+    expect(history(people)?.error).toBe('Mất kết nối')
+
+    store.dispatch(sessionReconnected())
+    expect(history(people)).toBeUndefined()
+    expect(history(room)).toEqual(roomHistory)
+
+    read.mockResolvedValueOnce(success(people, 1, [message(1)]))
+    await fetchPage(people, 1)
+    expect(history(people)?.messages).toEqual([message(1)])
 })

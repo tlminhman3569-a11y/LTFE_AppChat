@@ -3,7 +3,7 @@ import { loadHistory } from '../../services/chatApi'
 import type { AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api'
 import type { Message } from '../../types/message'
 import { createConversationKey } from '../../utils/conversationKey'
-import { sessionChecking, sessionCleared, sessionStarted } from './authSlice'
+import { sessionChecking, sessionCleared, sessionReconnected, sessionStarted } from './authSlice'
 
 interface History {
     messages: Message[]
@@ -59,11 +59,7 @@ function mergeHistory(older: Message[], existing: Message[]) {
         seen.add(id)
         return true
     })
-    const dated = unique.filter(message => message.createAt).sort((left, right) => {
-        return left.createAt!.localeCompare(right.createAt!)
-    })
-    let datedIndex = 0
-    return [...unique.map(message => message.createAt ? dated[datedIndex++] : message), ...existing]
+    return [...unique.reverse(), ...existing]
 }
 
 const messagesSlice = createSlice({
@@ -75,6 +71,11 @@ const messagesSlice = createSlice({
             .addCase(sessionChecking, () => ({}))
             .addCase(sessionStarted, () => ({}))
             .addCase(sessionCleared, () => ({}))
+            .addCase(sessionReconnected, state => {
+                for (const [key, history] of Object.entries(state)) {
+                    if (history?.error && history.nextPage === 1 && history.messages.length === 0) delete state[key]
+                }
+            })
             .addCase(fetchHistoryPage.pending, (state, { meta }) => {
                 const key = createConversationKey(meta.arg.conversation)
                 const history = state[key] ??= { messages: [], nextPage: 1, hasOlder: true, error: '' }
