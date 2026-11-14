@@ -31,7 +31,7 @@ npm ci
 node --experimental-strip-types scripts/check-cv43-cv09-flow.mjs
 node scripts/check-cv43-cv09-contract.mjs
 node scripts/check-cv43-cv24-bridge.mjs
-node --experimental-strip-types scripts/check-cv43.mjs
+node scripts/check-cv43.mjs
 node --experimental-strip-types scripts/check-cv42.mjs
 npm test -- scripts/cv09-reconnect.test.ts
 npm test -- scripts/cv24-history.test.ts
@@ -71,3 +71,6 @@ Sau khi test đạt trên máy bạn, chỉ đưa các file cần thiết vào n
 | CV45 lịch sử phòng thật | Trương Hoàng Minh Khôi | Ngoài phạm vi PR này |
 
 Chỉ ghi `PASS` cho API thật khi chính bạn chạy từ phiên đăng nhập và có log hợp lệ.
+
+
+**Bổ sung 14/11/2026:** `check-cv43.mjs` đã có bước transpile TypeScript sang `.mjs`, có thể chạy bằng `node scripts/check-cv43.mjs` (Node.js v22.16.0: **69/69 PASS**). `usersApi.checkExists` không còn phân loại lỗi ghi log thành lỗi kết nối. Bằng chứng WebSocket thật cho hai username và thao tác mở chat ngoài fixture tiếp tục ghi riêng tại `CV43_API_LOG.md` khi có tài khoản đăng nhập được phép.

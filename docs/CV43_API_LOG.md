@@ -1,6 +1,29 @@
 # CV43 — Nhật ký kiểm thử API thật (đã che dữ liệu)
 
-> Trạng thái: **chưa ghi nhận kết quả chạy thật trong môi trường bàn giao này**. Không có phiên đăng nhập/socket đang hoạt động hoặc tài khoản kiểm thử được cung cấp kèm source. Không tự điền response giả thành bằng chứng API thật.
+> **Kết quả tính đến 14/11/2026:** Đã sửa lỗi `checkExists` và xác nhận **69/69 kiểm tra tự động PASS** khi chạy trực tiếp bằng Node.js 22.16.0. **Chưa có bằng chứng thực thi hai ca trên WebSocket thật đã đăng nhập** trong môi trường bàn giao: ZIP không có phiên đang hoạt động hoặc thông tin đăng nhập kiểm thử được cấp. Không đánh đồng kết quả mock với kết quả API thật; không chép log ví dụ thành log đã quan sát.
+
+## Bằng chứng kiểm tra mã nguồn đã chạy (14/11/2026)
+
+Thư mục: `frontend/`. Lệnh sử dụng **không cần** cờ `--experimental-strip-types`:
+
+```text
+$ node scripts/check-cv43.mjs
+...
+69/69 checks passed
+Node.js v22.16.0
+Exit code: 0
+```
+
+Kết quả bổ sung: `node node_modules/typescript/bin/tsc -b` **PASS**; `node scripts/check-cv43-cv24-bridge.mjs` **18/18**; `node scripts/check-cv43-cv09-contract.mjs` **13/13**. Các phép thử này sử dụng response mô phỏng hoặc kiểm tra mã nguồn, **không chứng minh server thật trả `true/false`**.
+
+## Kết quả API WebSocket thật (cần phiên đăng nhập được phép)
+
+| Ca | Phản hồi API đã quan sát trong môi trường bàn giao | UI và lịch sử đã quan sát | Trạng thái |
+|---|---|---|---|
+| Username **tồn tại, ngoài fixture** | Chưa có phiên đủ quyền để ghi nhận `CHECK_USER_EXIST` | Chưa ghi nhận việc mở chat riêng và `GET_PEOPLE_CHAT_MES` trên trình duyệt thật | **CHƯA XÁC MINH** |
+| Username **không tồn tại** | Chưa có phiên đủ quyền để ghi nhận `CHECK_USER_EXIST` | Chưa ghi nhận thông báo không tìm thấy và điều kiện không mở chat | **CHƯA XÁC MINH** |
+
+Khi chạy trên máy có tài khoản kiểm thử, dùng **2 công cụ quan sát có sẵn** ở phần cuối tài liệu. Chúng xuất file log đã che, không tạo WebSocket thứ hai và không ghi token, username hay nội dung tin nhắn. Chỉ thay trạng thái trên bằng `PASS` khi file xuất ra thực sự có kết quả tương ứng.
 
 ## Cách ghi log
 
@@ -47,3 +70,13 @@ Ca username không tồn tại:
 6. Khi chia sẻ bằng chứng, che username ở cả request và response, token/code phiên, nội dung tin, thời gian/ID nếu có thể nhận diện người dùng.
 
 **Lưu ý:** Không ghi `exists`/`not-found` nếu response API không parse được; khi timeout hoặc lỗi kết nối phải ghi `unknown`/`error`, không suy diễn kết quả.
+
+## Thu log thực tế đã che để hoàn tất hai dòng trên
+
+1. Từ `frontend/`, chạy `npm run dev`, đăng nhập bằng tài khoản thử **được phép**, xác nhận WebSocket là `connected`, chọn **API thật** trên `/chat`. Nếu kết nối chưa xác thực, không dùng fixture để kết luận.
+2. Mở DevTools → **Sources → Snippets**, tạo snippet từ `frontend/scripts/cv43-live-check.js`. Nhập **hai** username kiểm thử khi được hỏi: một tên tồn tại (khác tài khoản đăng nhập), một tên chắc chắn không tồn tại. Script gửi `CHAT_CHECK_USER_EXIST` qua socket hiện tại, kiểm `CHECK_USER_EXIST`/`data.status`, tải trang 1 lịch sử người tồn tại và tải `CV43_API_LIVE_DA_CHE.txt`. **Yêu cầu:** hai ca `pass: true` và `GET_PEOPLE_CHAT_MES page=1` có `status: success` (mảng rỗng có thể hợp lệ).
+3. Để **xác nhận UI thực sự mở đúng chat riêng cho username tồn tại ngoài fixture**, chạy snippet thứ hai từ `frontend/scripts/cv43-cv24-live-snippet.txt`. Sau khi khởi chạy snippet, chuyển sang bộ lọc **Người dùng**, nhập tên tồn tại nhưng không có trong `src/fixtures/users.ts`, bấm **Kiểm tra người dùng**. Đợi hoàn tất lịch sử và bấm **Xuất log đã che**. File `CV43_CV24_LICH_SU_NGOAI_FIXTURE_DA_CHE.txt` phải có `Username ngoai fixture: PASS`, `CHECK_USER_EXIST data.status=true: PASS`, `GET_PEOPLE_CHAT_MES trang 1 dung username: PASS`, `Chat rieng mo dung: PASS`, `Giao dien hien thi du lieu lich su: PASS`, `KET QUA: PASS`.
+4. Trong trường hợp username không tồn tại, xác nhận trên UI thông báo **Không tìm thấy tài khoản với username này.**, không mở hội thoại mới và không tải lịch sử cho tên đó. Chụp/ghi lại trạng thái không chứa tên thật.
+5. Chép **nguyên nội dung đã che** của hai file xuất từ phiên đã chạy, cùng ngày/giờ và mã commit, vào mục **Kết quả API WebSocket thật** ở trên. Chỉ sao chép metadata; không đính kèm request/response thô có username, mã phiên hoặc nội dung tin.
+
+**Giới hạn:** Script Node 69/69 chỉ kiểm tra parser/service và hợp đồng giao diện với phản hồi mô phỏng. Kết quả UI + WebSocket phải được xác nhận riêng trên trình duyệt có tài khoản kiểm thử thật; hiện chưa đủ điều kiện kết luận CV43 đã nghiệm thu API thật.

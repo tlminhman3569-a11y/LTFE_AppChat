@@ -35,25 +35,31 @@ export async function checkExists(user: string): Promise<ApiResult<boolean>> {
         return { status: 'error', error: { kind: 'business', message: 'Vui lòng nhập username đầy đủ.' } }
     }
 
+    let response: Awaited<ReturnType<typeof socketClient.request>>
     try {
-        const response = await socketClient.request('CHAT_CHECK_USER_EXIST', { user: user.trim() })
-        const result = parseUserExists(response)
+        response = await socketClient.request('CHAT_CHECK_USER_EXIST', { user: user.trim() })
+    } catch (error) {
+        return requestError(error, 'Không thể kiểm tra người dùng. Vui lòng thử lại.')
+    }
 
-        if (import.meta.env.DEV) {
+    const result = parseUserExists(response)
+
+    if (import.meta.env?.DEV) {
+        try {
             console.info('[CV43][API]', {
                 request: 'CHAT_CHECK_USER_EXIST',
                 username: '[REDACTED]',
-                responseEvent: 'CHECK_USER_EXIST',
+                responseEvent: response.event === 'CHECK_USER_EXIST'
+                    ? 'CHECK_USER_EXIST' : 'unexpected-event',
                 outcome: result.status === 'success'
                     ? (result.data ? 'exists' : 'not-found')
                     : result.status,
             })
+        } catch {
         }
-
-        return result
-    } catch (error) {
-        return requestError(error, 'Không thể kiểm tra người dùng. Vui lòng thử lại.')
     }
+
+    return result
 }
 
 export async function checkOnline(user: string): Promise<ApiResult<UserPresence>> {

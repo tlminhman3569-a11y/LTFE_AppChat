@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import ts from 'typescript'
 
 const root = resolve(import.meta.dirname, '..')
 const temp = mkdtempSync(join(tmpdir(), 'cv43-test-'))
@@ -22,11 +23,15 @@ async function check(name, run) {
 
 function copyTs(path) {
     const source = read(path).replace(/(from\s+['"])(\.\.?\/[^'"]+)(['"])/g, (all, first, file, last) => {
-        return `${first}${file}.ts${last}`
+        return `${first}${file}.mjs${last}`
     })
-    const output = join(temp, path.replace(/^src\//, ''))
+    const output = join(temp, path.replace(/^src\//, '').replace(/\.ts$/, '.mjs'))
     mkdirSync(resolve(output, '..'), { recursive: true })
-    writeFileSync(output, source)
+    const js = ts.transpileModule(source, {
+        fileName: path,
+        compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+    }).outputText
+    writeFileSync(output, js)
 }
 
 const paths = [
@@ -42,10 +47,10 @@ try {
     writeFileSync(join(temp, 'package.json'), '{"type":"module"}')
     for (const path of paths) copyTs(path)
 
-    const parser = await import(pathToFileURL(join(temp, 'utils/parseUserChecks.ts')).href)
-    const service = await import(pathToFileURL(join(temp, 'services/usersApi.ts')).href)
-    const chatApi = await import(pathToFileURL(join(temp, 'services/chatApi.ts')).href)
-    const { socketClient, SocketRequestError } = await import(pathToFileURL(join(temp, 'services/socketClient.ts')).href)
+    const parser = await import(pathToFileURL(join(temp, 'utils/parseUserChecks.mjs')).href)
+    const service = await import(pathToFileURL(join(temp, 'services/usersApi.mjs')).href)
+    const chatApi = await import(pathToFileURL(join(temp, 'services/chatApi.mjs')).href)
+    const { socketClient, SocketRequestError } = await import(pathToFileURL(join(temp, 'services/socketClient.mjs')).href)
 
     const existsResponse = data => ({ event: 'CHECK_USER_EXIST', status: 'success', data })
     const onlineResponse = data => ({ event: 'CHECK_USER_ONLINE', status: 'success', data })
