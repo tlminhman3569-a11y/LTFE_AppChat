@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
 import { loadHistory } from '../../services/chatApi'
 import type { AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api'
 import type { Message } from '../../types/message'
@@ -10,6 +11,7 @@ interface History {
     nextPage: number
     hasOlder: boolean
     error: string
+    unread?: number
     requestId?: string
 }
 
@@ -65,7 +67,20 @@ function mergeHistory(older: Message[], existing: Message[]) {
 const messagesSlice = createSlice({
     name: 'messages',
     initialState: {} as MessagesState,
-    reducers: {},
+    reducers: {
+        messageReceived(state, action: PayloadAction<{ conversation: ConversationRef; message: Message; viewed: boolean }>) {
+            const { conversation, message, viewed } = action.payload
+            const key = createConversationKey(conversation)
+            const history = state[key] ??= { messages: [], nextPage: 1, hasOlder: true, error: '' }
+            if (message.id != null && history.messages.some(item => item.id != null && String(item.id) === String(message.id))) return
+            history.messages.push(message)
+            if (!viewed) history.unread = (history.unread ?? 0) + 1
+        },
+        markViewed(state, action: PayloadAction<string>) {
+            const history = state[action.payload]
+            if (history?.unread) history.unread = 0
+        },
+    },
     extraReducers: builder => {
         builder
             .addCase(sessionChecking, () => ({}))
@@ -106,5 +121,11 @@ const messagesSlice = createSlice({
             })
     },
 })
+
+export const { messageReceived, markViewed } = messagesSlice.actions
+
+export function selectUnreadCount(state: { messages: MessagesState }, key: string) {
+    return state.messages[key]?.unread ?? 0
+}
 
 export default messagesSlice.reducer

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
-import { sendText } from '../services/chatApi'
+import { sendText, subscribeToMessages } from '../services/chatApi'
+import { markViewed, messageReceived } from '../store/slices/messagesSlice'
 import { logout } from '../services/authApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
@@ -25,8 +26,25 @@ export default function ChatLayout() {
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
     const canSend = canUseSocket && !isLoggingOut && selectedConversation?.kind === 'people'
 
+    const receiveMessage = useEffectEvent((conversation: ConversationRef, message: Message) => {
+        if (!canUseSocket || isLoggingOut) return
+        dispatch(messageReceived({
+            conversation, message, viewed: createConversationKey(conversation) === conversationKey,
+        }))
+    })
+
+    useEffect(() => {
+        if (!currentUser || !canUseSocket || isLoggingOut) return
+        return subscribeToMessages(
+            currentUser,
+            (conversation, message) => receiveMessage(conversation, message),
+            () => setSendError('Máy chủ báo lỗi gửi. Các tin chưa xác nhận cần được đối chiếu.'),
+        )
+    }, [currentUser, canUseSocket, isLoggingOut])
+
     function selectConversation(conversation: ConversationRef | null) {
         setSendError('')
+        if (conversation) dispatch(markViewed(createConversationKey(conversation)))
         setSelectedConversation(conversation)
     }
 
