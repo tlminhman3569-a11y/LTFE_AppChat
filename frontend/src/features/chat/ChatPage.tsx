@@ -1,13 +1,14 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { ConversationKey, ConversationRef } from '../../types/api'
-import type { ChatPageProps, ComposerProps } from '../../types/message'
+import type { ChatPageProps, ComposerProps, Message } from '../../types/message'
 import { useChat } from '../../hooks/useChat'
 import Composer from './Composer'
 import MessageList from './MessageList'
 import './chat.css'
 
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
-    sentPreview: boolean
+    pending: (Message & { localId: string })[]
+    sendError: string
     conversationKey: ConversationKey | null
     reconnectCount?: number
     onBack: () => void
@@ -73,7 +74,7 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 
 export default function ChatPage({
     conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack,
-    draft, canSend, onDraftChange, onSend, sentPreview,
+    draft, canSend, onDraftChange, onSend, pending, sendError,
 }: ChatProps) {
     return (
         <section className="chat-content chat-page" aria-label="Nội dung hội thoại">
@@ -89,7 +90,17 @@ export default function ChatPage({
                         conversation={conversation}
                         currentUser={currentUser}
                     />
-                    {sentPreview && <p role="status" className="chat-composer-status">Đã thử thao tác gửi. Tin nhắn chưa được gửi lên máy chủ.</p>}
+                    {pending.length > 0 && (
+                        <ul className="chat-messages chat-pending" aria-label="Tin chưa xác nhận">
+                            {pending.map(message => (
+                                <li key={message.localId} className="chat-message chat-message-own">
+                                    <p>{message.mes}</p>
+                                    <small>Chưa xác nhận</small>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {sendError && <p role="alert" className="chat-composer-status">{sendError}</p>}
                     <Composer
                         key={conversationKey}
                         conversation={conversation}
