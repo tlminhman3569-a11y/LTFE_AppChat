@@ -37,7 +37,20 @@ export async function checkExists(user: string): Promise<ApiResult<boolean>> {
 
     try {
         const response = await socketClient.request('CHAT_CHECK_USER_EXIST', { user: user.trim() })
-        return parseUserExists(response)
+        const result = parseUserExists(response)
+
+        if (import.meta.env.DEV) {
+            console.info('[CV43][API]', {
+                request: 'CHAT_CHECK_USER_EXIST',
+                username: '[REDACTED]',
+                responseEvent: 'CHECK_USER_EXIST',
+                outcome: result.status === 'success'
+                    ? (result.data ? 'exists' : 'not-found')
+                    : result.status,
+            })
+        }
+
+        return result
     } catch (error) {
         return requestError(error, 'Không thể kiểm tra người dùng. Vui lòng thử lại.')
     }
