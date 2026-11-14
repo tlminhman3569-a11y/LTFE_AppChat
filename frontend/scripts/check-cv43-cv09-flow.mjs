@@ -10,7 +10,7 @@ const layout = readFileSync(new URL('components/ChatLayout.tsx', root), 'utf8')
 const page = readFileSync(new URL('features/chat/ChatPage.tsx', root), 'utf8')
 const hook = readFileSync(new URL('hooks/useSocket.ts', root), 'utf8')
 const temp = mkdtempSync(join(tmpdir(), 'cv43-cv09-flow-'))
-const compiled = source.replace(/^import .*\n/gm, '')
+const compiled = source.replace(/^import .*\r?\n/gm, '')
 const intro = `const { reLogin, clearStoredSession, readStoredSession, socketClient, store, connectionStatusChanged, sessionCleared, sessionReconnected } = globalThis.__cv43Mocks\n`
 writeFileSync(join(temp, 'reconnectSession.ts'), intro + compiled)
 
