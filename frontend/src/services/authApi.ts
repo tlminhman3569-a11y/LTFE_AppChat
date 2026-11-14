@@ -38,11 +38,14 @@ export async function login(username: string, password: string): Promise<ApiResu
     }
 }
 
-export async function reLogin(session: LoginSession): Promise<ApiResult<LoginSession>> {
+export async function reLogin(session: LoginSession, isCurrent: () => boolean = () => true): Promise<ApiResult<LoginSession>> {
     const { username, reLoginCode } = session
     try {
         await socketClient.connect(socketUrl)
+        if (!isCurrent()) return commandFailure(null, 'khôi phục phiên')
+
         const response = await socketClient.request('RE_LOGIN', { user: username, code: reLoginCode })
+        if (!isCurrent()) return commandFailure(null, 'khôi phục phiên')
         const newCode = readReLoginCode(response.data)
         if (response.status === 'success' && newCode) {
             const renewedSession = { username, reLoginCode: newCode }

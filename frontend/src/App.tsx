@@ -1,15 +1,9 @@
 import { useEffect } from 'react'
 import AppRoutes from './routes'
-import { socketClient } from './services/socketClient'
-import { useAppDispatch } from './store/hooks'
-import { connectionStatusChanged } from './store/slices/authSlice'
+import { watchSocketConnection } from './features/auth/reconnectSession'
 
 export default function App() {
-    const dispatch = useAppDispatch()
-
-    useEffect(() => {
-        return socketClient.subscribeStatus(status => dispatch(connectionStatusChanged(status)))
-    }, [dispatch])
+    useEffect(watchSocketConnection, [])
 
     return <AppRoutes />
 }
