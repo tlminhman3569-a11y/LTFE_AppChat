@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
-import { logout, reLogin } from '../services/authApi'
-import { readStoredSession } from '../services/sessionStorage'
+import { useSocket } from '../hooks/useSocket'
+import { retrySocketConnection } from '../features/auth/reconnectSession'
+import { logout } from '../services/authApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
@@ -13,16 +14,13 @@ import { loadHistory as loadChatHistory } from '../services/chatApi'
 import type { ChatService } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
 
-
 export default function ChatLayout() {
     const dispatch = useAppDispatch()
-    const { currentUser, authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
+    const { currentUser, authStatus, sessionGeneration } = useAppSelector(state => state.auth)
+    const { connectionStatus, reconnectCount, canUseSocket } = useSocket()
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
     const [usingMockData, setUsingMockData] = useState(false)
 
-    const [reconnectCount, setReconnectCount] = useState(0)
-    const [isReconnecting, setIsReconnecting] = useState(false)
-    const [reconnectError, setReconnectError] = useState('')
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [sentPreviewKey, setSentPreviewKey] = useState<string | null>(null)
     const { getDraft, updateDraft, hasAnyDraft, hasDraft, clearDraft } = useChatDrafts()
@@ -30,9 +28,8 @@ export default function ChatLayout() {
     const membership = selectedConversation?.kind === 'room'
         ? rooms.find(room => room.name === selectedConversation.name)?.membership
         : undefined
-    const canSend = import.meta.env.DEV && authStatus === 'authenticated' && connectionStatus === 'connected'
-        && !isReconnecting && !isLoggingOut
-        && (selectedConversation?.kind === 'people' || membership === 'member' || membership === 'owner')
+    const canSend = import.meta.env.DEV && canUseSocket
+        && !isLoggingOut && (selectedConversation?.kind === 'people' || membership === 'member' || membership === 'owner')
 
     const loadSelectedHistory = useCallback<ChatService['loadHistory']>((conversation, page, user) => {
         if (usingMockData || conversation.kind === 'room') {
@@ -45,30 +42,7 @@ export default function ChatLayout() {
         setSentPreviewKey(null)
         setSelectedConversation(conversation)
     }
-    async function handleRetryConnect() {
-        if (isReconnecting || isLoggingOut || authStatus !== 'authenticated') return
 
-        const saved = readStoredSession()
-        if (!saved || saved.username !== currentUser) return
-
-        setIsReconnecting(true)
-
-        setReconnectError('')
-
-        try {
-            const result = await reLogin(saved)
-
-            if (result.status === 'success') {
-                setReconnectCount(value => value + 1)
-            } else {
-                setReconnectError(result.error.message)
-            }
-        } catch {
-            setReconnectError('Không thể kết nối lại. Vui lòng thử lại.')
-        } finally {
-            setIsReconnecting(false)
-        }
-    }
     async function handleLogout() {
         if (isLoggingOut) return
         if (hasAnyDraft() && !window.confirm('Bạn còn bản nháp. Đăng xuất sẽ xóa bản nháp. Tiếp tục?')) return
@@ -83,15 +57,12 @@ export default function ChatLayout() {
             <header className="session-bar">
                 <h1>App Chat</h1>
                 <span>{currentUser}</span>
-                <span role="status">{connectionStatus === 'connected' ? 'Đã kết nối' : 'Chưa kết nối'}</span>
-                {connectionStatus !== 'connected' && (
-                    <button
-                        type="button"
-                        disabled={isReconnecting || isLoggingOut}
-                        onClick={handleRetryConnect}
-                    >
-                        {isReconnecting ? 'Đang kết nối lại…' : 'Thử kết nối lại'}
-                        {reconnectError && <span role="alert">{reconnectError}</span>}
+                <span role="status">{canUseSocket ? 'Đã kết nối'
+                    : connectionStatus === 'reconnecting' ? 'Đang kết nối lại…'
+                        : 'Mất kết nối'}</span>
+                {connectionStatus === 'disconnected' && (
+                    <button type="button" disabled={isLoggingOut} onClick={retrySocketConnection}>
+                        Thử kết nối lại
                     </button>
                 )}
                 <button type="button" disabled={isLoggingOut} onClick={handleLogout}>

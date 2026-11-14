@@ -8,7 +8,7 @@ import './chat.css'
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
     sentPreview: boolean
     conversationKey: ConversationKey | null
-    reconnectCount?: number
+    reconnectCount: number
     loadHistory: ChatService['loadHistory']
     onBack: () => void
 }
@@ -147,7 +147,7 @@ function ChatHistory({ conversation, currentUser, loadHistory }: HistoryProps) {
 }
 
 export default function ChatPage({
-    conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, loadHistory, onBack,
+     conversation, conversationKey, currentUser, sessionGeneration, reconnectCount, loadHistory, onBack,
     draft, canSend, onDraftChange, onSend, sentPreview,
 }: ChatProps) {
     return (

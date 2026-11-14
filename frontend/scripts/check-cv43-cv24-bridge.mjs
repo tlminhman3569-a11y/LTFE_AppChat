@@ -27,7 +27,8 @@ check('currentUser va sessionGeneration thuoc auth session', () => {
 
 check('ChatLayout lay currentUser tu Redux session', () => {
     assert.match(layout, /useAppSelector\(state => state\.auth\)/)
-    assert.match(layout, /\{ currentUser, authStatus, connectionStatus, sessionGeneration \}/)
+    assert.match(layout, /\{ currentUser, authStatus, sessionGeneration \}/)
+    assert.match(layout, /\{ connectionStatus, reconnectCount, canUseSocket \} = useSocket\(\)/)
 })
 
 check('ChatLayout truyen currentUser cho ChatPage', () => {
@@ -134,6 +135,15 @@ if (/\breconnectCount\b/.test(page) || /\breconnectCount\b/.test(layout)) {
 } else {
     console.log('SKIP: Source dang kiem tra chua co CV09 moi cua origin/develop')
 }
+
+check('CV09 retry do hook so huu, khong co reLogin tu ChatLayout', () => {
+    assert.match(layout, /import \{ useSocket \} from '\.\.\/hooks\/useSocket'/)
+    assert.match(layout, /import \{ retrySocketConnection \} from ['\"]\.\.\/features\/auth\/reconnectSession['\"]/)
+    assert.match(layout, /\{ connectionStatus, reconnectCount, canUseSocket \} = useSocket\(\)/)
+    assert.match(layout, /onClick=\{retrySocketConnection\}/)
+    assert.doesNotMatch(layout, /\breLogin\s*\(/)
+    assert.doesNotMatch(layout, /\bsetReconnectCount\b/)
+})
 
 console.log(`${passed} checks CV43-CV24 bridge passed`)
 console.log(`Node.js ${process.version}`)
