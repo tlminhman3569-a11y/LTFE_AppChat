@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { logout } from '../services/authApi'
@@ -9,6 +9,9 @@ import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
 import { rooms } from '../fixtures/rooms'
+import { mockChatService } from '../fixtures/mockChatService'
+import { loadHistory as loadChatHistory } from '../services/chatApi'
+import type { ChatService } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
 
 export default function ChatLayout() {
@@ -16,6 +19,7 @@ export default function ChatLayout() {
     const { currentUser, authStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const { connectionStatus, reconnectCount, canUseSocket } = useSocket()
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
+    const [usingMockData, setUsingMockData] = useState(false)
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [sentPreviewKey, setSentPreviewKey] = useState<string | null>(null)
@@ -26,6 +30,13 @@ export default function ChatLayout() {
         : undefined
     const canSend = import.meta.env.DEV && canUseSocket
         && !isLoggingOut && (selectedConversation?.kind === 'people' || membership === 'member' || membership === 'owner')
+
+    const loadSelectedHistory = useCallback<ChatService['loadHistory']>((conversation, page, user) => {
+        if (usingMockData || conversation.kind === 'room') {
+            return mockChatService.loadHistory(conversation, page, user)
+        }
+        return loadChatHistory(conversation, page, user)
+    }, [usingMockData])
 
     function selectConversation(conversation: ConversationRef | null) {
         setSentPreviewKey(null)
@@ -59,7 +70,8 @@ export default function ChatLayout() {
                 </button>
             </header>
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
-                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
+                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation}
+                                     onMockModeChange={setUsingMockData} />
                 <ChatPage
                     conversation={selectedConversation}
                     conversationKey={conversationKey}
@@ -68,6 +80,7 @@ export default function ChatLayout() {
                     connectionStatus={connectionStatus}
                     sessionGeneration={sessionGeneration}
                     reconnectCount={reconnectCount}
+                    loadHistory={loadSelectedHistory}
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
                     canSend={canSend}
                     onDraftChange={(conversation, draft) => {

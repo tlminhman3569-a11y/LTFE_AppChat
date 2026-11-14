@@ -1,0 +1,157 @@
+(async () => {
+    const { store } = await import('/src/store/index.ts')
+    const { socketClient } = await import('/src/services/socketClient.ts')
+    const { users } = await import('/src/fixtures/users.ts')
+
+    if (window.__cv43HistoryProbeStop) window.__cv43HistoryProbeStop()
+
+    const start = store.getState().auth
+    if (location.pathname !== '/chat' || start.authStatus !== 'authenticated' ||
+        !start.currentUser || socketClient.getStatus() !== 'connected') {
+        console.log('CV43: Hay mo /chat, dang nhap va cho WebSocket connected truoc khi kiem tra.')
+        return
+    }
+
+    const sessionGeneration = start.sessionGeneration
+    const originalRequest = socketClient.request
+    let checkedUsername = ''
+    let existenceRequest = false
+    let existenceResult = false
+    let outsideFixture = false
+    let historyRequest = false
+    let historyForSameUser = false
+    let historySuccess = false
+    let historyCount = null
+    let requestError = false
+    let finished = false
+
+    function restore() {
+        if (finished) return
+        finished = true
+        socketClient.request = originalRequest
+        panel.remove()
+        delete window.__cv43HistoryProbeStop
+    }
+
+    socketClient.request = async function (event, data) {
+        if (event === 'CHAT_CHECK_USER_EXIST') {
+            checkedUsername = typeof data?.user === 'string' ? data.user.trim() : ''
+            existenceRequest = true
+            existenceResult = false
+            historyRequest = false
+            historyForSameUser = false
+            historySuccess = false
+            historyCount = null
+            requestError = false
+            outsideFixture = !!checkedUsername &&
+                checkedUsername !== start.currentUser &&
+                !users.some(item => item.username.toLowerCase() === checkedUsername.toLowerCase())
+        }
+
+        if (event === 'GET_PEOPLE_CHAT_MES') {
+            historyRequest = true
+            historyForSameUser = !!checkedUsername && data?.name === checkedUsername && data?.page === 1
+        }
+
+        try {
+            const response = await originalRequest.call(socketClient, event, data)
+            if (event === 'CHAT_CHECK_USER_EXIST') {
+                existenceResult = response.event === 'CHECK_USER_EXIST' &&
+                    response.status !== 'error' && response.data?.status === true
+            }
+            if (event === 'GET_PEOPLE_CHAT_MES' && historyForSameUser) {
+                historySuccess = response.status === 'success' && Array.isArray(response.data)
+                historyCount = historySuccess ? response.data.length : null
+            }
+            return response
+        } catch (error) {
+            if (event === 'CHAT_CHECK_USER_EXIST' || event === 'GET_PEOPLE_CHAT_MES') {
+                requestError = true
+            }
+            throw error
+        }
+    }
+
+    const panel = document.createElement('div')
+    Object.assign(panel.style, {
+        position: 'fixed', right: '12px', bottom: '12px', zIndex: '99999',
+        width: '320px', padding: '14px', borderRadius: '10px',
+        background: '#ffffff', color: '#1f2937', border: '2px solid #2563eb',
+        boxShadow: '0 8px 30px #0003', font: '14px/1.5 Arial, sans-serif'
+    })
+    const message = document.createElement('p')
+    message.textContent = 'CV43/CV24 dang theo doi: Chon API that > Nguoi dung > nhap username NGOAI fixture > Kiem tra nguoi dung. Cho lich su tai xong, roi bam Xuat log.'
+    panel.append(message)
+
+    const exportButton = document.createElement('button')
+    exportButton.type = 'button'
+    exportButton.textContent = 'Xuat log da che'
+    Object.assign(exportButton.style, { padding: '8px 12px', marginRight: '8px', cursor: 'pointer' })
+
+    exportButton.onclick = () => {
+        const session = store.getState().auth
+        const unchangedSession = session.sessionGeneration === sessionGeneration &&
+            session.currentUser === start.currentUser
+        const mode = document.querySelector('.cv39-demo-label select')?.value
+        const apiMode = mode === 'api' || (mode == null &&
+            (document.querySelector('.chat-sidebar')?.textContent || '').includes('GET_USER_LIST từ máy chủ'))
+        const title = document.querySelector('.chat-heading h2')?.textContent?.trim() || ''
+        const correctChat = !!checkedUsername && title === checkedUsername
+        const historyNode = document.querySelector('.chat-history')
+        const loading = historyNode?.getAttribute('aria-busy') === 'true'
+        const errorShown = !!historyNode?.querySelector('[role="alert"]')
+        const visibleCount = historyNode?.querySelectorAll('.chat-messages > li').length || 0
+        const emptyShown = (historyNode?.textContent || '').includes('Chưa có tin nhắn.')
+        const uiLoaded = !!historyNode && !loading && !errorShown &&
+            historySuccess && (historyCount === visibleCount ||
+                (historyCount === 0 && visibleCount === 0 && emptyShown))
+        const connected = socketClient.getStatus() === 'connected'
+        const passed = unchangedSession && connected && apiMode &&
+            existenceRequest && existenceResult && outsideFixture &&
+            historyRequest && historyForSameUser && historySuccess &&
+            correctChat && uiLoaded && !requestError
+
+        const lines = [
+            'CV43-CV24: KIEM TRA /chat NGOAI FIXTURE (DA CHE)',
+            `UTC: ${new Date().toISOString()}`,
+            'Trang: /chat',
+            `WebSocket: ${connected ? 'connected' : 'disconnected'}`,
+            `Dung API that: ${apiMode ? 'PASS' : 'CHUA DAT'}`,
+            `Khong doi phien dang nhap: ${unchangedSession ? 'PASS' : 'CHUA DAT'}`,
+            `Username ngoai fixture: ${outsideFixture ? 'PASS' : 'CHUA DAT'}`,
+            `CHAT_CHECK_USER_EXIST: ${existenceRequest ? 'DA GOI' : 'CHUA GOI'}`,
+            `CHECK_USER_EXIST data.status=true: ${existenceResult ? 'PASS' : 'CHUA DAT'}`,
+            `GET_PEOPLE_CHAT_MES trang 1 dung username: ${historyForSameUser ? 'PASS' : 'CHUA DAT'}`,
+            `Phan hoi lich su: ${historySuccess ? 'success' : 'chua_xac_nhan'}`,
+            `So tin nhan API: ${historyCount ?? 'chua_xac_nhan'}`,
+            `Chat rieng mo dung: ${correctChat ? 'PASS' : 'CHUA DAT'}`,
+            `Giao dien hien thi du lieu lich su: ${uiLoaded ? 'PASS' : 'CHUA DAT'}`,
+            `KET QUA: ${passed ? 'PASS' : 'CHUA DAT'}`,
+            'LOG KHONG LUU USERNAME, TOKEN, MA PHIEN HAY NOI DUNG TIN NHAN.'
+        ]
+        const content = lines.join('\n')
+        console.log(content)
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'CV43_CV24_LICH_SU_NGOAI_FIXTURE_DA_CHE.txt'
+        document.body.append(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1500)
+        restore()
+    }
+    panel.append(exportButton)
+
+    const cancelButton = document.createElement('button')
+    cancelButton.type = 'button'
+    cancelButton.textContent = 'Dung theo doi'
+    Object.assign(cancelButton.style, { padding: '8px 12px', cursor: 'pointer' })
+    cancelButton.onclick = restore
+    panel.append(cancelButton)
+
+    window.__cv43HistoryProbeStop = restore
+    document.body.append(panel)
+    console.log('CV43-CV24 dang theo doi API tren /chat. Khong mo WebSocket moi.')
+})()
