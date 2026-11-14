@@ -22,7 +22,7 @@ export default function ChatLayout() {
 
     const [reconnectCount, setReconnectCount] = useState(0)
     const [isReconnecting, setIsReconnecting] = useState(false)
-
+    const [reconnectError, setReconnectError] = useState('')
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [sentPreviewKey, setSentPreviewKey] = useState<string | null>(null)
     const { getDraft, updateDraft, hasAnyDraft, hasDraft, clearDraft } = useChatDrafts()
@@ -31,7 +31,8 @@ export default function ChatLayout() {
         ? rooms.find(room => room.name === selectedConversation.name)?.membership
         : undefined
     const canSend = import.meta.env.DEV && authStatus === 'authenticated' && connectionStatus === 'connected'
-        && !isLoggingOut && (selectedConversation?.kind === 'people' || membership === 'member' || membership === 'owner')
+        && !isReconnecting && !isLoggingOut
+        && (selectedConversation?.kind === 'people' || membership === 'member' || membership === 'owner')
 
     const loadSelectedHistory = useCallback<ChatService['loadHistory']>((conversation, page, user) => {
         if (usingMockData || conversation.kind === 'room') {
@@ -52,12 +53,18 @@ export default function ChatLayout() {
 
         setIsReconnecting(true)
 
+        setReconnectError('')
+
         try {
             const result = await reLogin(saved)
 
             if (result.status === 'success') {
                 setReconnectCount(value => value + 1)
+            } else {
+                setReconnectError(result.error.message)
             }
+        } catch {
+            setReconnectError('Không thể kết nối lại. Vui lòng thử lại.')
         } finally {
             setIsReconnecting(false)
         }
@@ -84,6 +91,7 @@ export default function ChatLayout() {
                         onClick={handleRetryConnect}
                     >
                         {isReconnecting ? 'Đang kết nối lại…' : 'Thử kết nối lại'}
+                        {reconnectError && <span role="alert">{reconnectError}</span>}
                     </button>
                 )}
                 <button type="button" disabled={isLoggingOut} onClick={handleLogout}>
