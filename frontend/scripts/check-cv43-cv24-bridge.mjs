@@ -47,8 +47,34 @@ check('ChatHistory goi loadHistory cung currentUser khi tai tin cu', () => {
     assert.match(page, /await loadHistory\(\{ kind, name \}, page \+ 1, currentUser\)/)
 })
 
-check('ChatHistory reset khi doi sessionGeneration', () => {
-    assert.match(page, /key=\{JSON\.stringify\(\[sessionGeneration, conversationKey\]\)\}/)
+check('Khoa lich su theo session, hoi thoai va luot reconnect neu co CV09', () => {
+    const tag = page.match(/<ChatHistory\b[\s\S]*?\/>/)?.[0]
+    assert.ok(tag, 'Thieu ChatHistory')
+    const start = tag.indexOf('key={')
+    assert.ok(start !== -1, 'Thieu key cua ChatHistory')
+    const expression = tag.slice(start + 5)
+    let depth = 1
+    let end = 0
+    for (; end < expression.length; end++) {
+        if (expression[end] === '{') depth++
+        if (expression[end] === '}') depth--
+        if (depth === 0) break
+    }
+    assert.equal(depth, 0, 'Key JSX khong dong dung')
+    let key = expression.slice(0, end)
+    if (/^[a-zA-Z_$][\w$]*$/.test(key.trim())) {
+        const name = key.trim()
+        const assignment = page.match(new RegExp(`(?:const|let)\\s+${name}\\s*=\\s*([^;\\n]+)`))
+        assert.ok(assignment, `Khong tim thay gia tri ${name}`)
+        key = assignment[1]
+    }
+    assert.match(key, /\bsessionGeneration\b/)
+    assert.match(key, /\bconversationKey\b/)
+    if (/\breconnectCount\b/.test(page) || /\breconnectCount\b/.test(layout)) {
+        assert.match(key, /\breconnectCount\b/)
+        assert.match(layout, /reconnectCount=\{reconnectCount\}/)
+        assert.match(layout, /Thử kết nối lại/)
+    }
 })
 
 check('ChatLayout su dung chatApi trong che do API that cho people', () => {
@@ -93,6 +119,22 @@ check('Khong tao WebSocket thu hai trong diem noi', () => {
     assert.doesNotMatch(api, /new WebSocket|fetch\(/)
 })
 
-console.log(`${passed}/15 checks CV43-CV24 bridge passed`)
+check('Ban nhap va lich su co khoa doc lap khi tai lai', () => {
+    assert.match(layout, /useChatDrafts\(\)/)
+    assert.match(page, /<Composer[\s\S]*?key=\{conversationKey\}/)
+    assert.match(page, /<ChatHistory[\s\S]*?key=\{/)
+})
+
+if (/\breconnectCount\b/.test(page) || /\breconnectCount\b/.test(layout)) {
+    check('CV09 duoc truyen vao ChatPage va giu luong tai lai', () => {
+        assert.match(layout, /reconnectCount=\{reconnectCount\}/)
+        assert.match(layout, /Thử kết nối lại/)
+        assert.match(page, /\breconnectCount\b/)
+    })
+} else {
+    console.log('SKIP: Source dang kiem tra chua co CV09 moi cua origin/develop')
+}
+
+console.log(`${passed} checks CV43-CV24 bridge passed`)
 console.log(`Node.js ${process.version}`)
 console.log('Chi kiem tra ma nguon; khong phai bang chung WebSocket API that.')

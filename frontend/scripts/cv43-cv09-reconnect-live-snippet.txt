@@ -1,0 +1,119 @@
+(async () => {
+    const { store } = await import('/src/store/index.ts')
+    const { socketClient } = await import('/src/services/socketClient.ts')
+    if (window.__cv43Cv09Stop) window.__cv43Cv09Stop()
+
+    const initial = store.getState().auth
+    const conversation = document.querySelector('.chat-heading h2')?.textContent?.trim() || ''
+    const textarea = document.querySelector('#chat-draft')
+    if (location.pathname !== '/chat' || !initial.currentUser || !conversation || !textarea || !textarea.value.trim()) {
+        console.log('CV43/CV09: Dang nhap, mo chat rieng va soan mot ban nhap chua gui truoc khi chay snippet.')
+        return
+    }
+
+    const startUser = initial.currentUser
+    const savedDraft = textarea.value
+    const original = socketClient.request
+    let reLoginOk = false
+    let historyAfterLogin = false
+    let historyOk = false
+    let reLoginError = false
+    let manualButtonSeen = false
+    let ended = false
+
+    function stop() {
+        if (ended) return
+        ended = true
+        socketClient.request = original
+        panel.remove()
+        delete window.__cv43Cv09Stop
+    }
+
+    socketClient.request = async function (event, data) {
+        const after = reLoginOk
+        try {
+            const response = await original.call(socketClient, event, data)
+            if (event === 'RE_LOGIN') reLoginOk = response.status === 'success'
+            if (event === 'GET_PEOPLE_CHAT_MES' && after && data?.page === 1 && data?.name === conversation) {
+                historyAfterLogin = true
+                historyOk = response.status === 'success' && Array.isArray(response.data)
+            }
+            return response
+        } catch (error) {
+            if (event === 'RE_LOGIN') reLoginError = true
+            throw error
+        }
+    }
+
+    const panel = document.createElement('div')
+    Object.assign(panel.style, {
+        position: 'fixed', right: '12px', bottom: '12px', zIndex: 99999,
+        padding: '12px', background: 'white', color: '#111827', width: '320px',
+        border: '2px solid #2563eb', borderRadius: '10px', font: '13px Arial, sans-serif'
+    })
+    const title = document.createElement('p')
+    title.textContent = 'CV09: Ngat mang, cho 3 lan tu dong that bai. Kiem tra nut Thu ket noi lai, mo mang, bam nut. Sau RE_LOGIN xuat log.'
+    panel.append(title)
+
+    const markButton = document.createElement('button')
+    markButton.textContent = 'Ghi nhan nut thu lai'
+    markButton.type = 'button'
+    markButton.onclick = () => {
+        const buttons = [...document.querySelectorAll('.chat-layout button')]
+        manualButtonSeen = buttons.some(button => button.textContent?.includes('Thử kết nối lại') && !button.disabled)
+        console.log(manualButtonSeen ? 'CV09: DA THAY nut ket noi lai thu cong' : 'CV09: CHUA THAY nut ket noi lai')
+    }
+    panel.append(markButton)
+
+    const exportButton = document.createElement('button')
+    exportButton.textContent = 'Xuất log đã che'
+    exportButton.type = 'button'
+    exportButton.style.margin = '6px'
+    exportButton.onclick = () => {
+        const current = store.getState().auth
+        const stillSameUser = current.currentUser === startUser && current.authStatus === 'authenticated'
+        const stillSameConversation = document.querySelector('.chat-heading h2')?.textContent?.trim() === conversation
+        const present = document.querySelector('#chat-draft')
+        const draftPreserved = !!present && present.value === savedDraft
+        const history = document.querySelector('.chat-history')
+        const uiReady = !!history && history.getAttribute('aria-busy') !== 'true' && !history.querySelector('[role="alert"]')
+        const passed = manualButtonSeen && reLoginOk && historyAfterLogin && historyOk &&
+            uiReady && stillSameUser && stillSameConversation && draftPreserved
+        const lines = [
+            'CV43-CV09: RECONNECT VA LICH SU (DA CHE)',
+            `UTC: ${new Date().toISOString()}`,
+            `Nut thu ket noi lai sau 3 lan loi: ${manualButtonSeen ? 'CO' : 'CHUA_XAC_NHAN'}`,
+            `RE_LOGIN thanh cong: ${reLoginOk ? 'PASS' : 'CHUA_XAC_NHAN'}`,
+            `RE_LOGIN gap loi: ${reLoginError ? 'CO' : 'KHONG_GHI_NHAN'}`,
+            `GET_PEOPLE_CHAT_MES sau RE_LOGIN: ${historyAfterLogin ? 'DA_GOI' : 'CHUA_GOI'}`,
+            `GET_PEOPLE_CHAT_MES success: ${historyOk ? 'PASS' : 'CHUA_XAC_NHAN'}`,
+            `Giao dien lich su hoan tat: ${uiReady ? 'PASS' : 'CHUA_DAT'}`,
+            `Giu dung phien va hoi thoai: ${stillSameUser && stillSameConversation ? 'PASS' : 'CHUA_DAT'}`,
+            `Ban nhap con nguyen: ${draftPreserved ? 'PASS' : 'CHUA_DAT'}`,
+            `KET QUA: ${passed ? 'PASS' : 'CHUA_DAT'}`,
+            'Khong xuat username, code phien, token, mat khau, noi dung tin nhan hay ban nhap.'
+        ]
+        const content = lines.join('\n')
+        console.log(content)
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'CV43_CV09_RECONNECT_DA_CHE.txt'
+        document.body.append(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        stop()
+    }
+    panel.append(exportButton)
+
+    const stopButton = document.createElement('button')
+    stopButton.textContent = 'Dừng'
+    stopButton.type = 'button'
+    stopButton.onclick = stop
+    panel.append(stopButton)
+    document.body.append(panel)
+    window.__cv43Cv09Stop = stop
+    console.log('CV09: Dang quan sat RE_LOGIN va GET_PEOPLE_CHAT_MES, khong mo socket moi.')
+})()
