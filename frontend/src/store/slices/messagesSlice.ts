@@ -73,7 +73,10 @@ const messagesSlice = createSlice({
             const key = createConversationKey(conversation)
             const history = state[key] ??= { messages: [], nextPage: 1, hasOlder: true, error: '' }
             if (message.id != null && history.messages.some(item => item.id != null && String(item.id) === String(message.id))) return
-            history.messages.push(message)
+            // Tin chưa có ID có thể xuất hiện lại trong trang đầu.
+            if (message.id != null || history.nextPage > 1 || !history.hasOlder) {
+                history.messages.push(message)
+            }
             if (!viewed) history.unread = (history.unread ?? 0) + 1
         },
         markViewed(state, action: PayloadAction<string>) {

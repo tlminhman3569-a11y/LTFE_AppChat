@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { sendText, subscribeToMessages } from '../services/chatApi'
@@ -21,6 +21,7 @@ export default function ChatLayout() {
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [pending, setPending] = useState<(Message & { localId: string })[]>([])
+    const nextPendingId = useRef(0)
     const [sendError, setSendError] = useState('')
     const { getDraft, updateDraft, hasAnyDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
@@ -93,10 +94,10 @@ export default function ChatLayout() {
                     onSend={(conversation, draft) => {
                         const text = draft.map(run => run.text).join('')
                         if (!canSend || !currentUser || !text.trim() || createConversationKey(conversation) !== conversationKey) return
-                        const localId = crypto.randomUUID()
                         setSendError('')
                         try {
                             sendText(conversation, text)
+                            const localId = String(++nextPendingId.current)
                             setPending(previous => [...previous, {
                                 localId, name: currentUser, kind: conversation.kind, to: conversation.name, mes: text,
                             }])

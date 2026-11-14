@@ -59,3 +59,12 @@ it('đếm chưa xem theo khóa, bỏ qua ID trùng và xóa số đếm khi m�
     expect(selectUnreadCount({ messages: state }, key)).toBe(1)
     expect(selectUnreadCount({ messages: reducer(state, markViewed(key)) }, key)).toBe(0)
 })
+
+it('giữ số chưa xem mà không chèn tin thiếu ID trước khi tải trang đầu', () => {
+    const conversation = { kind: 'people', name: 'Demo' } as const
+    const key = createConversationKey(conversation)
+    const message = { kind: 'people', name: 'Demo', to: 'current', mes: 'Tin mẫu' } as const
+    const state = reducer(undefined, messageReceived({ conversation, message, viewed: false }))
+    expect(state[key]?.messages).toEqual([])
+    expect(selectUnreadCount({ messages: state }, key)).toBe(1)
+})
