@@ -64,3 +64,11 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
         return { status: 'error', error: { kind: 'connection', message: 'Không thể kết nối để tải lịch sử' } }
     }
 }
+
+export function sendText(conversation: ConversationRef, text: string): void {
+    if (!conversation.name.trim() || !text.trim()) throw new Error('Cần hội thoại và nội dung tin nhắn')
+    socketClient.send(JSON.stringify({
+        action: 'onchat',
+        data: { event: 'SEND_CHAT', data: { type: conversation.kind, to: conversation.name, mes: text } },
+    }))
+}

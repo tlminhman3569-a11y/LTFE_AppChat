@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
+import { sendText } from '../services/chatApi'
 import { logout } from '../services/authApi'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
@@ -8,7 +9,7 @@ import type { ConversationRef } from '../types/api'
 import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
-import { rooms } from '../fixtures/rooms'
+import type { Message } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
 
 export default function ChatLayout() {
@@ -18,17 +19,14 @@ export default function ChatLayout() {
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
-    const [sentPreviewKey, setSentPreviewKey] = useState<string | null>(null)
-    const { getDraft, updateDraft, hasAnyDraft, hasDraft, clearDraft } = useChatDrafts()
+    const [pending, setPending] = useState<(Message & { localId: string })[]>([])
+    const [sendError, setSendError] = useState('')
+    const { getDraft, updateDraft, hasAnyDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
-    const membership = selectedConversation?.kind === 'room'
-        ? rooms.find(room => room.name === selectedConversation.name)?.membership
-        : undefined
-    const canSend = import.meta.env.DEV && canUseSocket
-        && !isLoggingOut && (selectedConversation?.kind === 'people' || membership === 'member' || membership === 'owner')
+    const canSend = canUseSocket && !isLoggingOut && selectedConversation?.kind === 'people'
 
     function selectConversation(conversation: ConversationRef | null) {
-        setSentPreviewKey(null)
+        setSendError('')
         setSelectedConversation(conversation)
     }
 
@@ -71,17 +69,26 @@ export default function ChatLayout() {
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
                     canSend={canSend}
                     onDraftChange={(conversation, draft) => {
-                        setSentPreviewKey(null)
+                        setSendError('')
                         updateDraft(conversation, draft)
                     }}
                     onSend={(conversation, draft) => {
-                        if (!canSend || !hasDraft(conversation) || !draft.some(run => run.text.trim())) return
-                        const key = createConversationKey(conversation)
-                        if (key !== conversationKey) return
-                        clearDraft(conversation)
-                        setSentPreviewKey(key)
+                        const text = draft.map(run => run.text).join('')
+                        if (!canSend || !currentUser || !text.trim() || createConversationKey(conversation) !== conversationKey) return
+                        const localId = crypto.randomUUID()
+                        setSendError('')
+                        try {
+                            sendText(conversation, text)
+                            setPending(previous => [...previous, {
+                                localId, name: currentUser, kind: conversation.kind, to: conversation.name, mes: text,
+                            }])
+                            clearDraft(conversation)
+                        } catch {
+                            setSendError('Không gửi được tin nhắn. Bản nháp vẫn được giữ.')
+                        }
                     }}
-                    sentPreview={conversationKey !== null && sentPreviewKey === conversationKey}
+                    pending={pending.filter(message => message.kind === selectedConversation?.kind && message.to === selectedConversation.name)}
+                    sendError={sendError}
                     onBack={() => selectConversation(null)}
                 />
             </div>
