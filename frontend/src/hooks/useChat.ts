@@ -12,12 +12,12 @@ export function useChat({ kind, name }: ConversationRef) {
     const history = useAppSelector(state => state.messages[createConversationKey({ kind, name })])
     const { authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const canLoad = authStatus === 'authenticated' && connectionStatus === 'connected'
-    const hasHistory = history !== undefined
+    const shouldLoadFirstPage = !history || (history.nextPage === 1 && history.hasOlder && !history.error && !history.requestId)
 
     useEffect(() => {
-        if (!canLoad || hasHistory) return
+        if (!canLoad || !shouldLoadFirstPage) return
         void dispatch(fetchHistoryPage({ conversation: { kind, name }, page: 1, sessionGeneration }))
-    }, [canLoad, dispatch, hasHistory, kind, name, sessionGeneration])
+    }, [canLoad, dispatch, kind, name, sessionGeneration, shouldLoadFirstPage])
 
     function loadNextPage() {
         if (!canLoad) return
@@ -32,7 +32,7 @@ export function useChat({ kind, name }: ConversationRef) {
         messages: history?.messages ?? noMessages,
         hasOlder: history?.hasOlder ?? true,
         firstPage: (history?.nextPage ?? 1) === 1,
-        loading: Boolean(history?.requestId) || (canLoad && !hasHistory),
+        loading: Boolean(history?.requestId) || (canLoad && shouldLoadFirstPage),
         error: history?.error ?? '',
         canLoad,
         loadNextPage,
