@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
-import { logout } from '../services/authApi'
+import { logout, reLogin } from '../services/authApi'
+import { readStoredSession } from '../services/sessionStorage'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
@@ -12,11 +13,15 @@ import { loadHistory as loadChatHistory } from '../services/chatApi'
 import type { ChatService } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
 
+
 export default function ChatLayout() {
     const dispatch = useAppDispatch()
     const { currentUser, authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
     const [usingMockData, setUsingMockData] = useState(false)
+
+    const [reconnectCount, setReconnectCount] = useState(0)
+    const [isReconnecting, setIsReconnecting] = useState(false)
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [sentPreviewKey, setSentPreviewKey] = useState<string | null>(null)
@@ -39,7 +44,24 @@ export default function ChatLayout() {
         setSentPreviewKey(null)
         setSelectedConversation(conversation)
     }
+    async function handleRetryConnect() {
+        if (isReconnecting || isLoggingOut || authStatus !== 'authenticated') return
 
+        const saved = readStoredSession()
+        if (!saved || saved.username !== currentUser) return
+
+        setIsReconnecting(true)
+
+        try {
+            const result = await reLogin(saved)
+
+            if (result.status === 'success') {
+                setReconnectCount(value => value + 1)
+            }
+        } finally {
+            setIsReconnecting(false)
+        }
+    }
     async function handleLogout() {
         if (isLoggingOut) return
         if (hasAnyDraft() && !window.confirm('Bạn còn bản nháp. Đăng xuất sẽ xóa bản nháp. Tiếp tục?')) return
@@ -55,6 +77,15 @@ export default function ChatLayout() {
                 <h1>App Chat</h1>
                 <span>{currentUser}</span>
                 <span role="status">{connectionStatus === 'connected' ? 'Đã kết nối' : 'Chưa kết nối'}</span>
+                {connectionStatus !== 'connected' && (
+                    <button
+                        type="button"
+                        disabled={isReconnecting || isLoggingOut}
+                        onClick={handleRetryConnect}
+                    >
+                        {isReconnecting ? 'Đang kết nối lại…' : 'Thử kết nối lại'}
+                    </button>
+                )}
                 <button type="button" disabled={isLoggingOut} onClick={handleLogout}>
                     {isLoggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}
                 </button>
@@ -69,6 +100,7 @@ export default function ChatLayout() {
                     authStatus={authStatus}
                     connectionStatus={connectionStatus}
                     sessionGeneration={sessionGeneration}
+                    reconnectCount={reconnectCount}
                     loadHistory={loadSelectedHistory}
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
                     canSend={canSend}
