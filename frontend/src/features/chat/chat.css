@@ -109,3 +109,5 @@
         margin-bottom: 12px;
     }
 }
+
+.chat-pending { max-height: 9rem; overflow-y: auto; padding: 0 16px; }

@@ -3,14 +3,14 @@ import type { HistoryPage, Message } from '../types/message'
 import { loadRoom } from './roomsApi'
 import { socketClient, SocketRequestError } from './socketClient'
 
-function readPrivateMessage(value: unknown): Message | null {
+function readMessage(value: unknown): Message | null {
     if (!value || typeof value !== 'object') return null
-    if (!('type' in value) || value.type !== 0
+    if (!('type' in value) || (value.type !== 0 && value.type !== 1)
         || !('name' in value) || typeof value.name !== 'string' || !value.name.trim()
         || !('to' in value) || typeof value.to !== 'string' || !value.to.trim()
         || !('mes' in value) || typeof value.mes !== 'string') return null
 
-    const message: Message = { kind: 'people', name: value.name, to: value.to, mes: value.mes }
+    const message: Message = { kind: value.type === 0 ? 'people' : 'room', name: value.name, to: value.to, mes: value.mes }
     if ('id' in value && (typeof value.id === 'string' || typeof value.id === 'number')) message.id = value.id
     if ('createAt' in value && typeof value.createAt === 'string') message.createAt = value.createAt
     return message
@@ -46,8 +46,8 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
 
         const messages: Message[] = []
         for (const item of reply.data) {
-            const message = readPrivateMessage(item)
-            if (!message) return invalidHistory()
+            const message = readMessage(item)
+            if (!message || message.kind !== 'people') return invalidHistory()
             const isIncoming = message.name === conversation.name && message.to === currentUser
             const isOutgoing = message.name === currentUser && message.to === conversation.name
             if (!isIncoming && !isOutgoing) {
@@ -63,4 +63,34 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
         }
         return { status: 'error', error: { kind: 'connection', message: 'Không thể kết nối để tải lịch sử' } }
     }
+}
+
+export function sendText(conversation: ConversationRef, text: string): void {
+    if (!conversation.name.trim() || !text.trim()) throw new Error('Cần hội thoại và nội dung tin nhắn')
+    socketClient.send(JSON.stringify({
+        action: 'onchat',
+        data: { event: 'SEND_CHAT', data: { type: conversation.kind, to: conversation.name, mes: text } },
+    }))
+}
+
+export function subscribeToMessages(
+    currentUser: string,
+    onMessage: (conversation: ConversationRef, message: Message) => void,
+    onError: () => void,
+) {
+    return socketClient.subscribe('SEND_CHAT', response => {
+        if (response.status === 'error') {
+            onError()
+            return
+        }
+        if (response.status !== 'success') return
+        const message = readMessage(response.data)
+        if (!message) return
+        // Tin phát về cho chính người gửi không xác nhận được tin tạm.
+        if (message.name === currentUser) return
+        if (message.kind === 'people' && message.to !== currentUser) return
+
+        const name = message.kind === 'room' ? message.to : message.name
+        onMessage({ kind: message.kind, name }, message)
+    })
 }
