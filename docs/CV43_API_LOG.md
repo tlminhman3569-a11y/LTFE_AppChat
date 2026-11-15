@@ -32,7 +32,7 @@ try {
 }
 ```
 
-Script sẽ dùng **một WebSocket độc lập cho phép thử**, không mở thêm kết nối trong React, thử `LOGIN` → `CHECK_USER_EXIST` A/B → `GET_PEOPLE_CHAT_MES` A trang 1; xuất `frontend/CV43_API_LIVE_DA_CHE.txt` chỉ chứa metadata. File kết quả được `../.gitignore` bỏ qua. `API_RESULT: PASS` chỉ khi từng phép kiểm chứng thực sự đạt, không được tự điền PASS. Nếu response đến muộn sau timeout, script đóng socket để không đối chiếu nhầm người.
+Script sẽ dùng **một WebSocket độc lập cho phép thử**, không mở thêm kết nối trong React, thử `LOGIN` → `CHECK_USER_EXIST` A/B → `GET_PEOPLE_CHAT_MES` A trang 1; xuất `frontend/CV43_API_LIVE_DA_CHE.txt` chỉ chứa metadata. File kết quả được `.gitignore` bỏ qua. `API_RESULT: PASS` chỉ khi từng phép kiểm chứng thực sự đạt, không được tự điền PASS. Nếu response đến muộn sau timeout, script đóng socket để không đối chiếu nhầm người.
 
 ## 3. Xác minh luồng UI thật
 

@@ -48,8 +48,8 @@ Mẫn giữ khung trang; Kiệt giữ component nội dung chat; Khôi giữ sid
 | RE_LOGIN | user, code | RE_LOGIN | Mẫn |
 | LOGOUT | Không có data con trong ví dụ | LOGOUT | Mẫn |
 | GET_USER_LIST | {} | GET_USER_LIST | Khôi |
-| CHAT_CHECK_USER_EXIST | user | CHECK_USER_EXIST | Khôi |
-| CHAT_CHECK_USER_ONLINE | user | CHECK_USER_ONLINE | Khôi |
+| CHECK_USER_EXIST | user | CHECK_USER_EXIST | Khôi |
+| CHECK_USER_ONLINE | user | CHECK_USER_ONLINE | Khôi |
 | CREATE_ROOM | name | CREATE_ROOM | Khôi |
 | JOIN_ROOM | name | JOIN_ROOM | Khôi |
 | OUT_ROOM | name | OUT_ROOM | Khôi |
@@ -145,8 +145,8 @@ Service giả và service thật phải có cùng chữ ký.
 - error: có lỗi rõ ràng, không được coi thành không tồn tại.
 - unknown: chưa xác định được kết quả, UI cho kiểm tra lại.
 
-Lệnh gửi CHAT_CHECK_USER_EXIST nhận phản hồi CHECK_USER_EXIST.
-socketClient phải ánh xạ đúng hai tên này.
+Lệnh gửi `CHECK_USER_EXIST` nhận phản hồi `CHECK_USER_EXIST`; `CHECK_USER_ONLINE` nhận `CHECK_USER_ONLINE`.
+`usersApi` gọi trực tiếp tên event trên WebSocket; không cần thêm ánh xạ tên nội bộ trong `socketClient`.
 
 ### Đọc phòng dùng chung
 
