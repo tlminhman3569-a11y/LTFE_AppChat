@@ -10,6 +10,7 @@ import { refreshConversations } from '../store/slices/conversationsSlice'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
 import type { OnSelectConversation, RecentConversation } from '../types/user'
 import { filterRecentConversations } from '../utils/filterRecentConversations'
+import { resolveLookupConversation } from '../utils/resolveLookupConversation'
 import { applyConversationLoad } from '../utils/conversationLoadState'
 import type { ConversationLoadState } from '../utils/conversationLoadState'
 import ConversationList from './ConversationList'
@@ -79,20 +80,9 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         ? mockListState.error
         : apiList.error || (disconnected ? 'Kết nối bị gián đoạn. Chưa thể cập nhật danh sách.' : '')
     const suggestions = filterRecentConversations(conversations, query)
-
     function selectLookupUser(conversation: ConversationRef) {
-        const name = conversation.name
-        const matchedUser = conversations.find(
-            item =>
-                item.kind === 'people' &&
-                item.name.toLowerCase() === name.toLowerCase()
-        )
-
-        const actualName = matchedUser?.name ?? name
-
-        onSelectConversation({ kind: 'people', name: actualName })
+        onSelectConversation(resolveLookupConversation(conversation.name, conversations))
     }
-
 
     function retry() {
         if (isMock) {

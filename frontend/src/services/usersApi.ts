@@ -45,10 +45,10 @@ function readUserStatus(response: unknown, event: string): ApiResult<boolean> {
 function requestFailure(error: unknown): ApiResult<never> {
     if (error instanceof SocketRequestError) {
         return {
-            status: error.wasSent ? 'unknown' : 'error',
+            status: 'error',
             error: {
                 kind: error.kind,
-                message: error.wasSent ? 'Chưa xác định được kết quả kiểm tra. Vui lòng thử lại.' : 'Chưa kết nối được với máy chủ.',
+                message: error.kind === 'timeout' ? 'Hết thời gian chờ phản hồi kiểm tra. Vui lòng thử lại.' : 'Chưa kết nối được với máy chủ.',
             },
         }
     }

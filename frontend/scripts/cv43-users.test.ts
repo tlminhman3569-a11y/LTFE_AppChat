@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { checkExists, checkOnline } from '../src/services/usersApi'
 import { SocketRequestError, socketClient } from '../src/services/socketClient'
+import { resolveLookupConversation } from '../src/utils/resolveLookupConversation'
 
 afterEach(() => {
     vi.restoreAllMocks()
@@ -43,14 +44,14 @@ describe('CV43 - kiểm tra username chính xác', () => {
         }
     })
 
-    it('timeout sau khi gửi được báo chưa xác định, lỗi trước gửi được báo error', async () => {
+    it('timeout lệnh đọc trả error kind timeout, lỗi trước gửi trả connection', async () => {
         const request = vi.spyOn(socketClient, 'request')
         request.mockRejectedValueOnce(new SocketRequestError('timeout', 'timeout', true))
         request.mockRejectedValueOnce(new SocketRequestError('no socket', 'connection', false))
         const timedOut = await checkExists('test')
         const disconnected = await checkExists('test')
-        expect(timedOut.status).toBe('unknown')
-        expect(disconnected.status).toBe('error')
+        expect(timedOut).toMatchObject({ status: 'error', error: { kind: 'timeout' } })
+        expect(disconnected).toMatchObject({ status: 'error', error: { kind: 'connection' } })
     })
 })
 
@@ -77,6 +78,22 @@ describe('CV43 - trạng thái online theo lần kiểm tra', () => {
         const invalid = await checkOnline('test')
         const timedOut = await checkOnline('test')
         expect(invalid.status).toBe('error')
-        expect(timedOut.status).toBe('unknown')
+        expect(timedOut).toMatchObject({ status: 'error', error: { kind: 'timeout' } })
+    })
+})
+
+describe('CV43 - chuẩn hóa tên khi mở chat từ tra cứu', () => {
+    const conversations = [
+        { kind: 'people' as const, name: 'TuyetMinh' },
+        { kind: 'people' as const, name: 'vutest1' },
+        { kind: 'room' as const, name: 'Minh_An' },
+    ]
+    it('dùng đúng kiểu chữ theo hội thoại người dùng gần đây', () => {
+        expect(resolveLookupConversation('tuyetminh', conversations)).toEqual({ kind: 'people', name: 'TuyetMinh' })
+        expect(resolveLookupConversation('Vutest1', conversations)).toEqual({ kind: 'people', name: 'vutest1' })
+    })
+    it('không dùng tên của phòng và giữ nguyên tên khi chưa có trong danh sách', () => {
+        expect(resolveLookupConversation('minh_an', conversations)).toEqual({ kind: 'people', name: 'minh_an' })
+        expect(resolveLookupConversation('New_User', conversations)).toEqual({ kind: 'people', name: 'New_User' })
     })
 })

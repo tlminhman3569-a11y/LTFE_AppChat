@@ -43,5 +43,3 @@ Thumbs.db
 # Cấu hình Codex riêng trên máy
 .codex/
 
-# CV43: khong commit log kiem thu WebSocket
-cv43-live-evidence.json
