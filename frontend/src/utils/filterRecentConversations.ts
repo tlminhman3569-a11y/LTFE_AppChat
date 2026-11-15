@@ -1,5 +1,5 @@
-import type { ConversationKind } from '../types/api'
-import type { RecentConversation } from '../types/user'
+import type { ConversationKind } from '../types/api.ts'
+import type { RecentConversation } from '../types/user.ts'
 
 export function filterRecentConversations(
     conversations: RecentConversation[],

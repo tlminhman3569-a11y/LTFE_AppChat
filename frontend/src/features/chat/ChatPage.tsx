@@ -1,9 +1,11 @@
 import { useLayoutEffect, useRef } from 'react'
-import type { ConversationKey, ConversationRef } from '../../types/api'
-import type { ChatPageProps, ComposerProps, Message } from '../../types/message'
-import { useChat } from '../../hooks/useChat'
-import Composer from './Composer'
-import MessageList from './MessageList'
+import type { ConversationKey, ConversationRef } from '../../types/api.ts'
+import type { ChatPageProps, ComposerProps, Message } from '../../types/message.ts'
+import { useChat } from '../../hooks/useChat.ts'
+import { useAppSelector } from '../../store/hooks.ts'
+import { selectUserPresence } from '../../store/slices/presenceSlice.ts'
+import Composer from './Composer.tsx'
+import MessageList from './MessageList.tsx'
 import './chat.css'
 
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
@@ -76,6 +78,8 @@ export default function ChatPage({
     conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack,
     draft, canSend, onDraftChange, onSend, pending, sendError,
 }: ChatProps) {
+    const presence = useAppSelector(state => selectUserPresence(state, conversation?.kind === 'people' ? conversation.name : ''))
+
     return (
         <section className="chat-content chat-page" aria-label="Nội dung hội thoại">
             {conversation && conversationKey !== null ? (
@@ -84,6 +88,12 @@ export default function ChatPage({
                         <button type="button" className="mobile-back" onClick={onBack}>Quay lại danh sách</button>
                         <h2>{conversation.name}</h2>
                         <p>{conversation.kind === 'room' ? 'Phòng chat' : 'Chat riêng'}</p>
+                        {conversation.kind === 'people' && (
+                            <p aria-label="Trạng thái tại lần kiểm tra gần nhất">
+                                {presence.status === 'online' ? 'Online (lần kiểm tra gần nhất)' :
+                                    presence.status === 'offline' ? 'Offline (lần kiểm tra gần nhất)' : 'Online chưa xác định'}
+                            </p>
+                        )}
                     </header>
                     <ChatHistory
                         key={JSON.stringify([sessionGeneration, conversationKey, reconnectCount])}

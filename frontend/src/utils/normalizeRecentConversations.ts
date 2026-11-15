@@ -1,5 +1,5 @@
-import type { ApiResult } from '../types/api'
-import type { RecentConversation } from '../types/user'
+import type { ApiResult } from '../types/api.ts'
+import type { RecentConversation } from '../types/user.ts'
 
 function parseError(message: string): ApiResult<RecentConversation[]> {
     return { status: 'error', error: { kind: 'parse', message } }

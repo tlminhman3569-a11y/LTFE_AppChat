@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
-import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { fetchHistoryPage } from '../store/slices/messagesSlice'
-import type { ConversationRef } from '../types/api'
-import type { Message } from '../types/message'
-import { createConversationKey } from '../utils/conversationKey'
+import { useAppDispatch, useAppSelector } from '../store/hooks.ts'
+import { fetchHistoryPage } from '../store/slices/messagesSlice.ts'
+import type { ConversationRef } from '../types/api.ts'
+import type { Message } from '../types/message.ts'
+import { createConversationKey } from '../utils/conversationKey.ts'
 
 const noMessages: Message[] = []
 

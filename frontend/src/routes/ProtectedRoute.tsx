@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router'
-import { useAppSelector } from '../store/hooks'
+import { useAppSelector } from '../store/hooks.ts'
 
 export default function ProtectedRoute() {
     const authStatus = useAppSelector(state => state.auth.authStatus)

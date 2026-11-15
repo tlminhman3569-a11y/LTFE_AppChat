@@ -1,5 +1,5 @@
-import type { ApiResult } from '../types/api'
-import type { User } from '../types/user'
+import type { ApiResult } from '../types/api.ts'
+import type { User } from '../types/user.ts'
 
 export const currentUser = 'khoi_demo'
 

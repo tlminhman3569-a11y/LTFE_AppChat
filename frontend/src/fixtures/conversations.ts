@@ -1,5 +1,5 @@
-import type { ApiResult } from '../types/api'
-import type { RecentConversation } from '../types/user'
+import type { ApiResult } from '../types/api.ts'
+import type { RecentConversation } from '../types/user.ts'
 
 export const recentConversations: RecentConversation[] = [
     { kind: 'people', name: 'minh_an', actionTime: '2026-11-05 08:02:00' },

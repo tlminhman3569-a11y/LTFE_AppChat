@@ -1,6 +1,6 @@
-import type { ConversationRef } from '../types/api'
-import type { Message, PendingMessage, RichMessageContent, TextRun } from '../types/message'
-import { createConversationKey } from '../utils/conversationKey'
+import type { ConversationRef } from '../types/api.ts'
+import type { Message, PendingMessage, RichMessageContent, TextRun } from '../types/message.ts'
+import { createConversationKey } from '../utils/conversationKey.ts'
 
 export const privateChat: ConversationRef = { kind: 'people', name: 'minh_an' }
 export const sameNameRoom: ConversationRef = { kind: 'room', name: 'minh_an' }

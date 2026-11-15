@@ -1,7 +1,7 @@
-import ConversationList from '../../components/ConversationList'
-import type { ConversationRef } from '../../types/api'
-import type { OnSelectConversation, RecentConversation } from '../../types/user'
-import { filterRecentConversations } from '../../utils/filterRecentConversations'
+import ConversationList from '../../components/ConversationList.tsx'
+import type { ConversationRef } from '../../types/api.ts'
+import type { OnSelectConversation, RecentConversation } from '../../types/user.ts'
+import { filterRecentConversations } from '../../utils/filterRecentConversations.ts'
 
 interface Props {
     conversations: RecentConversation[]

@@ -1,13 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import type { ApiResult, AuthStatus, ConnectionStatus } from '../../types/api'
-import type { RecentConversation } from '../../types/user'
-import { getRecentConversations } from '../../services/usersApi'
+import type { ApiResult, AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api.ts'
+import type { RecentConversation } from '../../types/user.ts'
+import { getRecentConversations } from '../../services/usersApi.ts'
 import {
     emptyConversationsState,
     finishConversationsLoad,
     startConversationsLoad,
-} from '../../utils/conversationsStoreState'
-import { sessionChecking, sessionCleared, sessionStarted } from './authSlice'
+} from '../../utils/conversationsStoreState.ts'
+import { sessionChecking, sessionCleared, sessionStarted } from './authSlice.ts'
 
 type ThunkState = {
     auth: {
@@ -52,7 +52,16 @@ export const refreshConversations = createAsyncThunk(
 const conversationsSlice = createSlice({
     name: 'conversations',
     initialState: emptyConversationsState(),
-    reducers: {},
+    reducers: {
+        conversationVerified: (state, action: { payload: ConversationRef }) => {
+            const conversation = action.payload
+            if (state.verified.some(item => item.kind === conversation.kind && item.name === conversation.name)) return
+            state.verified.unshift(conversation)
+            if (!state.items.some(item => item.kind === conversation.kind && item.name === conversation.name)) {
+                state.items.unshift(conversation)
+            }
+        },
+    },
     extraReducers: builder => {
         builder
             .addCase(sessionChecking, () => emptyConversationsState())
@@ -72,5 +81,7 @@ const conversationsSlice = createSlice({
             })
     },
 })
+
+export const { conversationVerified } = conversationsSlice.actions
 
 export default conversationsSlice.reducer

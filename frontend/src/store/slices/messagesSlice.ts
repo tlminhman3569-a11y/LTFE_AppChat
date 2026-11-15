@@ -1,10 +1,10 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { loadHistory } from '../../services/chatApi'
-import type { AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api'
-import type { Message } from '../../types/message'
-import { createConversationKey } from '../../utils/conversationKey'
-import { sessionChecking, sessionCleared, sessionReconnected, sessionStarted } from './authSlice'
+import { loadHistory } from '../../services/chatApi.ts'
+import type { AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api.ts'
+import type { Message } from '../../types/message.ts'
+import { createConversationKey } from '../../utils/conversationKey.ts'
+import { sessionChecking, sessionCleared, sessionReconnected, sessionStarted } from './authSlice.ts'
 
 interface History {
     messages: Message[]

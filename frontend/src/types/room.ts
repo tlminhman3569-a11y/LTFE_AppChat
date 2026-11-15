@@ -1,4 +1,4 @@
-import type { ApiError, ApiResult, ConversationRef } from './api'
+import type { ApiError, ApiResult, ConversationRef } from './api.ts'
 
 export type Membership = 'unknown' | 'member' | 'owner' | 'left'
 

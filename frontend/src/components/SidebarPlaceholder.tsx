@@ -1,5 +1,5 @@
-import { privateChat, sameNameRoom } from '../fixtures/chat'
-import type { ConversationRef } from '../types/api'
+import { privateChat, sameNameRoom } from '../fixtures/chat.ts'
+import type { ConversationRef } from '../types/api.ts'
 
 interface SidebarProps {
     onSelectConversation: (conversation: ConversationRef) => void

@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from '../types/api'
+import type { ConnectionStatus } from '../types/api.ts'
 
 type SocketResponse = { event: string; [key: string]: unknown }
 type EventListener = (response: SocketResponse) => void

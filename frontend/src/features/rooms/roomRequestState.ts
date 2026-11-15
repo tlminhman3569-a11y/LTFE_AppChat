@@ -1,5 +1,5 @@
-import type { ApiResult } from '../../types/api'
-import type { Room } from '../../types/room'
+import type { ApiResult } from '../../types/api.ts'
+import type { Room } from '../../types/room.ts'
 
 export type RoomAction = 'create' | 'join'
 export type RoomRequestStatus = 'pending' | 'error' | 'unknown' | 'success'

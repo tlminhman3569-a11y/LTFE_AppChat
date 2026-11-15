@@ -68,7 +68,7 @@ Thời gian: **04–25/11/2026**. Mốc kết nối API: **11/11/2026**. Mỗi n
 
 Tạo nhánh công việc từ `develop` → mở pull request vào `develop` → kiểm tra chéo → merge. Sau nghiệm thu, mở pull request từ `develop` sang `main`.
 
-Chi tiết CV01–CV54, luồng F01–F27 và điểm nối giữa các phần được quản lý trong bộ tài liệu dự án, lưu tại `docs/` khi đưa lên repo.
+Chi tiết CV01–CV54, luồng F01–F27 và điểm nối giữa các phần được quản lý trong bộ tài liệu dự án, lưu tại `docs` khi đưa lên repo.
 
 ## API và lưu ý
 
