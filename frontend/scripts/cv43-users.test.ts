@@ -14,7 +14,7 @@ describe('CV43 - kiểm tra username chính xác', () => {
         })
         expect(await checkExists('Minh_1')).toEqual({ status: 'success', data: true })
         expect(request).toHaveBeenCalledTimes(1)
-        expect(request).toHaveBeenCalledWith('CHAT_CHECK_USER_EXIST', { user: 'Minh_1' })
+        expect(request).toHaveBeenCalledWith('CHECK_USER_EXIST', { user: 'Minh_1' })
     })
 
     it('status false là không tồn tại, không phải lỗi', async () => {
@@ -67,7 +67,7 @@ describe('CV43 - trạng thái online theo lần kiểm tra', () => {
         expect(await checkOnline('Minh_1')).toEqual({
             status: 'success', data: { status: 'offline', checkedAt: '2026-11-15T08:30:00.000Z' },
         })
-        expect(request).toHaveBeenCalledWith('CHAT_CHECK_USER_ONLINE', { user: 'Minh_1' })
+        expect(request).toHaveBeenCalledWith('CHECK_USER_ONLINE', { user: 'Minh_1' })
     })
 
     it('không tự coi lỗi/mất mạng là offline', async () => {

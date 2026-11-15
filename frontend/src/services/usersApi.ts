@@ -62,7 +62,7 @@ export async function checkExists(user: string): Promise<ApiResult<boolean>> {
     }
 
     try {
-        const response = await socketClient.request('CHAT_CHECK_USER_EXIST', { user: username })
+        const response = await socketClient.request('CHECK_USER_EXIST', { user: username })
         return readUserStatus(response, 'CHECK_USER_EXIST')
     } catch (error) {
         return requestFailure(error)
@@ -76,7 +76,7 @@ export async function checkOnline(user: string): Promise<ApiResult<UserPresence>
     }
 
     try {
-        const response = await socketClient.request('CHAT_CHECK_USER_ONLINE', { user: username })
+        const response = await socketClient.request('CHECK_USER_ONLINE', { user: username })
         const result = readUserStatus(response, 'CHECK_USER_ONLINE')
         if (result.status !== 'success') return result
         return {

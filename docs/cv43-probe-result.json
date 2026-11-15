@@ -1,0 +1,11 @@
+{
+  "createdAt": "2026-11-15T11:06:41.296Z",
+  "nodeVersion": "v22.16.0",
+  "mode": "handshake-only",
+  "url": "wss://chat.longapp.io.vn/chat/chat",
+  "transport": "failed",
+  "authenticated": false,
+  "checks": [],
+  "result": "not_verified",
+  "error": "websocket_connect_error"
+}

@@ -39,7 +39,7 @@ export default function UserLookup({ currentUser, authStatus, connectionStatus, 
             setNotice({ kind: 'error', message: 'Username chỉ gồm chữ cái, số và dấu gạch dưới.' })
             return
         }
-        if (name === currentUser) {
+        if (name.toLowerCase() === currentUser?.trim().toLowerCase()) {
             setNotice({ kind: 'error', message: 'Bạn đang chọn tài khoản của chính mình.' })
             return
         }

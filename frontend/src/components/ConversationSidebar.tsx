@@ -132,14 +132,14 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                 </label>
             )}
 
-            <UserLookup
+            {!isMock && <UserLookup
                 currentUser={currentUser}
                 authStatus={authStatus}
                 connectionStatus={connectionStatus}
                 sessionGeneration={sessionGeneration}
                 onSelectConversation={onSelectConversation}
-            />
-            {selectedConversation?.kind === 'people' && (
+            />}
+            {!isMock && selectedConversation?.kind === 'people' && (
                 <UserPresence
                     key={`${sessionGeneration}:${connectionStatus}:${selectedConversation.name}`}
                     username={selectedConversation.name}
