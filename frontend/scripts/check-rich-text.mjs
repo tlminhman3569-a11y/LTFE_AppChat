@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 import { setTimeout as sleep } from 'node:timers/promises'
 
 const { APPCHAT_PROBE_USER: from, APPCHAT_PROBE_PASS: pass, APPCHAT_PROBE_PEOPLE: to, APPCHAT_PROBE_PEER_PASS: peerPass } = process.env
-if (!from || !pass || !to || !peerPass || from === to) throw new Error('Cần hai tài khoản thử khác nhau')
 
 const url = 'wss://chat.longapp.io.vn/chat/chat'
 const sockets = []
@@ -29,13 +28,13 @@ function waitFrame(socket, event, matches = () => true) {
     })
 }
 
-function send(socket, event, data) {
-    socket.send(JSON.stringify({ action: 'onchat', data: { event, data } }))
+function encodeFrame(event, data) {
+    return JSON.stringify({ action: 'onchat', data: { event, data } })
 }
 
 async function request(socket, event, data) {
     const pending = waitFrame(socket, event)
-    send(socket, event, data)
+    socket.send(encodeFrame(event, data))
     const frame = await pending
     if (frame.status !== 'success') throw new Error(event + ' không thành công')
     return frame.data
@@ -81,14 +80,15 @@ async function probe(sender, receiver, label, content, mode, size) {
     sender.addEventListener('close', onSenderClose)
     const pending = waitFrame(receiver, 'SEND_CHAT', frame => frame.data?.name === from
         && frame.data?.to === to && frame.data?.mes?.includes(marker))
-    send(sender, 'SEND_CHAT', { type: 'people', to, mes })
+    const sendFrame = encodeFrame('SEND_CHAT', { type: 'people', to, mes })
+    sender.send(sendFrame)
     const frame = await pending
     await sleep(350)
     sender.removeEventListener('close', onSenderClose)
     sender.removeEventListener('message', onSenderMessage)
     const live = frame.status === 'success' && frame.data?.mes === mes
     cases.push({ label, marker, mes, live, id: frame.data?.id })
-    console.log(JSON.stringify({ label, bytes: Buffer.byteLength(mes), live, hasId: frame.data?.id != null, senderError, senderClose, receiverClose: frame.closeCode }))
+    console.log(JSON.stringify({ label, bytes: Buffer.byteLength(mes), frameBytes: Buffer.byteLength(sendFrame), live, hasId: frame.data?.id != null, senderError, senderClose, receiverClose: frame.closeCode }))
     return live
 }
 
@@ -139,18 +139,22 @@ async function runCase(label, content, mode, bytes) {
     await sleep(3000)
     const exact = await inspect(restored, 'after-3s')
     await Promise.all([disconnect(restored), disconnect(sender)])
-    await sleep(300)
+    await sleep(process.argv[2] === '--boundary' ? 2000 : 300)
     return live && exact
 }
 
 try {
+    if (!from || !pass || !to || !peerPass || from.toLowerCase() === to.toLowerCase()) {
+        throw new Error('Cần hai tài khoản thử khác nhau. Kiểm tra APPCHAT_PROBE_USER, APPCHAT_PROBE_PASS, APPCHAT_PROBE_PEOPLE và APPCHAT_PROBE_PEER_PASS.')
+    }
+    if (typeof WebSocket !== 'function') throw new Error('Cần Node.js có WebSocket tích hợp.')
     console.log(JSON.stringify({ startedAt: new Date().toISOString(), node: process.version }))
     const mode = process.argv[2]
     const sizeMode = mode === '--sizes' || mode === '--boundary'
     if (sizeMode) {
         const sizes = mode === '--boundary' ? [2000, 2001, 2000, 2001] : [1291, 1536, 1792, 1920, 2000, 2048]
         for (const bytes of sizes) {
-            await runCase('escaped-' + bytes, 'Tiếng Việt 😊\nDòng hai 🚀', 'escaped', bytes)
+            if (!await runCase('escaped-' + bytes, 'Tiếng Việt 😊\nDòng hai 🚀', 'escaped', bytes)) process.exitCode = 1
         }
     }
     for (let round = 1; !sizeMode && round <= 3; round++) {
@@ -162,9 +166,12 @@ try {
             ['emoji', '😊🚀', 'raw'],
             ['mixed', 'Tiếng Việt 😊\nDòng hai 🚀', 'raw'],
         ]) {
-            await runCase(label + '-' + round, content, mode)
+            if (!await runCase(label + '-' + round, content, mode)) process.exitCode = 1
         }
     }
+} catch (error) {
+    console.error(error.message)
+    process.exitCode = 1
 } finally {
     await Promise.all(sockets.map(disconnect))
 }
