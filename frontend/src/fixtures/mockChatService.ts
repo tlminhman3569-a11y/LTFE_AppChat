@@ -1,7 +1,7 @@
-import type { ChatService } from '../types/message'
-import { createConversationKey } from '../utils/conversationKey'
-import { chatHistory } from './chat'
-import { loadRoom } from './mockServices'
+import type { ChatService } from '../types/message.ts'
+import { createConversationKey } from '../utils/conversationKey.ts'
+import { chatHistory } from './chat.ts'
+import { loadRoom } from './mockServices.ts'
 
 export const mockChatService: ChatService = {
     async loadHistory(conversation, page) {

@@ -41,4 +41,4 @@ Khóa hội thoại gồm loại và tên, kể cả khi người dùng và phò
 - **Mobile** `04_F11-F19_Chat_rieng.png` và `05_F14-F19_Phong_chat.png` thể hiện điều hướng một cột và nút **Thành viên** riêng cho phòng.
 - **TrangThai** nhóm `36–43` mô tả lịch sử và cuộn. Nhóm `68–75` mô tả chờ xác nhận, chưa xác nhận, lỗi, bản lưu, editor, thử lại và nội dung không hỗ trợ. Mẫu `77_F05-F24_Chat_rieng_mat_ket_noi_giu_nhap.png` thể hiện nháp còn trong ô soạn khi nút gửi bị khóa.
 
-Nguồn nghiệp vụ gồm dòng CV19 trong `AppChat_PhanCong_NgayChuan.xlsx`, mục CV19 trong `PHAN_CONG_CHI_TIET_CV01_CV54.md`, `README.md` và `LUONG_GIAO_DIEN.md` trong bộ AppChat_TaiLieu, [hợp đồng ghép code](HOP_DONG.md) và bộ mẫu `FE_TachManHinh`.
+Nguồn nghiệp vụ gồm dòng CV19 trong `AppChat_PhanCong_NgayChuan.xlsx`, mục CV19 trong `PHAN_CONG_CHI_TIET_CV01_CV54.md`, `../README.md` và `LUONG_GIAO_DIEN.md` trong bộ AppChat_TaiLieu, [hợp đồng ghép code](HOP_DONG.md) và bộ mẫu `FE_TachManHinh`.

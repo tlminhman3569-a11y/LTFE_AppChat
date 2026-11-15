@@ -1,7 +1,7 @@
-import { useAppSelector } from '../store/hooks'
-import type { ConversationRef } from '../types/api'
-import type { OnSelectConversation, RecentConversation } from '../types/user'
-import { createConversationKey } from '../utils/conversationKey'
+import { useAppSelector } from '../store/hooks.ts'
+import type { ConversationRef } from '../types/api.ts'
+import type { OnSelectConversation, RecentConversation } from '../types/user.ts'
+import { createConversationKey } from '../utils/conversationKey.ts'
 
 interface Props {
     conversations: RecentConversation[]

@@ -4,7 +4,7 @@ import type {
     ConnectionStatus,
     ConversationKind,
     ConversationRef,
-} from './api'
+} from './api.ts'
 
 export type TextSize = 12 | 14 | 16 | 18 | 24
 

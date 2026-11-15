@@ -1,4 +1,4 @@
-import { useAppSelector } from '../store/hooks'
+import { useAppSelector } from '../store/hooks.ts'
 
 export function useSocket() {
     const { authStatus, connectionStatus, reconnectCount } = useAppSelector(state => state.auth)

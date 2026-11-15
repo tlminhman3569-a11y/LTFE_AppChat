@@ -1,8 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router'
-import { useAppSelector } from '../store/hooks'
-import LoginPage from '../features/auth/LoginPage'
-import ChatLayout from '../components/ChatLayout'
-import ProtectedRoute from './ProtectedRoute'
+import { useAppSelector } from '../store/hooks.ts'
+import LoginPage from '../features/auth/LoginPage.tsx'
+import ChatLayout from '../components/ChatLayout.tsx'
+import ProtectedRoute from './ProtectedRoute.tsx'
 
 export default function AppRoutes() {
     const { authStatus, sessionGeneration } = useAppSelector(state => state.auth)

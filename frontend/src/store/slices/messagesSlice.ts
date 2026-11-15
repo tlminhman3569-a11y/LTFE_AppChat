@@ -1,10 +1,10 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { loadHistory } from '../../services/chatApi'
-import type { AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api'
-import type { Message } from '../../types/message'
-import { createConversationKey } from '../../utils/conversationKey'
-import { sessionChecking, sessionCleared, sessionReconnected, sessionStarted } from './authSlice'
+import { loadHistory } from '../../services/chatApi.ts'
+import type { AuthStatus, ConnectionStatus, ConversationRef } from '../../types/api.ts'
+import type { Message } from '../../types/message.ts'
+import { createConversationKey } from '../../utils/conversationKey.ts'
+import { sessionChecking, sessionCleared, sessionReconnected, sessionStarted } from './authSlice.ts'
 
 interface History {
     messages: Message[]
@@ -73,6 +73,7 @@ const messagesSlice = createSlice({
             const key = createConversationKey(conversation)
             const history = state[key] ??= { messages: [], nextPage: 1, hasOlder: true, error: '' }
             if (message.id != null && history.messages.some(item => item.id != null && String(item.id) === String(message.id))) return
+            // Tin chưa có ID có thể xuất hiện lại trong trang đầu.
             if (message.id != null || history.nextPage > 1 || !history.hasOlder) {
                 history.messages.push(message)
             }

@@ -1,12 +1,12 @@
-import type { ApiResult } from '../types/api'
-import type { Message } from '../types/message'
-import type { RoomReadResult } from '../types/room'
-import type { RecentConversation, UserPresence } from '../types/user'
-import { createConversationKey } from '../utils/conversationKey'
-import { chatHistory } from './chat'
-import { conversationsSuccess } from './conversations'
-import { roomReadWithoutMetadata, rooms } from './rooms'
-import { users } from './users'
+import type { ApiResult } from '../types/api.ts'
+import type { Message } from '../types/message.ts'
+import type { RoomReadResult } from '../types/room.ts'
+import type { RecentConversation, UserPresence } from '../types/user.ts'
+import { createConversationKey } from '../utils/conversationKey.ts'
+import { chatHistory } from './chat.ts'
+import { conversationsSuccess } from './conversations.ts'
+import { roomReadWithoutMetadata, rooms } from './rooms.ts'
+import { users } from './users.ts'
 
 export async function getRecentConversations(): Promise<ApiResult<RecentConversation[]>> {
     return conversationsSuccess

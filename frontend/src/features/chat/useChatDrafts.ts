@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { ConversationKey, ConversationRef } from '../../types/api'
-import type { TextRun } from '../../types/message'
-import { createConversationKey } from '../../utils/conversationKey'
+import type { ConversationKey, ConversationRef } from '../../types/api.ts'
+import type { TextRun } from '../../types/message.ts'
+import { createConversationKey } from '../../utils/conversationKey.ts'
 
 export function useChatDrafts() {
     const [drafts, setDrafts] = useState<Partial<Record<ConversationKey, TextRun[]>>>({})

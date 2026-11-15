@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef } from 'react'
-import type { ConversationKey, ConversationRef } from '../../types/api'
-import type { ChatPageProps, ComposerProps, Message } from '../../types/message'
-import { useChat } from '../../hooks/useChat'
-import { useAppSelector } from '../../store/hooks'
-import { selectUserPresence } from '../../store/slices/presenceSlice'
-import Composer from './Composer'
-import MessageList from './MessageList'
+import type { ConversationKey, ConversationRef } from '../../types/api.ts'
+import type { ChatPageProps, ComposerProps, Message } from '../../types/message.ts'
+import { useChat } from '../../hooks/useChat.ts'
+import { useAppSelector } from '../../store/hooks.ts'
+import { selectUserPresence } from '../../store/slices/presenceSlice.ts'
+import Composer from './Composer.tsx'
+import MessageList from './MessageList.tsx'
 import './chat.css'
 
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
@@ -75,9 +75,9 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 }
 
 export default function ChatPage({
-                                     conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack,
-                                     draft, canSend, onDraftChange, onSend, pending, sendError,
-                                 }: ChatProps) {
+    conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack,
+    draft, canSend, onDraftChange, onSend, pending, sendError,
+}: ChatProps) {
     const presence = useAppSelector(state => selectUserPresence(state, conversation?.kind === 'people' ? conversation.name : ''))
 
     return (

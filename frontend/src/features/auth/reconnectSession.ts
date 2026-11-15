@@ -1,8 +1,8 @@
-import { reLogin } from '../../services/authApi'
-import { clearStoredSession, readStoredSession } from '../../services/sessionStorage'
-import { socketClient } from '../../services/socketClient'
+import { reLogin } from '../../services/authApi.ts'
+import { clearStoredSession, readStoredSession } from '../../services/sessionStorage.ts'
+import { socketClient } from '../../services/socketClient.ts'
 import { store } from '../../store'
-import { connectionStatusChanged, sessionCleared, sessionReconnected } from '../../store/slices/authSlice'
+import { connectionStatusChanged, sessionCleared, sessionReconnected } from '../../store/slices/authSlice.ts'
 
 const retryDelays = [500, 1000, 2000]
 

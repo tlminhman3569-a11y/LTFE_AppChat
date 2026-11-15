@@ -1,5 +1,5 @@
-import MessageBubble from '../../components/MessageBubble'
-import type { Message } from '../../types/message'
+import MessageBubble from '../../components/MessageBubble.tsx'
+import type { Message } from '../../types/message.ts'
 
 interface MessageListProps {
     messages: Message[]

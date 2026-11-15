@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useAppSelector } from '../../store/hooks'
-import AuthForm from './AuthForm'
+import { useAppSelector } from '../../store/hooks.ts'
+import AuthForm from './AuthForm.tsx'
 import './auth.css'
 
 export default function LoginPage() {

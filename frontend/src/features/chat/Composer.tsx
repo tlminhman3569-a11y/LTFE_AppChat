@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
-import type { ComposerProps } from '../../types/message'
+import type { ComposerProps } from '../../types/message.ts'
 import './composer.css'
 
 export default function Composer({

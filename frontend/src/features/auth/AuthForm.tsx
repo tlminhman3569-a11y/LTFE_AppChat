@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useAppDispatch } from '../../store/hooks'
-import { sessionStarted } from '../../store/slices/authSlice'
-import { login, register } from '../../services/authApi'
-import { socketClient } from '../../services/socketClient'
-import { saveSession } from '../../services/sessionStorage'
-import PasswordField from './PasswordField'
+import { useAppDispatch } from '../../store/hooks.ts'
+import { sessionStarted } from '../../store/slices/authSlice.ts'
+import { login, register } from '../../services/authApi.ts'
+import { socketClient } from '../../services/socketClient.ts'
+import { saveSession } from '../../services/sessionStorage.ts'
+import PasswordField from './PasswordField.tsx'
 
 function validateUsername(username: string) {
     if (!username.trim()) return 'Vui lòng nhập tên đăng nhập'

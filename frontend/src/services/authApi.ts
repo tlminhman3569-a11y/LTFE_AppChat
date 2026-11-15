@@ -1,5 +1,5 @@
-import type { ApiResult } from '../types/api'
-import { socketClient, SocketRequestError } from './socketClient'
+import type { ApiResult } from '../types/api.ts'
+import { socketClient, SocketRequestError } from './socketClient.ts'
 import { clearStoredSession, readStoredSession, saveSession } from './sessionStorage.ts'
 import type { LoginSession } from './sessionStorage.ts'
 

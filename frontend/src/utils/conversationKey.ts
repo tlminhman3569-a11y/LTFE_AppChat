@@ -1,7 +1,7 @@
 import type {
     ConversationKey,
     ConversationRef,
-} from '../types/api'
+} from '../types/api.ts'
 
 export function createConversationKey(
     conversation: ConversationRef,

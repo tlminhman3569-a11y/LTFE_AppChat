@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { MemberListProps, RoomConversationRef } from '../../types/room'
+import type { MemberListProps, RoomConversationRef } from '../../types/room.ts'
 
 type Props = MemberListProps & {
     loadedAt?: string

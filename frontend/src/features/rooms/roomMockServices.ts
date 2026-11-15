@@ -1,5 +1,5 @@
-import type { ApiResult } from '../../types/api'
-import type { Room } from '../../types/room'
+import type { ApiResult } from '../../types/api.ts'
+import type { Room } from '../../types/room.ts'
 import { rooms } from '../../fixtures/rooms.ts'
 
 export type RoomMockMode = 'normal' | 'error' | 'unknown'

@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
-import type { ApiResult } from '../../types/api'
-import type { Room, RoomConversationRef } from '../../types/room'
-import { useAppSelector } from '../../store/hooks'
+import type { ApiResult } from '../../types/api.ts'
+import type { Room, RoomConversationRef } from '../../types/room.ts'
+import { useAppSelector } from '../../store/hooks.ts'
 import { store } from '../../store'
-import { getLeaveRequest, subscribeLeaveRequests, updateLeaveRequest } from './leaveRoomRequestState'
-import type { LeaveRequest, LeaveStatus } from './leaveRoomRequestState'
-import { clearRoomRequest, getRoomRequest } from './roomRequestState'
+import { getLeaveRequest, subscribeLeaveRequests, updateLeaveRequest } from './leaveRoomRequestState.ts'
+import type { LeaveRequest, LeaveStatus } from './leaveRoomRequestState.ts'
+import { clearRoomRequest, getRoomRequest } from './roomRequestState.ts'
 
 type Props = {
     room: Room

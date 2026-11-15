@@ -1,5 +1,5 @@
-import type { ApiResult } from '../types/api'
-import type { Room, RoomReadResult } from '../types/room'
+import type { ApiResult } from '../types/api.ts'
+import type { Room, RoomReadResult } from '../types/room.ts'
 
 export const rooms: Room[] = [
     {

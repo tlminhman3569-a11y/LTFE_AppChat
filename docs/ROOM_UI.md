@@ -12,9 +12,9 @@ Tài liệu này xác định bề mặt giao diện, hành vi người dùng, l
 
 **Nguồn đã đọc:**
 
-- `README.md` trong repo `LTFE_AppChat-develop`: mô tả kiến trúc, phân công, luồng làm việc và API.
+- `../README.md` trong repo `LTFE_AppChat-develop`: mô tả kiến trúc, phân công, luồng làm việc và API.
 - `docs/HOP_DONG.md` trong repo: ranh giới service, callback, kiểu dữ liệu và nguyên tắc không suy đoán kết quả máy chủ.
-- Bộ tài liệu kèm theo `AppChat_TaiLieu - Copy(1).zip`: `README.md` (F07–F18), `LUONG_GIAO_DIEN.md`, `PHAN_CONG_CHI_TIET_CV01_CV54.md` (mục CV37), `FE_TachManHinh/DANH_MUC.md` và các ảnh trong `FE_TachManHinh/{Desktop,Mobile,TrangThai}/`.
+- Bộ tài liệu kèm theo `AppChat_TaiLieu - Copy(1).zip`: `../README.md` (F07–F18), `LUONG_GIAO_DIEN.md`, `PHAN_CONG_CHI_TIET_CV01_CV54.md` (mục CV37), `FE_TachManHinh/DANH_MUC.md` và các ảnh trong `FE_TachManHinh/{Desktop,Mobile,TrangThai}/`.
 - Giao thức theo tài liệu nhóm: [bảng API của thầy](https://docs.google.com/spreadsheets/d/1-EFA-OXUCUIPP6CnAk4z0_ONS-3G9SVU/edit?gid=1040781536#gid=1040781536). Tài liệu nhóm có ghi lại phép thử phòng ngày 07/11/2026; **CV37 không thực hiện lại phép thử API này**.
 
 **Ranh giới:** Đây là website React responsive. Không tạo danh bạ toàn hệ thống, không suy diễn quyền thành viên từ danh sách gần đây, không thêm tính năng mời/đuổi, xóa/đổi tên phòng, chuyển chủ hay route riêng cho mỗi popup khi chưa có hợp đồng API. Việc dựng UI và nối service nằm ở CV38–CV49, không được báo là đã hoàn thành trong CV37.
@@ -192,7 +192,7 @@ Envelope WebSocket theo `docs/HOP_DONG.md`: `{"action":"onchat","data":{"event":
 | TC37-09 | F17 chủ phòng không thể rời, quyền chưa rõ | `Desktop/08_F13-F17_Phong_du_an_chu_phong.png`; `Desktop/13_F17_Chu_phong_khong_the_roi.png`; `TrangThai/59` | Đạt: chặn khi biết chủ, không tự đoán khi unknown |
 | TC37-10 | F18 tham gia lại bằng xác nhận mới | `Desktop/12_F18_Tham_gia_lai_phong.png`; trạng thái F14 | Đạt: không tự phục hồi quyền hay nháp cũ |
 | TC37-11 | Mobile back khác rời phòng / thoát phiên | `Mobile/05_F14-F19_Phong_chat.png`; `Mobile/06_F15_Thanh_vien.png`; `Mobile/15_F16_Roi_phong.png` | Đạt: ba hành động phân biệt được |
-| TC37-12 | Giao thức và ranh giới quyền thành viên | Repo `README.md`, `docs/HOP_DONG.md`; ZIP `README.md`, `LUONG_GIAO_DIEN.md` | Đạt: tên lệnh, nghĩa của JOIN và nguồn membership đã được ghi rõ |
+| TC37-12 | Giao thức và ranh giới quyền thành viên | Repo `../README.md`, `docs/HOP_DONG.md`; ZIP `README.md`, `LUONG_GIAO_DIEN.md` | Đạt: tên lệnh, nghĩa của JOIN và nguồn membership đã được ghi rõ |
 
 Các đường dẫn ảnh trong bảng **tính từ thư mục `FE_TachManHinh/` của ZIP tài liệu riêng**, không phải file được thêm vào repo trong PR CV37. Bằng chứng là **đối chiếu tĩnh tài liệu và PNG**, không phải ảnh chụp từ ứng dụng đã chạy.
 

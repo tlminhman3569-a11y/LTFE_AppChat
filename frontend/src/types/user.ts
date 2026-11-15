@@ -1,4 +1,4 @@
-import type { ApiResult, ConversationRef } from './api'
+import type { ApiResult, ConversationRef } from './api.ts'
 
 export type PresenceStatus = 'online' | 'offline' | 'unknown'
 

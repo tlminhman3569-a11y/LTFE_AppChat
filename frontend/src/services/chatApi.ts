@@ -1,7 +1,7 @@
-import type { ApiResult, ConversationRef } from '../types/api'
-import type { HistoryPage, Message } from '../types/message'
-import { loadRoom } from './roomsApi'
-import { socketClient, SocketRequestError } from './socketClient'
+import type { ApiResult, ConversationRef } from '../types/api.ts'
+import type { HistoryPage, Message } from '../types/message.ts'
+import { loadRoom } from './roomsApi.ts'
+import { socketClient, SocketRequestError } from './socketClient.ts'
 
 function readMessage(value: unknown): Message | null {
     if (!value || typeof value !== 'object') return null

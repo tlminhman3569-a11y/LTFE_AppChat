@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { AuthStatus, ConnectionStatus } from '../../types/api'
+import type { AuthStatus, ConnectionStatus } from '../../types/api.ts'
 
 interface AuthState {
     authStatus: AuthStatus

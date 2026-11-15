@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import type { UserPresence } from '../../types/user'
-import { checkOnline } from '../../services/usersApi'
-import { sessionChecking, sessionCleared, sessionStarted } from './authSlice'
+import type { UserPresence } from '../../types/user.ts'
+import { checkOnline } from '../../services/usersApi.ts'
+import { sessionChecking, sessionCleared, sessionStarted } from './authSlice.ts'
 
 type AuthView = {
     auth: {

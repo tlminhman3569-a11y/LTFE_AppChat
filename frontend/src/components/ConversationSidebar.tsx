@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
-import { conversationsEmpty, conversationsError, conversationsUnknown } from '../fixtures/conversations'
-import { getRecentConversations } from '../fixtures/mockServices'
-import RoomSearch from '../features/rooms/RoomSearch'
-import UserSearch from '../features/users/UserSearch'
-import CheckUser from '../features/users/CheckUser'
-import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { refreshConversations } from '../store/slices/conversationsSlice'
-import { refreshPresence } from '../store/slices/presenceSlice'
-import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
-import type { OnSelectConversation, RecentConversation } from '../types/user'
-import { filterRecentConversations } from '../utils/filterRecentConversations'
-import { applyConversationLoad } from '../utils/conversationLoadState'
-import type { ConversationLoadState } from '../utils/conversationLoadState'
-import ConversationList from './ConversationList'
+import { conversationsEmpty, conversationsError, conversationsUnknown } from '../fixtures/conversations.ts'
+import { getRecentConversations } from '../fixtures/mockServices.ts'
+import RoomSearch from '../features/rooms/RoomSearch.tsx'
+import UserSearch from '../features/users/UserSearch.tsx'
+import CheckUser from '../features/users/CheckUser.tsx'
+import { useAppDispatch, useAppSelector } from '../store/hooks.ts'
+import { conversationVerified, refreshConversations } from '../store/slices/conversationsSlice.ts'
+import { refreshPresence } from '../store/slices/presenceSlice.ts'
+import type { ApiResult, ConversationKind, ConversationRef } from '../types/api.ts'
+import type { OnSelectConversation, RecentConversation } from '../types/user.ts'
+import { filterRecentConversations } from '../utils/filterRecentConversations.ts'
+import { applyConversationLoad } from '../utils/conversationLoadState.ts'
+import type { ConversationLoadState } from '../utils/conversationLoadState.ts'
+import ConversationList from './ConversationList.tsx'
 import './ConversationSidebar.css'
 
 type SuggestionFilter = 'all' | ConversationKind
@@ -88,6 +88,11 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         }
     }
 
+    function selectVerifiedUser(conversation: ConversationRef) {
+        dispatch(conversationVerified(conversation))
+        selectConversation(conversation)
+    }
+
     function retry() {
         if (isMock) {
             setMockLoading(true)
@@ -126,12 +131,12 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                 autoComplete="off"
             />
             <p className="cv39-hint">Chỉ tìm trong hội thoại gần đây, không tìm trên toàn hệ thống.</p>
-            <p className="cv39-hint">Nguồn: {isMock ? 'Dữ liệu mẫu CV38' : 'GET_USER_LIST từ máy chủ'}</p>
+            <p className="cv39-hint">Nguồn: {isMock ? 'Dữ liệu mẫu CV38' : 'GET_USER_LIST và chat đã xác minh trong phiên'}</p>
             {!isMock && (filter === 'people' || conversations.length === 0) && (
                 <CheckUser
                     key={JSON.stringify([sessionGeneration, query])}
                     username={query}
-                    onSelectConversation={selectConversation}
+                    onSelectConversation={selectVerifiedUser}
                 />
             )}
 

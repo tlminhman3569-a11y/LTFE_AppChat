@@ -1,8 +1,8 @@
-import type { ApiResult } from '../types/api'
-import type { RecentConversation, UserPresence } from '../types/user'
-import { parseGetUserListResponse } from '../utils/normalizeRecentConversations'
-import { parseUserExists, parseUserOnline } from '../utils/parseUserChecks'
-import { socketClient, SocketRequestError } from './socketClient'
+import type { ApiResult } from '../types/api.ts'
+import type { RecentConversation, UserPresence } from '../types/user.ts'
+import { parseGetUserListResponse } from '../utils/normalizeRecentConversations.ts'
+import { parseUserExists, parseUserOnline } from '../utils/parseUserChecks.ts'
+import { socketClient, SocketRequestError } from './socketClient.ts'
 
 function requestError(error: unknown, message: string): ApiResult<never> {
     if (error instanceof SocketRequestError && error.kind === 'timeout') {
@@ -35,32 +35,12 @@ export async function checkExists(user: string): Promise<ApiResult<boolean>> {
         return { status: 'error', error: { kind: 'business', message: 'Vui lòng nhập username đầy đủ.' } }
     }
 
-    let response: Awaited<ReturnType<typeof socketClient.request>>
     try {
-        response = await socketClient.request('CHAT_CHECK_USER_EXIST', { user: user.trim() })
+        const response = await socketClient.request('CHECK_USER_EXIST', { user: user.trim() })
+        return parseUserExists(response)
     } catch (error) {
         return requestError(error, 'Không thể kiểm tra người dùng. Vui lòng thử lại.')
     }
-
-    const result = parseUserExists(response)
-
-    if (import.meta.env?.DEV) {
-        try {
-            console.info('[CV43][API]', {
-                request: 'CHAT_CHECK_USER_EXIST',
-                username: '[REDACTED]',
-                responseEvent: response.event === 'CHECK_USER_EXIST'
-                    ? 'CHECK_USER_EXIST' : 'unexpected-event',
-                outcome: result.status === 'success'
-                    ? (result.data ? 'exists' : 'not-found')
-                    : result.status,
-            })
-        } catch {
-            return result
-        }
-    }
-
-    return result
 }
 
 export async function checkOnline(user: string): Promise<ApiResult<UserPresence>> {
@@ -69,7 +49,7 @@ export async function checkOnline(user: string): Promise<ApiResult<UserPresence>
     }
 
     try {
-        const response = await socketClient.request('CHAT_CHECK_USER_ONLINE', { user: user.trim() })
+        const response = await socketClient.request('CHECK_USER_ONLINE', { user: user.trim() })
         return parseUserOnline(response, new Date().toISOString())
     } catch (error) {
         return requestError(error, 'Không thể kiểm tra trạng thái online.')

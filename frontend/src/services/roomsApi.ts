@@ -1,5 +1,5 @@
-import type { ApiResult } from '../types/api'
-import type { RoomReadResult } from '../types/room'
+import type { ApiResult } from '../types/api.ts'
+import type { RoomReadResult } from '../types/room.ts'
 
 export async function loadRoom(name: string, page: number): Promise<ApiResult<RoomReadResult>> {
     if (!name.trim()) {

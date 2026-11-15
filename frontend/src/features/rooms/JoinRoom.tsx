@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
-import type { ApiResult, ConversationRef } from '../../types/api'
-import type { Room } from '../../types/room'
-import { mockJoinRoom } from './roomMockServices'
-import type { RoomMockMode } from './roomMockServices'
-import { getRoomRequest, sendRoomRequest, subscribeRoomRequests } from './roomRequestState'
-import type { RoomRequestStatus } from './roomRequestState'
-import { useAppSelector } from '../../store/hooks'
+import type { ApiResult, ConversationRef } from '../../types/api.ts'
+import type { Room } from '../../types/room.ts'
+import { mockJoinRoom } from './roomMockServices.ts'
+import type { RoomMockMode } from './roomMockServices.ts'
+import { getRoomRequest, sendRoomRequest, subscribeRoomRequests } from './roomRequestState.ts'
+import type { RoomRequestStatus } from './roomRequestState.ts'
+import { useAppSelector } from '../../store/hooks.ts'
 import { store } from '../../store'
-import { resetLeaveAfterJoin } from './leaveRoomRequestState'
+import { resetLeaveAfterJoin } from './leaveRoomRequestState.ts'
 
 type RequestUpdate = {
     name: string

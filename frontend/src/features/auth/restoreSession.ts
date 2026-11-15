@@ -1,8 +1,8 @@
-import { reLogin } from '../../services/authApi'
-import { clearStoredSession, readStoredSession } from '../../services/sessionStorage'
-import { socketClient } from '../../services/socketClient'
+import { reLogin } from '../../services/authApi.ts'
+import { clearStoredSession, readStoredSession } from '../../services/sessionStorage.ts'
+import { socketClient } from '../../services/socketClient.ts'
 import { store } from '../../store'
-import { sessionChecking, sessionCleared, sessionStarted } from '../../store/slices/authSlice'
+import { sessionChecking, sessionCleared, sessionStarted } from '../../store/slices/authSlice.ts'
 
 export async function restoreSession() {
     const saved = readStoredSession()

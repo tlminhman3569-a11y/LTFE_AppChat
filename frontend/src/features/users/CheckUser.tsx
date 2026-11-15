@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { ApiResult } from '../../types/api'
-import { checkExists } from '../../services/usersApi'
+import type { ApiResult } from '../../types/api.ts'
+import { checkExists } from '../../services/usersApi.ts'
 import { store } from '../../store'
-import { useAppSelector } from '../../store/hooks'
-import type { OnSelectConversation } from '../../types/user'
+import { useAppSelector } from '../../store/hooks.ts'
+import type { OnSelectConversation } from '../../types/user.ts'
 
 type Props = {
     username: string

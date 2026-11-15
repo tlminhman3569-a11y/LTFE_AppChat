@@ -1,8 +1,9 @@
-import type { ApiResult } from '../types/api'
-import type { RecentConversation } from '../types/user'
+import type { ApiResult, ConversationRef } from '../types/api.ts'
+import type { RecentConversation } from '../types/user.ts'
 
 export interface ConversationsState {
     items: RecentConversation[]
+    verified: ConversationRef[]
     loading: boolean
     loaded: boolean
     error: string | null
@@ -13,6 +14,7 @@ export interface ConversationsState {
 export function emptyConversationsState(): ConversationsState {
     return {
         items: [],
+        verified: [],
         loading: false,
         loaded: false,
         error: null,
@@ -48,7 +50,8 @@ export function finishConversationsLoad(
     if (result.status === 'success') {
         return {
             ...previous,
-            items: result.data,
+            items: [...previous.verified, ...result.data.filter(item =>
+                !previous.verified.some(user => user.kind === item.kind && user.name === item.name))],
             loaded: true,
             loading: false,
             error: null,

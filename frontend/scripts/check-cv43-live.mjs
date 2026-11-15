@@ -92,12 +92,7 @@ function request(event, data, responseEvent = event) {
 function checkedBoolean(response) {
     if (!response || response.event !== 'CHECK_USER_EXIST' ||
         (response.status !== 'success' && response.status !== undefined)) return null
-    const value = response.data?.status ?? response.data?.exists ?? response.data?.exist
-        ?? response.data?.isExist ?? response.data?.isExisting
-    if (typeof value === 'boolean') return value
-    if (value === 1 || value === 'true') return true
-    if (value === 0 || value === 'false') return false
-    return null
+    return typeof response.data?.status === 'boolean' ? response.data.status : null
 }
 
 async function checkUsername(target, expected) {
