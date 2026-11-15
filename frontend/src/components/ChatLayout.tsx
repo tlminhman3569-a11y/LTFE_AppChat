@@ -4,6 +4,7 @@ import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { sendText, subscribeToMessages } from '../services/chatApi'
 import { markViewed, messageReceived } from '../store/slices/messagesSlice'
 import { logout } from '../services/authApi'
+import LogoutDialog from '../features/auth/LogoutDialog'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
@@ -19,6 +20,7 @@ export default function ChatLayout() {
     const { connectionStatus, reconnectCount, canUseSocket } = useSocket()
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
 
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false)
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [pending, setPending] = useState<(Message & { localId: string })[]>([])
     const nextPendingId = useRef(0)
@@ -51,11 +53,19 @@ export default function ChatLayout() {
 
     async function handleLogout() {
         if (isLoggingOut) return
-        if (hasAnyDraft() && !window.confirm('Bạn còn bản nháp. Đăng xuất sẽ xóa bản nháp. Tiếp tục?')) return
+        setShowLogoutDialog(false)
         setIsLoggingOut(true)
 
         const result = await logout()
         dispatch(sessionCleared({ logoutNotConfirmed: result.status !== 'success' }))
+    }
+
+    function requestLogout() {
+        if (hasAnyDraft()) {
+            setShowLogoutDialog(true)
+            return
+        }
+        void handleLogout()
     }
 
     return (
@@ -71,10 +81,13 @@ export default function ChatLayout() {
                         Thử kết nối lại
                     </button>
                 )}
-                <button type="button" disabled={isLoggingOut} onClick={handleLogout}>
+                <button type="button" disabled={isLoggingOut} onClick={requestLogout}>
                     {isLoggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}
                 </button>
             </header>
+            {showLogoutDialog && (
+                <LogoutDialog onCancel={() => setShowLogoutDialog(false)} onConfirm={handleLogout} />
+            )}
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
                 <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                 <ChatPage
