@@ -3,6 +3,8 @@ import { conversationsEmpty, conversationsError, conversationsUnknown } from '..
 import { getRecentConversations } from '../fixtures/mockServices'
 import RoomSearch from '../features/rooms/RoomSearch'
 import UserSearch from '../features/users/UserSearch'
+import UserLookup from '../features/users/UserLookup'
+import UserPresence from '../features/users/UserPresence'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { refreshConversations } from '../store/slices/conversationsSlice'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
@@ -23,7 +25,7 @@ interface Props {
 
 export default function ConversationSidebar({ selectedConversation, onSelectConversation }: Props) {
     const dispatch = useAppDispatch()
-    const { authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
+    const { authStatus, connectionStatus, currentUser, sessionGeneration } = useAppSelector(state => state.auth)
     const apiList = useAppSelector(state => state.conversations)
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState<SuggestionFilter>('all')
@@ -128,6 +130,23 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                         <option value="unknown">Chưa xác định</option>
                     </select>
                 </label>
+            )}
+
+            <UserLookup
+                currentUser={currentUser}
+                authStatus={authStatus}
+                connectionStatus={connectionStatus}
+                sessionGeneration={sessionGeneration}
+                onSelectConversation={onSelectConversation}
+            />
+            {selectedConversation?.kind === 'people' && (
+                <UserPresence
+                    key={`${sessionGeneration}:${connectionStatus}:${selectedConversation.name}`}
+                    username={selectedConversation.name}
+                    authStatus={authStatus}
+                    connectionStatus={connectionStatus}
+                    sessionGeneration={sessionGeneration}
+                />
             )}
 
             <div className="cv39-results" aria-busy={loading}>
