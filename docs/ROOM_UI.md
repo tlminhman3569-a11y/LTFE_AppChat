@@ -51,7 +51,7 @@ Tài liệu này xác định bề mặt giao diện, hành vi người dùng, l
 | Hành động | Nguồn dữ liệu / lệnh | Điều được phép kết luận | Điều **không** được phép kết luận |
 | --- | --- | --- | --- |
 | **Gợi ý gần đây** (F07–F08) | `GET_USER_LIST` trả các hội thoại gần đây với `name`, `type`, `actionTime`; frontend lọc theo phần tên và loại | Có/không có mục phù hợp **trong dữ liệu gần đây đã tải** | Không có gợi ý ≠ người/phòng không tồn tại trên máy chủ; đây không phải tra cứu toàn hệ thống |
-| **Kiểm tra username chính xác** (F09) | Gửi `CHECK_USER_EXIST` với `{user}`; nhận sự kiện `CHECK_USER_EXIST` | Tài khoản chính xác tồn tại hay không khi có phản hồi hợp lệ | Không hỗ trợ quét hàng loạt hay tìm theo một phần username toàn hệ thống |
+| **Kiểm tra username chính xác** (F09) | Gửi `CHAT_CHECK_USER_EXIST` với `{user}`; nhận sự kiện `CHECK_USER_EXIST` | Tài khoản chính xác tồn tại hay không khi có phản hồi hợp lệ | Không hỗ trợ quét hàng loạt hay tìm theo một phần username toàn hệ thống |
 | **Tham gia phòng theo tên chính xác** (F10/F14/F18) | Người dùng xác nhận dialog rồi mới gửi `JOIN_ROOM` với `{name}` | Khi máy chủ xác nhận thành công mới cập nhật tư cách thành viên | `JOIN_ROOM` **là thao tác ghi**, không phải API tìm phòng vô hại; không tự chạy khi người dùng nhập/gõ lọc |
 
 - `type: 0` là người, `type: 1` là phòng theo dữ liệu danh sách của tài liệu thầy; chuẩn hóa thành `kind: 'people' | 'room'` trước khi đưa vào UI.
@@ -66,7 +66,7 @@ Tài liệu này xác định bề mặt giao diện, hành vi người dùng, l
 | Mục đích | Lệnh gửi trong WebSocket | Dữ liệu gửi | Phản hồi/nguồn cần nhận diện | Chủ phụ trách |
 | --- | --- | --- | --- | --- |
 | Danh sách hội thoại gần đây | `GET_USER_LIST` | `{}` | `GET_USER_LIST`, danh sách `name/type/actionTime` | Khôi, users API |
-| Kiểm tra một tài khoản | `CHECK_USER_EXIST` | `{user: username}` | `CHECK_USER_EXIST`, kiểm tra status hợp lệ | Khôi, users API |
+| Kiểm tra một tài khoản | `CHAT_CHECK_USER_EXIST` | `{user: username}` | `CHECK_USER_EXIST`, kiểm tra status hợp lệ | Khôi, users API |
 | Tạo phòng | `CREATE_ROOM` | `{name}` | `CREATE_ROOM` + kết quả nghiệp vụ | Khôi, rooms API |
 | Tham gia/tham gia lại | `JOIN_ROOM` | `{name}` | `JOIN_ROOM` + kết quả nghiệp vụ/metadata | Khôi, rooms API |
 | Rời phòng | `OUT_ROOM` | `{name}` | `OUT_ROOM` + xác nhận/ lỗi | Khôi, rooms API |
@@ -216,6 +216,6 @@ Các đường dẫn ảnh trong bảng **tính từ thư mục `FE_TachManHinh/
 - **Tiêu đề PR gợi ý:** `docs: CV37 đặc tả luồng tìm kiếm và phòng`.
 - **Link PR:** _Chưa có. Người tạo PR bổ sung URL thực tế tại đây hoặc trong phần mô tả PR sau khi push; không sử dụng link tự đặt._
 - **Reviewer:** Trần Lê Minh Mẫn.
-- **Checklist review:** [ ] F07/F08 không giả tìm toàn hệ thống; [ ] F09 `CHECK_USER_EXIST` → `CHECK_USER_EXIST`; [ ] F10/F14/F18 chỉ JOIN sau xác nhận; [ ] F13–F16 đầy đủ pending/empty/error/unknown; [ ] F17 phân biệt owner-known và unknown; [ ] rời phòng bảo vệ nháp; [ ] không sửa code ngoài phạm vi.
+- **Checklist review:** [ ] F07/F08 không giả tìm toàn hệ thống; [ ] F09 `CHAT_CHECK_USER_EXIST` → `CHECK_USER_EXIST`; [ ] F10/F14/F18 chỉ JOIN sau xác nhận; [ ] F13–F16 đầy đủ pending/empty/error/unknown; [ ] F17 phân biệt owner-known và unknown; [ ] rời phòng bảo vệ nháp; [ ] không sửa code ngoài phạm vi.
 
 **Các bước kiểm thử động dành cho CV sau:** đăng nhập phiên được phép → GET_USER_LIST → lọc theo loại → F09 kiểm tra tên đúng/sai → F13 tạo phòng → F14 JOIN → F15 làm mới thành viên → F16 hủy khi có nháp, sau đó xác nhận OUT → F18 JOIN lại → F17 kiểm tra vai trò chủ. Ghi kết quả thật (tài khoản test được phép, event, kỳ vọng/thực tế, ảnh đã che thông tin nhạy cảm) vào PR tương ứng; không dùng kết quả mô phỏng làm bằng chứng tích hợp.
