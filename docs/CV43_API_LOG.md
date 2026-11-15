@@ -1,82 +1,92 @@
-# CV43 — Nhật ký kiểm thử API thật (đã che dữ liệu)
+# CV43 — Biên bản kiểm tra API WebSocket thật (ẩn thông tin riêng)
 
-> **Kết quả tính đến 14/11/2026:** Đã sửa lỗi `checkExists` và xác nhận **69/69 kiểm tra tự động PASS** khi chạy trực tiếp bằng Node.js 22.16.0. **Chưa có bằng chứng thực thi hai ca trên WebSocket thật đã đăng nhập** trong môi trường bàn giao: ZIP không có phiên đang hoạt động hoặc thông tin đăng nhập kiểm thử được cấp. Không đánh đồng kết quả mock với kết quả API thật; không chép log ví dụ thành log đã quan sát.
+**Ngày rà soát:** 15/11/2026  
+**Nguồn đối chiếu:** `LTFE_AppChat-develop.zip`, `CV43_API_LOG.md` và bản vá CV43 đã bàn giao trước đó.  
+**Phạm vi nghiệm thu:** username tồn tại **ngoài fixture**, username **không tồn tại**, mở đúng chat riêng và tải lịch sử API trang 1.
 
-## Bằng chứng kiểm tra mã nguồn đã chạy (14/11/2026)
+> **Trạng thái:** **CHƯA CÓ BẰNG CHỨNG API THẬT CHO CV43**. Không có phiên đăng nhập/tài khoản kiểm thử được cấp kèm nguồn, cũng không có file log thu từ `CHECK_USER_EXIST` trong tài liệu đã cung cấp. **Không thay thế bằng log mẫu hoặc kết quả mock.** Bộ thu log thật ở `frontend/scripts/check-cv43-live.mjs` đã được kiểm tra cú pháp nhưng **chưa chạy phiên đăng nhập thật**; thiếu các biến tài khoản kiểm thử.
 
-Thư mục: `frontend/`. Lệnh sử dụng **không cần** cờ `--experimental-strip-types`:
+## 1. Đối chiếu phiên bản source
 
-```text
-$ node scripts/check-cv43.mjs
-...
-69/69 checks passed
-Node.js v22.16.0
-Exit code: 0
-```
+| Hạng mục | Bản `develop` người dùng gửi | Kết luận |
+|---|---|---|
+| `frontend/src/services/usersApi.ts` | Chỉ chứa `getRecentConversations()`, **không có** `checkExists()` | Chưa tích hợp CV43 |
+| `frontend/src/features/users/CheckUser.tsx` | **Không có** | Không thể bấm kiểm tra username trên bản này |
+| `frontend/src/utils/parseUserChecks.ts` | **Không có** | Chưa có parser cho `CHECK_USER_EXIST` |
+| `frontend/src/components/ConversationSidebar.tsx` | Có danh sách/gợi ý, **không gắn `CheckUser`** | Chưa mở chat mới bằng tra cứu tên chính xác |
+| `frontend/src/components/ChatLayout.tsx`, `features/chat/ChatPage.tsx` | ChatPage dùng `useChat()` hiện tại; chưa thấy đường nối từ CV43 sang `loadHistory` API trong `ChatLayout` | Chưa thể xác nhận UI tự tải lịch sử thật khi chọn người ngoài fixture |
+| `docs/CV06_Ket-Noi-API.md` | Có ghi phép thử `LOGIN` và `GET_USER_LIST` thật | **Không phải** log CV43 |
+| `docs/CV24.md` | Có ghi lượt thử `GET_PEOPLE_CHAT_MES` riêng ngày 13/11/2026 | **Không chứng minh** username ngoài fixture do CV43 chọn đã mở đúng chat |
 
-Kết quả bổ sung: `node node_modules/typescript/bin/tsc -b` **PASS**; `node scripts/check-cv43-cv24-bridge.mjs` **18/18**; `node scripts/check-cv43-cv09-contract.mjs` **13/13**. Các phép thử này sử dụng response mô phỏng hoặc kiểm tra mã nguồn, **không chứng minh server thật trả `true/false`**.
+**Điều kiện trước khi thử UI:** cập nhật/merge mã CV43 và phần nối lịch sử CV43–CV24 vào nhánh đang chạy, rồi kiểm tra lại source. Không đánh dấu UI PASS khi chỉ chạy trên `develop(1)` chưa tích hợp.
 
-## Kết quả API WebSocket thật (cần phiên đăng nhập được phép)
+## 2. Kết quả kiểm tra dựa trên chứng cứ hiện có
 
-| Ca | Phản hồi API đã quan sát trong môi trường bàn giao | UI và lịch sử đã quan sát | Trạng thái |
-|---|---|---|---|
-| Username **tồn tại, ngoài fixture** | Chưa có phiên đủ quyền để ghi nhận `CHECK_USER_EXIST` | Chưa ghi nhận việc mở chat riêng và `GET_PEOPLE_CHAT_MES` trên trình duyệt thật | **CHƯA XÁC MINH** |
-| Username **không tồn tại** | Chưa có phiên đủ quyền để ghi nhận `CHECK_USER_EXIST` | Chưa ghi nhận thông báo không tìm thấy và điều kiện không mở chat | **CHƯA XÁC MINH** |
+| Mã | Kịch bản | WebSocket thật | Giao diện/thông điệp | Kết luận |
+|---|---|---|---|---|
+| A | Username **tồn tại**, ngoài `src/fixtures/users.ts`, khác tài khoản đang đăng nhập | Chưa có response thực của `CHAT_CHECK_USER_EXIST → CHECK_USER_EXIST` | Chưa có bằng chứng mở `{kind: 'people', name: <tên A>}` và tải `GET_PEOPLE_CHAT_MES` đúng A | **CHƯA XÁC MINH** |
+| B | Username **không tồn tại** | Chưa có response thực của `CHAT_CHECK_USER_EXIST → CHECK_USER_EXIST` | Chưa có bằng chứng báo không tìm thấy; không đổi chat và không tải lịch sử B | **CHƯA XÁC MINH** |
 
-Khi chạy trên máy có tài khoản kiểm thử, dùng **2 công cụ quan sát có sẵn** ở phần cuối tài liệu. Chúng xuất file log đã che, không tạo WebSocket thứ hai và không ghi token, username hay nội dung tin nhắn. Chỉ thay trạng thái trên bằng `PASS` khi file xuất ra thực sự có kết quả tương ứng.
+Bộ **69/69** ca và ESLint/TypeScript PASS đã ghi trong bản vá CV43 trước đó là kiểm thử logic/mô phỏng **trên source đã vá**, **không phải** kết quả API thật và cũng **không phải** kết quả chạy trên `develop(1)` mới tải lên.
 
-## Cách ghi log
+## 3. Thu log API thật (một phiên WebSocket xác thực, không mock)
 
-Chạy frontend với API thật, đăng nhập bằng tài khoản được phép, mở bộ lọc **Người dùng**, nhập username đầy đủ rồi bấm **Kiểm tra người dùng**. `usersApi.checkExists` sẽ ghi log metadata ở chế độ development. Username và response thô không được ghi.
+Thêm tệp `frontend/scripts/check-cv43-live.mjs` vào source của bạn. Script dùng **một kết nối WebSocket độc lập cho lệnh kiểm thử**, xác thực `LOGIN`, lần lượt gửi `CHAT_CHECK_USER_EXIST` cho A và B, nhận `CHECK_USER_EXIST`, rồi chỉ khi A thực sự tồn tại mới gửi `GET_PEOPLE_CHAT_MES` trang 1. Script tự kiểm tra A **không có trong** `src/fixtures/users.ts` và không ghi username, mật khẩu, token, `RE_LOGIN_CODE`, hoặc nội dung chat vào log.
 
-Log được kỳ vọng khi máy chủ trả thành công:
+Đặt bốn biến môi trường **trên máy chạy kiểm thử, không commit lên GitHub**:
 
-```text
-[CV43][API] {
-  request: 'CHAT_CHECK_USER_EXIST',
-  username: '[REDACTED]',
-  responseEvent: 'CHECK_USER_EXIST',
-  outcome: 'exists'
+- `APPCHAT_PROBE_USER`: tài khoản đăng nhập thử có quyền
+- `APPCHAT_PROBE_PASS`: mật khẩu của tài khoản thử
+- `APPCHAT_PROBE_PEOPLE`: **A**, username thật tồn tại, ngoài fixture, khác người đang đăng nhập
+- `APPCHAT_PROBE_NOT_FOUND`: **B**, username chắc chắn không tồn tại và khác A
+
+Ví dụ chạy bằng **PowerShell** từ thư mục `frontend/` (nhập bí mật tại máy cá nhân):
+
+```powershell
+$cred = Get-Credential -Message 'Tài khoản thử AppChat'
+$env:APPCHAT_PROBE_USER = $cred.UserName
+$env:APPCHAT_PROBE_PASS = $cred.GetNetworkCredential().Password
+$env:APPCHAT_PROBE_PEOPLE = Read-Host 'Username A tồn tại, ngoài fixture'
+$env:APPCHAT_PROBE_NOT_FOUND = Read-Host 'Username B không tồn tại'
+try {
+    node scripts/check-cv43-live.mjs
+} finally {
+    Remove-Item Env:APPCHAT_PROBE_USER, Env:APPCHAT_PROBE_PASS, Env:APPCHAT_PROBE_PEOPLE, Env:APPCHAT_PROBE_NOT_FOUND -ErrorAction SilentlyContinue
 }
 ```
 
-Ca username không tồn tại:
+Script sinh `frontend/CV43_API_LIVE_DA_CHE.txt`. Dòng `API_RESULT: PASS` chỉ xuất hiện khi **đã đăng nhập WebSocket thật**, nhận đúng hai response có giá trị boolean khớp mong đợi và `GET_PEOPLE_CHAT_MES` trả trang 1 hợp lệ, các bản ghi tin (nếu có) đúng cặp người gửi/nhận. **Mảng lịch sử rỗng vẫn hợp lệ** nếu máy chủ trả success; không tự tạo tin giả. Nếu timeout, mất kết nối hay parse sai, `API_RESULT: NOT_VERIFIED`; timeout đóng socket để tránh gán phản hồi muộn của A cho B.
 
-```text
-[CV43][API] {
-  request: 'CHAT_CHECK_USER_EXIST',
-  username: '[REDACTED]',
-  responseEvent: 'CHECK_USER_EXIST',
-  outcome: 'not-found'
-}
-```
+**Kiểm tra công cụ ở môi trường biên soạn:** `node --check frontend/scripts/check-cv43-live.mjs` **PASS**; chạy không cung cấp biến môi trường kết thúc với mã `2`, **không ghi nhận response API**. Đây là kiểm tra công cụ, **không phải** kiểm tra server.
 
-Đây là **định dạng log do frontend phát ra**, không phải log kết quả đã chạy. Chỉ chép hai khối này vào phần kết quả sau khi console thực tế hiển thị đúng.
+## 4. Kiểm tra mở đúng chat riêng và lịch sử qua UI thật
 
-## Ma trận chạy thật cần hoàn tất
+Chỉ làm sau khi CV43 đã được đưa vào bản frontend chạy và ChatLayout đã gọi adapter `chatApi.loadHistory` cho hội thoại `people`.
 
-| Ca | Dữ liệu nhập | Kết quả cần quan sát | Bằng chứng |
-|---|---|---|---|
-| Username tồn tại | Tài khoản kiểm thử được phép, đã che tên | `CHECK_USER_EXIST` trả true; sidebar chọn `{ kind: 'people', name: '[REDACTED]' }`; ChatPage gọi `GET_PEOPLE_CHAT_MES` qua `loadHistory` | Dán log console đã che + Network/WS frame đã xóa username, nội dung tin, token |
-| Username không tồn tại | Username thử nghiệm không thuộc fixture, đã che | `CHECK_USER_EXIST` trả false; hiện thông báo không tìm thấy; không chọn chat và không gọi `GET_PEOPLE_CHAT_MES` | Dán log console đã che + WS frame đã xóa dữ liệu riêng |
+1. Từ `frontend/` chạy `npm run dev`; đăng nhập bằng tài khoản được phép, kiểm tra WebSocket `connected`. Trong sidebar chọn nguồn **API thật**, không chọn mock.
+2. Mở Chrome DevTools → **Sources → Snippets**, dán file `frontend/scripts/cv43-cv24-live-snippet.js` trong gói bàn giao này và chạy. Snippet **dùng socketClient đang chạy trong trình duyệt, không mở socket thứ hai**; chỉ xuất metadata đã che.
+3. Tại bộ lọc **Người dùng**, nhập chính xác A nằm ngoài fixture và bấm **Kiểm tra người dùng**. Đợi giao diện tải xong. Ở bảng theo dõi bấm **Xuất log đã che** để nhận `CV43_CV24_LICH_SU_NGOAI_FIXTURE_DA_CHE.txt`.
+4. Trong log UI, đối chiếu: `Username ngoai fixture: PASS`; `CHECK_USER_EXIST data.status=true: PASS`; `GET_PEOPLE_CHAT_MES trang 1 dung username: PASS`; `Phan hoi lich su: success`; `Chat rieng mo dung: PASS`; `Giao dien hien thi du lieu lich su: PASS`; `KET QUA: PASS`. **Các dòng này là tiêu chí yêu cầu, không phải kết quả đã chạy.**
+5. Thử B trên form UI: phải báo **“Không tìm thấy tài khoản với username này.”**, giữ nguyên cuộc chat đang mở (nếu có), và không gửi `GET_PEOPLE_CHAT_MES` cho B. Thu bằng chứng UI/Network đã che riêng; không tự suy diễn chỉ từ việc không có gợi ý trong danh sách gần đây.
+6. Sau khi thu file, kiểm tra không còn username, ID người dùng, nội dung tin, mật khẩu hoặc mã phiên; ghi commit Git và ngày chạy. Chỉ chuyển bảng ở mục 2 thành **PASS** nếu các kết quả thực tế tương ứng đều đạt.
 
-## Kiểm tra luồng username ngoài fixture
+## 5. Khối bằng chứng phải chèn sau khi chạy thực tế
 
-1. Đảm bảo sidebar đang ở chế độ **API thật**, không chọn chế độ mock.
-2. Chuyển bộ lọc sang **Người dùng** để hiển thị form kiểm tra username chính xác.
-3. Nhập username ngoài danh sách `GET_USER_LIST` và xác nhận. Không dùng việc thiếu gợi ý làm kết luận không tồn tại.
-4. Với tài khoản tồn tại: callback chọn `people` mở đúng cuộc trò chuyện; `ChatLayout` gọi `loadHistory`, và `chatApi.loadHistory` gửi `GET_PEOPLE_CHAT_MES` với `name` và `page: 1`. Đối chiếu tin trả về phải có cặp `name/to` thuộc đúng hai tài khoản.
-5. Với tài khoản không tồn tại: không mở chat, không tải lịch sử.
-6. Khi chia sẻ bằng chứng, che username ở cả request và response, token/code phiên, nội dung tin, thời gian/ID nếu có thể nhận diện người dùng.
+**A — Username tồn tại ngoài fixture**
 
-**Lưu ý:** Không ghi `exists`/`not-found` nếu response API không parse được; khi timeout hoặc lỗi kết nối phải ghi `unknown`/`error`, không suy diễn kết quả.
+- Thời gian UTC: **chưa có**
+- Commit frontend: **chưa có**
+- `CHAT_CHECK_USER_EXIST → CHECK_USER_EXIST`, boolean `true`: **chưa thu log thật**
+- `GET_PEOPLE_CHAT_MES` trang 1 đúng tên A, response success: **chưa thu log thật**
+- UI mở đúng chat riêng A; lịch sử tải xong: **chưa thu log thật**
+- Tệp bằng chứng: `CV43_API_LIVE_DA_CHE.txt`, `CV43_CV24_LICH_SU_NGOAI_FIXTURE_DA_CHE.txt` (**chưa được cung cấp**)
 
-## Thu log thực tế đã che để hoàn tất hai dòng trên
+**B — Username không tồn tại**
 
-1. Từ `frontend/`, chạy `npm run dev`, đăng nhập bằng tài khoản thử **được phép**, xác nhận WebSocket là `connected`, chọn **API thật** trên `/chat`. Nếu kết nối chưa xác thực, không dùng fixture để kết luận.
-2. Mở DevTools → **Sources → Snippets**, tạo snippet từ `frontend/scripts/cv43-live-check.js`. Nhập **hai** username kiểm thử khi được hỏi: một tên tồn tại (khác tài khoản đăng nhập), một tên chắc chắn không tồn tại. Script gửi `CHAT_CHECK_USER_EXIST` qua socket hiện tại, kiểm `CHECK_USER_EXIST`/`data.status`, tải trang 1 lịch sử người tồn tại và tải `CV43_API_LIVE_DA_CHE.txt`. **Yêu cầu:** hai ca `pass: true` và `GET_PEOPLE_CHAT_MES page=1` có `status: success` (mảng rỗng có thể hợp lệ).
-3. Để **xác nhận UI thực sự mở đúng chat riêng cho username tồn tại ngoài fixture**, chạy snippet thứ hai từ `frontend/scripts/cv43-cv24-live-snippet.txt`. Sau khi khởi chạy snippet, chuyển sang bộ lọc **Người dùng**, nhập tên tồn tại nhưng không có trong `src/fixtures/users.ts`, bấm **Kiểm tra người dùng**. Đợi hoàn tất lịch sử và bấm **Xuất log đã che**. File `CV43_CV24_LICH_SU_NGOAI_FIXTURE_DA_CHE.txt` phải có `Username ngoai fixture: PASS`, `CHECK_USER_EXIST data.status=true: PASS`, `GET_PEOPLE_CHAT_MES trang 1 dung username: PASS`, `Chat rieng mo dung: PASS`, `Giao dien hien thi du lieu lich su: PASS`, `KET QUA: PASS`.
-4. Trong trường hợp username không tồn tại, xác nhận trên UI thông báo **Không tìm thấy tài khoản với username này.**, không mở hội thoại mới và không tải lịch sử cho tên đó. Chụp/ghi lại trạng thái không chứa tên thật.
-5. Chép **nguyên nội dung đã che** của hai file xuất từ phiên đã chạy, cùng ngày/giờ và mã commit, vào mục **Kết quả API WebSocket thật** ở trên. Chỉ sao chép metadata; không đính kèm request/response thô có username, mã phiên hoặc nội dung tin.
+- Thời gian UTC: **chưa có**
+- Commit frontend: **chưa có**
+- `CHAT_CHECK_USER_EXIST → CHECK_USER_EXIST`, boolean `false`: **chưa thu log thật**
+- UI không tìm thấy; không mở B, không tải lịch sử B: **chưa thu log thật**
+- Tệp bằng chứng: `CV43_API_LIVE_DA_CHE.txt` và ảnh/quan sát UI đã che (**chưa được cung cấp**)
 
-**Giới hạn:** Script Node 69/69 chỉ kiểm tra parser/service và hợp đồng giao diện với phản hồi mô phỏng. Kết quả UI + WebSocket phải được xác nhận riêng trên trình duyệt có tài khoản kiểm thử thật; hiện chưa đủ điều kiện kết luận CV43 đã nghiệm thu API thật.
+**Trạng thái nghiệm thu CV43 API/UI:** **CHƯA XÁC MINH**. Chỉ thay trạng thái khi có hai log từ phiên API đã xác thực và kiểm tra UI ở mục 4. Không chép log ví dụ, không tự sửa `NOT_VERIFIED` thành `PASS`.

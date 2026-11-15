@@ -56,6 +56,7 @@ export async function checkExists(user: string): Promise<ApiResult<boolean>> {
                     : result.status,
             })
         } catch {
+            return result
         }
     }
 
