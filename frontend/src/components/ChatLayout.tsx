@@ -18,6 +18,7 @@ export default function ChatLayout() {
     const { currentUser, authStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const { connectionStatus, reconnectCount, canUseSocket } = useSocket()
     const [selectedConversation, setSelectedConversation] = useState<ConversationRef | null>(null)
+    const [usingMockData, setUsingMockData] = useState(false)
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [pending, setPending] = useState<(Message & { localId: string })[]>([])
@@ -25,7 +26,7 @@ export default function ChatLayout() {
     const [sendError, setSendError] = useState('')
     const { getDraft, updateDraft, hasAnyDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
-    const canSend = canUseSocket && !isLoggingOut && selectedConversation?.kind === 'people'
+    const canSend = canUseSocket && !usingMockData && !isLoggingOut && selectedConversation?.kind === 'people'
 
     const receiveMessage = useEffectEvent((conversation: ConversationRef, message: Message) => {
         if (!canUseSocket || isLoggingOut) return
@@ -76,7 +77,8 @@ export default function ChatLayout() {
                 </button>
             </header>
             <div inert={isLoggingOut} className={`chat-columns${selectedConversation ? ' has-conversation' : ''}`}>
-                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
+                <ConversationSidebar selectedConversation={selectedConversation} onSelectConversation={selectConversation}
+                                     onMockModeChange={setUsingMockData} />
                 <ChatPage
                     conversation={selectedConversation}
                     conversationKey={conversationKey}

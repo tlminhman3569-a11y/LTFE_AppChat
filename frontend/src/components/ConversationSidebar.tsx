@@ -3,8 +3,10 @@ import { conversationsEmpty, conversationsError, conversationsUnknown } from '..
 import { getRecentConversations } from '../fixtures/mockServices'
 import RoomSearch from '../features/rooms/RoomSearch'
 import UserSearch from '../features/users/UserSearch'
+import CheckUser from '../features/users/CheckUser'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { refreshConversations } from '../store/slices/conversationsSlice'
+import { conversationVerified, refreshConversations } from '../store/slices/conversationsSlice'
+import { refreshPresence } from '../store/slices/presenceSlice'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
 import type { OnSelectConversation, RecentConversation } from '../types/user'
 import { filterRecentConversations } from '../utils/filterRecentConversations'
@@ -19,9 +21,10 @@ type MockMode = 'api' | 'success' | 'empty' | 'error' | 'unknown'
 interface Props {
     selectedConversation: ConversationRef | null
     onSelectConversation: OnSelectConversation
+    onMockModeChange?: (usingMock: boolean) => void
 }
 
-export default function ConversationSidebar({ selectedConversation, onSelectConversation }: Props) {
+export default function ConversationSidebar({ selectedConversation, onSelectConversation, onMockModeChange }: Props) {
     const dispatch = useAppDispatch()
     const { authStatus, connectionStatus, sessionGeneration } = useAppSelector(state => state.auth)
     const apiList = useAppSelector(state => state.conversations)
@@ -78,6 +81,18 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         : apiList.error || (disconnected ? 'Kết nối bị gián đoạn. Chưa thể cập nhật danh sách.' : '')
     const suggestions = filterRecentConversations(conversations, query)
 
+    function selectConversation(conversation: ConversationRef) {
+        onSelectConversation(conversation)
+        if (!isMock && conversation.kind === 'people') {
+            void dispatch(refreshPresence({ user: conversation.name, sessionGeneration }))
+        }
+    }
+
+    function selectVerifiedUser(conversation: ConversationRef) {
+        dispatch(conversationVerified(conversation))
+        selectConversation(conversation)
+    }
+
     function retry() {
         if (isMock) {
             setMockLoading(true)
@@ -91,6 +106,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
 
     function changeMockMode(mode: MockMode) {
         setMockMode(mode)
+        onMockModeChange?.(mode !== 'api')
         if (mode !== 'api') {
             setMockLoading(true)
             setListState(previous => ({ ...previous, error: '' }))
@@ -115,7 +131,14 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                 autoComplete="off"
             />
             <p className="cv39-hint">Chỉ tìm trong hội thoại gần đây, không tìm trên toàn hệ thống.</p>
-            <p className="cv39-hint">Nguồn: {isMock ? 'Dữ liệu mẫu CV38' : 'GET_USER_LIST từ máy chủ'}</p>
+            <p className="cv39-hint">Nguồn: {isMock ? 'Dữ liệu mẫu CV38' : 'GET_USER_LIST và chat đã xác minh trong phiên'}</p>
+            {!isMock && (filter === 'people' || conversations.length === 0) && (
+                <CheckUser
+                    key={JSON.stringify([sessionGeneration, query])}
+                    username={query}
+                    onSelectConversation={selectVerifiedUser}
+                />
+            )}
 
             {import.meta.env.DEV && (
                 <label className="cv39-demo-label">
@@ -167,11 +190,11 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                             {!query.trim() ? (
                                 <p className="cv39-hint">Nhập tên để xem gợi ý từ dữ liệu gần đây.</p>
                             ) : filter === 'people' ? (
-                                <UserSearch conversations={conversations} query={query} selectedConversation={selectedConversation} onSelectConversation={onSelectConversation} />
+                                <UserSearch conversations={conversations} query={query} selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                             ) : filter === 'room' ? (
-                                <RoomSearch conversations={conversations} query={query} selectedConversation={selectedConversation} onSelectConversation={onSelectConversation} />
+                                <RoomSearch conversations={conversations} query={query} selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                             ) : suggestions.length > 0 ? (
-                                <ConversationList conversations={suggestions} selectedConversation={selectedConversation} onSelectConversation={onSelectConversation} />
+                                <ConversationList conversations={suggestions} selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                             ) : (
                                 <p className="cv39-empty">Không có gợi ý phù hợp trong dữ liệu gần đây. Không thể kết luận người hoặc phòng không tồn tại.</p>
                             )}
@@ -182,7 +205,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                                 <h3>Tất cả hội thoại</h3>
                                 <span>{conversations.length} mục</span>
                             </div>
-                            <ConversationList conversations={conversations} selectedConversation={selectedConversation} onSelectConversation={onSelectConversation} />
+                            <ConversationList conversations={conversations} selectedConversation={selectedConversation} onSelectConversation={selectConversation} />
                         </section>
                     </>
                 )}
