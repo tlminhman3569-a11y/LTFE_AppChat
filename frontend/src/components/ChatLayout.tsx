@@ -3,10 +3,9 @@ import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { sendText, subscribeToMessages } from '../services/chatApi'
 import { markViewed, messageReceived } from '../store/slices/messagesSlice'
-import { logout } from '../services/authApi'
+import { endSession } from '../features/auth/endSession'
 import LogoutDialog from '../features/auth/LogoutDialog'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { sessionCleared } from '../store/slices/authSlice'
 import type { ConversationRef } from '../types/api'
 import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
@@ -56,8 +55,7 @@ export default function ChatLayout() {
         setShowLogoutDialog(false)
         setIsLoggingOut(true)
 
-        const result = await logout()
-        dispatch(sessionCleared({ logoutNotConfirmed: result.status !== 'success' }))
+        await endSession()
     }
 
     function requestLogout() {

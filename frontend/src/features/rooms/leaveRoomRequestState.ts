@@ -16,6 +16,11 @@ function notify() {
     listeners.forEach(listener => listener())
 }
 
+export function clearLeaveRequests() {
+    requests.clear()
+    notify()
+}
+
 export function subscribeLeaveRequests(listener: () => void) {
     listeners.add(listener)
     return () => { listeners.delete(listener) }
