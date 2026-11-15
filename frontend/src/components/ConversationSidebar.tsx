@@ -80,6 +80,20 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         : apiList.error || (disconnected ? 'Kết nối bị gián đoạn. Chưa thể cập nhật danh sách.' : '')
     const suggestions = filterRecentConversations(conversations, query)
 
+    function selectLookupUser(conversation: ConversationRef) {
+        const name = conversation.name
+        const matchedUser = conversations.find(
+            item =>
+                item.kind === 'people' &&
+                item.name.toLowerCase() === name.toLowerCase()
+        )
+
+        const actualName = matchedUser?.name ?? name
+
+        onSelectConversation({ kind: 'people', name: actualName })
+    }
+
+
     function retry() {
         if (isMock) {
             setMockLoading(true)
@@ -137,7 +151,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                 authStatus={authStatus}
                 connectionStatus={connectionStatus}
                 sessionGeneration={sessionGeneration}
-                onSelectConversation={onSelectConversation}
+                onSelectConversation={selectLookupUser}
             />}
             {!isMock && selectedConversation?.kind === 'people' && (
                 <UserPresence
