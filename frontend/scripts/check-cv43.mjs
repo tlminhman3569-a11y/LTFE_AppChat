@@ -264,6 +264,9 @@ try {
     const presence = read('src/store/slices/presenceSlice.ts')
     const appStore = read('src/store/index.ts')
     const chatLayout = read('src/components/ChatLayout.tsx')
+    const chatPage = read('src/features/chat/ChatPage.tsx')
+    const useChat = read('src/hooks/useChat.ts')
+    const messagesSlice = read('src/store/slices/messagesSlice.ts')
 
     await check('Transport: CHECK_USER_EXIST dung event reply', () => {
         assert.match(socket, /'CHAT_CHECK_USER_EXIST'\) responseEvent = 'CHECK_USER_EXIST'/)
@@ -328,14 +331,16 @@ try {
     await check('Presence: dang ky trong Redux store', () => {
         assert.match(appStore, /presence: presenceReducer/)
     })
-    await check('CV24: ChatLayout su dung adapter lich su that cho people', () => {
-        assert.match(chatLayout, /import \{ loadHistory as loadChatHistory \} from '\.\.\/services\/chatApi'/)
-        assert.match(chatLayout, /return loadChatHistory\(conversation, page, user\)/)
-        assert.match(chatLayout, /loadHistory=\{loadSelectedHistory\}/)
+    await check('CV25: ChatPage goi hook lich su da tich hop Redux', () => {
+        assert.match(chatPage, /useChat\(conversation\)/)
+        assert.match(useChat, /dispatch\(fetchHistoryPage\(/)
+        assert.match(messagesSlice, /return loadHistory\(conversation, page, currentUser\)/)
     })
-    await check('CV24: mock tu chon van doc fixture', () => {
-        assert.match(chatLayout, /if \(usingMockData \|\| conversation\.kind === 'room'\)/)
-        assert.match(chatLayout, /return mockChatService\.loadHistory\(conversation, page, user\)/)
+    await check('CV26: mode mock khong gui tin len may chu', () => {
+        assert.match(chatLayout, /!usingMockData && !isLoggingOut/)
+        assert.match(chatLayout, /sendText\(conversation, text\)/)
+        assert.match(chatLayout, /subscribeToMessages\(/)
+        assert.match(messagesSlice, /messageReceived\(/)
     })
     await check('CV43: sidebar thong bao doi che do cho ChatLayout', () => {
         assert.match(sidebar, /onMockModeChange\?\.\(mode !== 'api'\)/)

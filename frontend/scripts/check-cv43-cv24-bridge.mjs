@@ -18,6 +18,8 @@ const api = read('services/chatApi.ts')
 const store = read('store/slices/authSlice.ts')
 const checkUser = read('features/users/CheckUser.tsx')
 const sidebar = read('components/ConversationSidebar.tsx')
+const useChat = read('hooks/useChat.ts')
+const messagesSlice = read('store/slices/messagesSlice.ts')
 
 check('currentUser va sessionGeneration thuoc auth session', () => {
     assert.match(store, /currentUser: string \| null/)
@@ -41,11 +43,13 @@ check('ChatPage truyen currentUser cho ChatHistory', () => {
 })
 
 check('ChatHistory goi loadHistory cung currentUser cho trang 1', () => {
-    assert.match(page, /await loadHistory\(\{ kind, name \}, 1, currentUser\)/)
+    assert.match(page, /useChat\(conversation\)/)
+    assert.match(useChat, /fetchHistoryPage/)
+    assert.match(messagesSlice, /return loadHistory\(conversation, page, currentUser\)/)
 })
 
 check('ChatHistory goi loadHistory cung currentUser khi tai tin cu', () => {
-    assert.match(page, /await loadHistory\(\{ kind, name \}, page \+ 1, currentUser\)/)
+    assert.match(useChat, /page: history\?\.nextPage \?\? 1/)
 })
 
 check('Khoa lich su theo session, hoi thoai va luot reconnect neu co CV09', () => {
@@ -78,15 +82,14 @@ check('Khoa lich su theo session, hoi thoai va luot reconnect neu co CV09', () =
     }
 })
 
-check('ChatLayout su dung chatApi trong che do API that cho people', () => {
-    assert.match(layout, /import \{ loadHistory as loadChatHistory \} from '\.\.\/services\/chatApi'/)
-    assert.match(layout, /return loadChatHistory\(conversation, page, user\)/)
-    assert.match(layout, /loadHistory=\{loadSelectedHistory\}/)
+check('ChatLayout dung CV26, ChatPage dung CV25 de tai lich su API', () => {
+    assert.match(layout, /import \{ sendText, subscribeToMessages \} from '\.\.\/services\/chatApi'/)
+    assert.match(page, /useChat\(conversation\)/)
+    assert.match(messagesSlice, /return loadHistory\(conversation, page, currentUser\)/)
 })
 
-check('Mock chi dung khi chon fixture hoac lich su phong CV45', () => {
-    assert.match(layout, /if \(usingMockData \|\| conversation\.kind === 'room'\)/)
-    assert.match(layout, /return mockChatService\.loadHistory\(conversation, page, user\)/)
+check('Mock chi la demo sidebar, khong the gui that qua mode mock', () => {
+    assert.match(layout, /!usingMockData && !isLoggingOut/)
     assert.match(layout, /onMockModeChange=\{setUsingMockData\}/)
 })
 

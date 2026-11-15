@@ -5,7 +5,6 @@ type EventListener = (response: SocketResponse) => void
 
 export class SocketRequestError extends Error {
     readonly kind: 'timeout' | 'connection'
-    // Đã gọi WebSocket.send thành công. Việc máy chủ nhận vẫn cần đối chiếu
     readonly wasSent: boolean
 
     constructor(message: string, kind: 'timeout' | 'connection', wasSent: boolean) {
@@ -254,8 +253,8 @@ async function request(event: string, data?: Record<string, unknown>): Promise<S
     let responseEvent = event
     if (event === 'CHAT_CHECK_USER_EXIST') responseEvent = 'CHECK_USER_EXIST'
     if (event === 'CHAT_CHECK_USER_ONLINE') responseEvent = 'CHECK_USER_ONLINE'
-
-    const message = JSON.stringify({ action: 'onchat', data: { event, data } })
+    
+    const message = JSON.stringify({ action: 'onchat', data: { event: responseEvent, data } })
     return new Promise((resolve, reject) => {
         const queue = current.requests.get(responseEvent) ?? []
         current.requests.set(responseEvent, queue)

@@ -3,16 +3,19 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import ts from 'typescript'
 
 const root = new URL('../src/', import.meta.url)
 const source = readFileSync(new URL('features/auth/reconnectSession.ts', root), 'utf8')
 const layout = readFileSync(new URL('components/ChatLayout.tsx', root), 'utf8')
 const page = readFileSync(new URL('features/chat/ChatPage.tsx', root), 'utf8')
 const hook = readFileSync(new URL('hooks/useSocket.ts', root), 'utf8')
+const hookChat = readFileSync(new URL('hooks/useChat.ts', root), 'utf8')
+const sliceMessage = readFileSync(new URL('store/slices/messagesSlice.ts', root), 'utf8')
 const temp = mkdtempSync(join(tmpdir(), 'cv43-cv09-flow-'))
-const compiled = source.replace(/^import .*\r?\n/gm, '')
+const compiled = ts.transpileModule(source.replace(/^import .*\r?\n/gm, ''), {compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }}).outputText
 const intro = `const { reLogin, clearStoredSession, readStoredSession, socketClient, store, connectionStatusChanged, sessionCleared, sessionReconnected } = globalThis.__cv43Mocks\n`
-writeFileSync(join(temp, 'reconnectSession.ts'), intro + compiled)
+writeFileSync(join(temp, 'reconnectSession.mjs'), intro + compiled)
 
 let passed = 0
 function test(name, check) {
@@ -101,7 +104,7 @@ function setup() {
 }
 
 try {
-    const moduleUrl = pathToFileURL(join(temp, 'reconnectSession.ts')).href
+    const moduleUrl = pathToFileURL(join(temp, 'reconnectSession.mjs')).href
     test('ChatLayout dung retrySocketConnection rieng cua CV09', () => {
         assert.match(layout, /import \{ retrySocketConnection \} from '\.\.\/features\/auth\/reconnectSession'/)
         assert.match(layout, /onClick=\{retrySocketConnection\}/)
@@ -117,8 +120,9 @@ try {
         assert.doesNotMatch(page.match(/<Composer\s[\s\S]*?\/>/)?.[0] || '', /reconnectCount/)
     })
     test('CV24 chi tai API that cho chat people', () => {
-        assert.match(layout, /usingMockData \|\| conversation\.kind === 'room'/)
-        assert.match(layout, /return loadChatHistory\(conversation, page, user\)/)
+        assert.match(page, /useChat\(conversation\)/)
+        assert.match(hookChat, /fetchHistoryPage/)
+        assert.match(sliceMessage, /return loadHistory\(conversation, page, currentUser\)/)
     })
 
     const auto = setup()

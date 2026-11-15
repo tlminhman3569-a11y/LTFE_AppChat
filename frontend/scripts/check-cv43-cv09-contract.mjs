@@ -12,6 +12,8 @@ function check(name, verify) {
 
 const layout = read('components/ChatLayout.tsx')
 const chatPage = read('features/chat/ChatPage.tsx')
+const useChat = read('hooks/useChat.ts')
+const messages = read('store/slices/messagesSlice.ts')
 
 check('ChatLayout khong goi lai reLogin rieng', () => {
     assert.doesNotMatch(layout, /\breLogin\s*\(/)
@@ -20,7 +22,7 @@ check('ChatLayout khong goi lai reLogin rieng', () => {
 })
 
 check('ChatLayout su dung hook CV09', () => {
-    assert.match(layout, /import\s*\{\s*useSocket\s*\}\s*from\s*['"]\.\.\/hooks\/useSocket['"]/) 
+    assert.match(layout, /import\s*\{\s*useSocket\s*\}\s*from\s*['"]\.\.\/hooks\/useSocket['"]/)
     assert.match(layout, /\{\s*connectionStatus\s*,\s*reconnectCount\s*,\s*canUseSocket\s*\}\s*=\s*useSocket\(\)/)
     assert.match(layout, /import\s*\{\s*retrySocketConnection\s*\}\s*from\s*['\"]\.\.\/features\/auth\/reconnectSession['\"]/)
 })
@@ -69,15 +71,15 @@ check('Hoi thoai duoc giu trong ChatLayout', () => {
 })
 
 check('CV24 duoc giu cho chat rieng ngoai fixture', () => {
-    assert.match(layout, /return loadChatHistory\(conversation, page, user\)/)
-    assert.match(layout, /if \(usingMockData \|\| conversation\.kind === 'room'\)/)
-    assert.match(layout, /loadHistory=\{loadSelectedHistory\}/)
+    assert.match(chatPage, /useChat\(conversation\)/)
+    assert.match(useChat, /fetchHistoryPage/)
+    assert.match(messages, /return loadHistory\(conversation, page, currentUser\)/)
 })
 
 check('currentUser tu Redux duoc truyen vao API lich su', () => {
     assert.match(layout, /useAppSelector\(state => state\.auth\)/)
     assert.match(layout, /currentUser=\{currentUser\}/)
-    assert.match(chatPage, /await loadHistory\(\{ kind, name \}, 1, currentUser\)/)
+    assert.match(messages, /return loadHistory\(conversation, page, currentUser\)/)
 })
 
 check('ChatLayout khong tao ket noi thu hai', () => {
