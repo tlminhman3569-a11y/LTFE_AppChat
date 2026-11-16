@@ -101,7 +101,7 @@ export async function sendRoomRequest(
             status: 'success',
             message: action === 'create' ? `Đã tạo phòng ${roomName}.` : `Đã tham gia phòng ${roomName}.`,
         }
-    } else if (result.status === 'unknown' || ['connection', 'timeout', 'parse'].includes(result.error.kind)) {
+    } else if (result.status === 'unknown') {
         finished = {
             name: roomName,
             sessionGeneration,

@@ -71,8 +71,8 @@ await check('Event JOIN_ROOM và quyền thành viên sau success', async () => 
 
 await check('Metadata own/userList đủ: chủ và thành viên', async () => {
     respond = async () => ({ event: 'CREATE_ROOM', status: 'success', data: {
-        name: 'hoc_nhom', own: 'Khoi', userList: [{ name: 'Khoi' }, { name: 'Kiet' }],
-    } })
+            name: 'hoc_nhom', own: 'Khoi', userList: [{ name: 'Khoi' }, { name: 'Kiet' }],
+        } })
     const result = await createRoom('hoc_nhom')
     assert.equal(result.status, 'success')
     assert.equal(result.data.owner, 'Khoi')
@@ -205,3 +205,174 @@ await check('Sidebar truyền service thật vào hai form CV40', async () => {
 })
 
 console.log(`CV44: ${total}/${total} kiểm tra giả lập đạt`)
+
+const requestStateSource = readFileSync(new URL('../src/features/rooms/roomRequestState.ts', import.meta.url), 'utf8')
+const requestStateModule = { exports: {} }
+runInNewContext(ts.transpileModule(requestStateSource, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, { module: requestStateModule, exports: requestStateModule.exports })
+const { clearRoomRequests, getRoomRequest, sendRoomRequest } = requestStateModule.exports
+const events = { create: 'CREATE_ROOM', join: 'JOIN_ROOM' }
+const operations = { create: createRoom, join: joinRoom }
+const sessionGeneration = 44
+const sendAction = (action, name, onChange, currentGeneration = () => sessionGeneration) => sendRoomRequest(
+    action, name, sessionGeneration, currentGeneration, () => operations[action](name), onChange,
+)
+
+function waitForResponse() {
+    let resolve
+    const promise = new Promise(done => { resolve = done })
+    return { promise, resolve }
+}
+
+for (const action of ['create', 'join']) {
+    await check(`${action}: connection trước khi gửi là error và được thử lại cùng tên`, async () => {
+        clearRoomRequests()
+        const roomName = `cv44_retry_${action}`
+        const changes = []
+        let attempted = 0
+        let simulatedSent = 0
+        respond = async (event, data) => {
+            assert.equal(event, events[action])
+            assert.equal(data.name, roomName)
+            attempted++
+            if (attempted === 1) throw new SocketRequestError('connection', false)
+            simulatedSent++
+            return { event, status: 'success', data: { name: roomName } }
+        }
+        const first = await sendAction(action, roomName, request => changes.push(request.status))
+        assert.equal(first.status, 'error')
+        assert.equal(first.error.kind, 'connection')
+        assert.match(first.error.message, /Chưa gửi được/)
+        assert.equal(getRoomRequest(action, roomName, sessionGeneration).status, 'error')
+        assert.equal(getRoomRequest(action, roomName, sessionGeneration).message, first.error.message)
+        assert.equal(simulatedSent, 0)
+
+        const second = await sendAction(action, roomName, request => changes.push(request.status))
+        assert.equal(second.status, 'success')
+        assert.equal(getRoomRequest(action, roomName, sessionGeneration).status, 'success')
+        assert.equal(attempted, 2)
+        assert.equal(simulatedSent, 1)
+        assert.deepEqual(changes, ['pending', 'error', 'pending', 'success'])
+        assert.equal(requests.length, 2)
+    })
+
+    await check(`${action}: timeout trước khi gửi là error và không giữ khóa`, async () => {
+        clearRoomRequests()
+        const name = `cv44_pre_timeout_${action}`
+        let count = 0
+        respond = async event => {
+            count++
+            if (count === 1) throw new SocketRequestError('timeout', false)
+            return { event, status: 'success', data: { name } }
+        }
+        const first = await sendAction(action, name)
+        assert.equal(first.status, 'error')
+        assert.equal(first.error.kind, 'timeout')
+        assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'error')
+        assert.equal((await sendAction(action, name)).status, 'success')
+        assert.equal(count, 2)
+    })
+
+    for (const kind of ['connection', 'timeout']) {
+        await check(`${action}: ${kind} sau khi gửi vẫn unknown và khóa lần sau`, async () => {
+            clearRoomRequests()
+            const name = `cv44_unknown_${kind}_${action}`
+            let simulatedSent = 0
+            respond = async () => {
+                simulatedSent++
+                throw new SocketRequestError(kind, true)
+            }
+            const first = await sendAction(action, name)
+            assert.equal(first.status, 'unknown')
+            assert.equal(first.error.kind, kind)
+            assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'unknown')
+            assert.match(getRoomRequest(action, name, sessionGeneration).message, /kiểm tra trạng thái phòng/)
+            assert.equal(await sendAction(action, name), null)
+            assert.equal(simulatedSent, 1)
+            assert.equal(requests.length, 1)
+        })
+    }
+
+    await check(`${action}: phản hồi thành công thiếu tên giữ unknown và không gửi lại`, async () => {
+        clearRoomRequests()
+        const name = `cv44_parse_${action}`
+        respond = async event => ({ event, status: 'success', data: { own: 'user' } })
+        const first = await sendAction(action, name)
+        assert.equal(first.status, 'unknown')
+        assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'unknown')
+        assert.equal(await sendAction(action, name), null)
+        assert.equal(requests.length, 1)
+    })
+
+    await check(`${action}: hai lần xác nhận khi pending chỉ gọi service một lần`, async () => {
+        clearRoomRequests()
+        const name = `cv44_double_${action}`
+        const waiting = waitForResponse()
+        respond = async () => waiting.promise
+        const changes = []
+        const first = sendAction(action, name, request => changes.push(request.status))
+        assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'pending')
+        assert.equal(await sendAction(action, name), null)
+        assert.equal(requests.length, 1)
+        waiting.resolve({ event: events[action], status: 'success', data: { name } })
+        assert.equal((await first).status, 'success')
+        assert.deepEqual(changes, ['pending', 'success'])
+        assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'success')
+        assert.equal(await sendAction(action, name), null)
+        assert.equal(requests.length, 1)
+    })
+
+    await check(`${action}: phản hồi lỗi nghiệp vụ cho phép gửi lại`, async () => {
+        clearRoomRequests()
+        const name = `cv44_business_${action}`
+        let count = 0
+        respond = async event => {
+            count++
+            return count === 1
+                ? { event, status: 'error', mes: 'Yêu cầu không hợp lệ' }
+                : { event, status: 'success', data: { name } }
+        }
+        assert.equal((await sendAction(action, name)).status, 'error')
+        assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'error')
+        assert.equal((await sendAction(action, name)).status, 'success')
+        assert.equal(requests.length, 2)
+    })
+
+    await check(`${action}: lỗi ném ra chưa phân loại vẫn khóa để an toàn`, async () => {
+        clearRoomRequests()
+        const name = `cv44_throw_${action}`
+        const unexpected = new Error('Socket state changed')
+        const result = await sendRoomRequest(action, name, sessionGeneration, () => sessionGeneration, async () => { throw unexpected })
+        assert.equal(result.status, 'unknown')
+        assert.equal(getRoomRequest(action, name, sessionGeneration).status, 'unknown')
+        assert.equal(await sendAction(action, name), null)
+        assert.equal(requests.length, 0)
+    })
+
+    await check(`${action}: phản hồi phiên cũ không chuyển success`, async () => {
+        clearRoomRequests()
+        const name = `cv44_stale_${action}`
+        const waiting = waitForResponse()
+        let current = sessionGeneration
+        const updates = []
+        respond = async () => waiting.promise
+        const first = sendAction(action, name, request => updates.push(request.status), () => current)
+        assert.equal(requests.length, 1)
+        current++
+        waiting.resolve({ event: events[action], status: 'success', data: { name } })
+        assert.equal(await first, null)
+        assert.equal(getRoomRequest(action, name, sessionGeneration), null)
+        assert.deepEqual(updates, ['pending'])
+    })
+}
+
+await check('Sidebar hợp nhất phòng đã xác nhận không hiển thị trùng tên', async () => {
+    const code = readFileSync(new URL('../src/components/ConversationSidebar.tsx', import.meta.url), 'utf8')
+    assert.match(code, /confirmedNames\.filter\(name => !apiList\.items\.some\(item => item\.kind === 'room' && item\.name === name\)\)/)
+    assert.match(code, /\.\.\.new Set\(\[\.\.\.previous\.names, update\.name\]\)/)
+    assert.match(code, /update\.status === 'success'/)
+    assert.match(code, /onSelectConversation\(\{ kind: 'room', name: room\.name \}\)/)
+})
+
+console.log(`CV44: ${total}/${total} kiểm tra giả lập đạt (bao gồm roomRequestState)`)
