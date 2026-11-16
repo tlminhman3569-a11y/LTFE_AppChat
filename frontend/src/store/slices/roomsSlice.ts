@@ -55,8 +55,10 @@ function mergeMetadata(state: RoomsState, data: RoomReadResult): void {
         else if (data.membersKnown || (data.ownerKnown && previous.membership === 'owner')) room.membership = 'unknown'
     }
     entry.room = room
-    if (data.membersKnown) entry.loadedAt = new Date().toISOString()
-    entry.error = null
+    if (data.membersKnown) {
+        entry.loadedAt = new Date().toISOString()
+        entry.error = null
+    }
 }
 
 export const refreshRoomMembers = createAsyncThunk(
@@ -89,8 +91,10 @@ const roomsSlice = createSlice({
                 membersKnown: payload.membersKnown || previous.membersKnown,
                 membership: payload.membership,
             }
-            if (payload.membersKnown) entry.loadedAt = new Date().toISOString()
-            entry.error = null
+            if (payload.membersKnown) {
+                entry.loadedAt = new Date().toISOString()
+                entry.error = null
+            }
         },
     },
     extraReducers: builder => {
@@ -108,7 +112,6 @@ const roomsSlice = createSlice({
                 const entry = roomEntry(state, action.meta.arg.name)
                 entry.loading = true
                 entry.requestId = action.meta.requestId
-                entry.error = null
             })
             .addCase(refreshRoomMembers.fulfilled, (state, action) => {
                 if (action.meta.arg.sessionGeneration !== state.sessionGeneration) return
@@ -116,8 +119,12 @@ const roomsSlice = createSlice({
                 if (entry?.requestId !== action.meta.requestId) return
                 entry.loading = false
                 delete entry.requestId
-                if (action.payload.status === 'success') mergeMetadata(state, action.payload.data)
-                else entry.error = action.payload.error
+                if (action.payload.status === 'success') {
+                    mergeMetadata(state, action.payload.data)
+                    if (!action.payload.data.membersKnown) {
+                        entry.error = { kind: 'parse', message: 'Phản hồi chưa có danh sách thành viên mới. Hãy thử lại.' }
+                    }
+                } else entry.error = action.payload.error
             })
             .addCase(refreshRoomMembers.rejected, (state, action) => {
                 if (action.meta.arg.sessionGeneration !== state.sessionGeneration) return

@@ -10,7 +10,7 @@ const toolkit = require('@reduxjs/toolkit')
 function compile(relativePath, imports) {
     const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8')
     const output = ts.transpileModule(source, {
-        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
     }).outputText
     const module = { exports: {} }
     runInNewContext(output, {
@@ -203,6 +203,79 @@ await check('Refresh lỗi giữ nguyên metadata đã tải', async () => {
     assert.equal(state.byKey[key].error.message, 'offline')
     assert.equal(state.byKey[key].room.members[0], 'Another')
     assert.equal(state.byKey[key].loading, false)
+})
+
+await check('Lỗi làm mới vẫn hiện trong lúc thử lại', async () => {
+    const arg = { name: 'Nhom_Hoc', sessionGeneration: state.sessionGeneration }
+    dispatch(rooms.refreshRoomMembers.pending('reqRetry', arg))
+    assert.equal(state.byKey[key].loading, true)
+    assert.equal(state.byKey[key].error.message, 'offline')
+    assert.deepEqual(Array.from(state.byKey[key].room.members), ['Another'])
+    dispatch(rooms.refreshRoomMembers.fulfilled({ status: 'error', error: { kind: 'timeout', message: 'timed out' } }, 'reqRetry', arg))
+    assert.equal(state.byKey[key].error.message, 'timed out')
+})
+await check('Trang lịch sử 2 thiếu userList không xóa cảnh báo hoặc danh sách cũ', async () => {
+    response({ name: 'Nhom_Hoc', page: 2, chatData: [message] })
+    const result = await roomsApi.loadRoom('Nhom_Hoc', 2)
+    assert.equal(result.status, 'success')
+    assert.equal(result.data.membersKnown, false)
+    readMetadata(result.data)
+    assert.equal(state.byKey[key].error.message, 'timed out')
+    assert.deepEqual(Array.from(state.byKey[key].room.members), ['Another'])
+    assert.equal(state.byKey[key].room.membersKnown, true)
+})
+await check('F15 vẫn render cảnh báo, nút Thử lại và danh sách cũ', async () => {
+    const React = require('react')
+    const { renderToStaticMarkup } = require('react-dom/server')
+    const panel = compile('../src/features/rooms/MemberList.tsx', {
+        'react/jsx-runtime': require('react/jsx-runtime'),
+    }).default
+    const html = renderToStaticMarkup(React.createElement(panel, {
+        room: state.byKey[key].room,
+        currentUser: 'Another',
+        loading: state.byKey[key].loading,
+        error: state.byKey[key].error,
+        onRefresh: () => {},
+        onClose: () => {},
+    }))
+    assert.match(html, /Thử lại/)
+    assert.match(html, /role="alert"/)
+    assert.match(html, /Danh sách đang hiển thị có thể đã cũ/)
+    assert.match(html, /Another/)
+    assert.match(html, /Thành viên · 1/)
+})
+await check('Làm mới thành công nhưng không có userList vẫn cảnh báo và giữ dữ liệu', async () => {
+    const oldLoadedAt = state.byKey[key].loadedAt
+    const arg = { name: 'Nhom_Hoc', sessionGeneration: state.sessionGeneration }
+    dispatch(rooms.refreshRoomMembers.pending('reqMissing', arg))
+    response({ name: 'Nhom_Hoc', page: 1, chatData: [] })
+    const result = await roomsApi.loadRoom('Nhom_Hoc', 1)
+    assert.equal(result.status, 'success')
+    dispatch(rooms.refreshRoomMembers.fulfilled(result, 'reqMissing', arg))
+    assert.equal(state.byKey[key].error.kind, 'parse')
+    assert.match(state.byKey[key].error.message, /danh sách thành viên mới/)
+    assert.deepEqual(Array.from(state.byKey[key].room.members), ['Another'])
+    assert.equal(state.byKey[key].loadedAt, oldLoadedAt)
+})
+await check('Chỉ danh sách thành viên mới hợp lệ xóa cảnh báo và cập nhật dữ liệu', async () => {
+    const arg = { name: 'Nhom_Hoc', sessionGeneration: state.sessionGeneration }
+    dispatch(rooms.refreshRoomMembers.pending('reqSuccess', arg))
+    assert.equal(state.byKey[key].error.kind, 'parse')
+    response({ name: 'Nhom_Hoc', page: 1, own: 'Another', userList: ['Another', 'Kiet'], chatData: [] })
+    const result = await roomsApi.loadRoom('Nhom_Hoc', 1)
+    dispatch(rooms.refreshRoomMembers.fulfilled(result, 'reqSuccess', arg))
+    assert.equal(state.byKey[key].error, null)
+    assert.equal(state.byKey[key].loading, false)
+    assert.deepEqual(Array.from(state.byKey[key].room.members), ['Another', 'Kiet'])
+    assert.ok(state.byKey[key].loadedAt)
+})
+await check('roomConfirmed thiếu danh sách không xóa lỗi tải trước', async () => {
+    const arg = { name: 'Nhom_Hoc', sessionGeneration: state.sessionGeneration }
+    dispatch(rooms.refreshRoomMembers.pending('reqAnother', arg))
+    dispatch(rooms.refreshRoomMembers.fulfilled({ status: 'error', error: { kind: 'connection', message: 'offline again' } }, 'reqAnother', arg))
+    dispatch(rooms.roomConfirmed({ name: 'Nhom_Hoc', ownerKnown: true, owner: 'Another', membersKnown: false, membership: 'owner' }))
+    assert.equal(state.byKey[key].error.message, 'offline again')
+    assert.deepEqual(Array.from(state.byKey[key].room.members), ['Another', 'Kiet'])
 })
 
 const chatApi = compile('../src/services/chatApi.ts', {
