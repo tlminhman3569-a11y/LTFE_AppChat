@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 import type { ConversationKey, ConversationRef } from '../../types/api'
 import type { ChatPageProps, ComposerProps, Message } from '../../types/message'
 import { useChat } from '../../hooks/useChat'
@@ -11,6 +12,7 @@ interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
     sendError: string
     conversationKey: ConversationKey | null
     reconnectCount?: number
+    headerActions?: ReactNode
     onBack: () => void
 }
 
@@ -73,9 +75,9 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 }
 
 export default function ChatPage({
-    conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack,
-    draft, canSend, onDraftChange, onSend, pending, sendError,
-}: ChatProps) {
+                                     conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack, headerActions,
+                                     draft, canSend, onDraftChange, onSend, pending, sendError,
+                                 }: ChatProps) {
     return (
         <section className="chat-content chat-page" aria-label="Nội dung hội thoại">
             {conversation && conversationKey !== null ? (
@@ -84,6 +86,7 @@ export default function ChatPage({
                         <button type="button" className="mobile-back" onClick={onBack}>Quay lại danh sách</button>
                         <h2>{conversation.name}</h2>
                         <p>{conversation.kind === 'room' ? 'Phòng chat' : 'Chat riêng'}</p>
+                        {headerActions}
                     </header>
                     <ChatHistory
                         key={JSON.stringify([sessionGeneration, conversationKey, reconnectCount])}

@@ -11,6 +11,7 @@ import UserLookup from '../features/users/UserLookup'
 import UserPresence from '../features/users/UserPresence'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { refreshConversations } from '../store/slices/conversationsSlice'
+import { roomConfirmed } from '../store/slices/roomsSlice'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
 import type { OnSelectConversation, RecentConversation } from '../types/user'
 import { filterRecentConversations } from '../utils/filterRecentConversations'
@@ -98,6 +99,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
     const activeConfirmedRoom = confirmedRoom?.sessionGeneration === sessionGeneration ? confirmedRoom.room : null
 
     function onRoomConfirmed(room: Room) {
+        dispatch(roomConfirmed(room))
         setConfirmedRoom({ room, sessionGeneration })
         setRoomDialog(null)
         onSelectConversation({ kind: 'room', name: room.name })

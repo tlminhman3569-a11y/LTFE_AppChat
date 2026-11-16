@@ -29,8 +29,7 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
         const result = await loadRoom(conversation.name, page)
         if (result.status !== 'success') return result
 
-        // CV45 cần bàn giao kiểu Message cho dữ liệu phòng chuẩn hóa.
-        return { status: 'error', error: { kind: 'parse', message: 'Chưa có hợp đồng dữ liệu lịch sử phòng từ CV45' } }
+        return { status: 'success', data: { conversation, page, messages: result.data.messages, room: result.data } }
     }
 
     if (!currentUser?.trim()) {
@@ -86,7 +85,6 @@ export function subscribeToMessages(
         if (response.status !== 'success') return
         const message = readMessage(response.data)
         if (!message) return
-        // Tin phát về cho chính người gửi không xác nhận được tin tạm.
         if (message.name === currentUser) return
         if (message.kind === 'people' && message.to !== currentUser) return
 
