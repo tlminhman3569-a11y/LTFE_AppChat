@@ -26,6 +26,11 @@ export function getRoomRequest(action: RoomAction, name: string, sessionGenerati
     return requests.get(requestKey(sessionGeneration, action, name)) ?? null
 }
 
+export function clearRoomRequests() {
+    requests.clear()
+    notifyListeners()
+}
+
 export function subscribeRoomRequests(listener: () => void) {
     listeners.add(listener)
     return () => {
