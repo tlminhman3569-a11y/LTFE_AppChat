@@ -73,9 +73,9 @@ Chỉ gộp theo id hoặc mã đối chiếu đủ tin cậy. Hai tin giống c
 
 Chuỗi mes mới dự kiến gồm tiền tố chính xác APPCHAT_RICH_V1 nối trực tiếp JSON, không thêm dấu phân cách khác. JSON có version:1, clientMessageId khác rỗng và runs là mảng {text,bold,italic,size}; size chỉ 12/14/16/18/24. Parser chỉ nhận đúng schema; text cũ/JSON lỗi/phiên bản lạ được render an toàn dưới dạng text, không chạy HTML.
 
-CV28 escape ký tự ngoài ASCII bên trong JSON của mes trước khi nối tiền tố, giữ đủ hai đơn vị UTF-16 của emoji. Parser vẫn đọc được JSON phiên bản 1 có Unicode trực tiếp. Khi không giải mã được, UI hiển thị nguyên mes dưới dạng văn bản.
+CV28 dùng frontend/src/utils/richMessage.ts để mã hóa và giải mã. Khi mã hóa, hàm escape ký tự DEL và ký tự ngoài ASCII bên trong JSON của mes trước khi nối tiền tố, giữ đủ hai đơn vị UTF-16 của emoji. Parser vẫn đọc được JSON phiên bản 1 có Unicode trực tiếp. Khi không giải mã được, UI hiển thị nguyên mes dưới dạng văn bản.
 
-Giới hạn nội bộ cho tin tạo mới: tối đa 1.000 đơn vị UTF-16 trong nội dung, 32 runs và 1.900 byte của mes sau escape (gồm tiền tố). Đây là mức tạm thời dựa trên kết quả CV27 cho chat riêng. Serializer trả lỗi nếu vượt ngưỡng để luồng gửi báo người dùng rút ngắn. Tin đọc lại được xác thực theo schema và không áp lại giới hạn gửi mới.
+Giới hạn nội bộ cho tin tạo mới: tối đa 1.000 đơn vị UTF-16 trong nội dung, 32 runs và 1.900 byte của mes sau escape (gồm tiền tố). Đây là mức tạm thời dựa trên kết quả CV27 cho chat riêng. Tiếng Việt có dấu và emoji có thể chạm giới hạn byte trước giới hạn độ dài. Serializer trả lỗi nếu vượt ngưỡng để luồng gửi báo người dùng rút ngắn. Tin đọc lại được xác thực theo schema và không áp lại giới hạn gửi mới.
 
 ## 7. Các hành vi dễ sai
 

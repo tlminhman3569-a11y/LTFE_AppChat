@@ -19,6 +19,22 @@ function renderMessage(mes: string) {
 }
 
 describe('CV28 rich text', () => {
+    it('escape DEL và giải mã lại nguyên nội dung', () => {
+        const input = { ...content, runs: [{ ...content.runs[0], text: 'a\u007fb' }] }
+        const result = serializeRichMessage(input)
+        if (result.status !== 'success') throw new Error(result.error.message)
+
+        expect(result.data).toMatch(/^[\x20-\x7e]+$/)
+        expect(result.data).toContain('\\u007f')
+        expect(parseRichMessage(result.data)).toEqual(input)
+    })
+
+    it('từ chối khoảng trắng bên ngoài JSON', () => {
+        const json = JSON.stringify(content)
+        expect(parseRichMessage('APPCHAT_RICH_V1 ' + json)).toBeNull()
+        expect(parseRichMessage('APPCHAT_RICH_V1' + json + '\n')).toBeNull()
+    })
+
     it('escape bên trong mes và giữ nguyên định dạng, emoji, xuống dòng và dấu thoát', () => {
         const result = serializeRichMessage(content)
         if (result.status !== 'success') throw new Error(result.error.message)

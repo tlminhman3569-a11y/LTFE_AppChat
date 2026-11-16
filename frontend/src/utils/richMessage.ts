@@ -32,8 +32,11 @@ function isRichMessage(value: unknown): value is RichMessageContent {
 export function parseRichMessage(mes: string): RichMessageContent | null {
     if (!mes.startsWith(prefix)) return null
 
+    const json = mes.slice(prefix.length)
+    if (!json.startsWith('{') || !json.endsWith('}')) return null
+
     try {
-        const value: unknown = JSON.parse(mes.slice(prefix.length))
+        const value: unknown = JSON.parse(json)
         return isRichMessage(value) ? value : null
     } catch {
         return null
@@ -59,7 +62,7 @@ export function serializeRichMessage(content: RichMessageContent): ApiResult<str
         clientMessageId,
         runs: runs.map(({ text, bold, italic, size }) => ({ text, bold, italic, size })),
     })
-    const ascii = json.replace(/[\u0080-\uffff]/g, unit =>
+    const ascii = json.replace(/[\u007f-\uffff]/g, unit =>
         '\\u' + unit.charCodeAt(0).toString(16).padStart(4, '0'),
     )
     const mes = prefix + ascii
