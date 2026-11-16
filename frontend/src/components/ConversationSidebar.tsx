@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { conversationsEmpty, conversationsError, conversationsUnknown } from '../fixtures/conversations'
 import { getRecentConversations } from '../fixtures/mockServices'
 import RoomSearch from '../features/rooms/RoomSearch'
+import CreateRoom from '../features/rooms/CreateRoom'
+import JoinRoom from '../features/rooms/JoinRoom'
+import { createRoom as createRoomApi, joinRoom as joinRoomApi } from '../services/roomsApi'
+import type { Room } from '../types/room'
 import UserSearch from '../features/users/UserSearch'
 import UserLookup from '../features/users/UserLookup'
 import UserPresence from '../features/users/UserPresence'
@@ -29,6 +33,10 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
     const { authStatus, connectionStatus, currentUser, sessionGeneration } = useAppSelector(state => state.auth)
     const apiList = useAppSelector(state => state.conversations)
     const [query, setQuery] = useState('')
+    const [roomDialog, setRoomDialog] = useState<{ action: 'create' | 'join'; sessionGeneration: number } | null>(null)
+    const [roomUpdate, setRoomUpdate] = useState<{ name: string; action: 'create' | 'join'; status: string; sessionGeneration: number } | null>(null)
+    const [confirmedRoom, setConfirmedRoom] = useState<{ room: Room; sessionGeneration: number } | null>(null)
+    const [confirmedRoomNames, setConfirmedRoomNames] = useState<{ sessionGeneration: number; names: string[] } | null>(null)
     const [filter, setFilter] = useState<SuggestionFilter>('all')
     const [mockMode, setMockMode] = useState<MockMode>('api')
     const [mockListState, setListState] = useState<ConversationLoadState>({ conversations: [], error: '' })
@@ -71,7 +79,12 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
     }, [mockAttempt, mockMode])
 
     const isMock = mockMode !== 'api'
-    const conversations = isMock ? mockListState.conversations : apiList.items
+    const confirmedNames = confirmedRoomNames?.sessionGeneration === sessionGeneration ? confirmedRoomNames.names : []
+    const conversations = isMock ? mockListState.conversations : [
+        ...apiList.items,
+        ...confirmedNames.filter(name => !apiList.items.some(item => item.kind === 'room' && item.name === name))
+            .map(name => ({ kind: 'room' as const, name })),
+    ]
     const loading = isMock ? mockLoading : apiList.loading
     const loaded = isMock ? mockLoaded : apiList.loaded
     const disconnected = !isMock && authStatus === 'authenticated'
@@ -80,6 +93,28 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         ? mockListState.error
         : apiList.error || (disconnected ? 'Kết nối bị gián đoạn. Chưa thể cập nhật danh sách.' : '')
     const suggestions = filterRecentConversations(conversations, query)
+    const activeRoomDialog = roomDialog?.sessionGeneration === sessionGeneration ? roomDialog.action : null
+    const activeRoomUpdate = roomUpdate?.sessionGeneration === sessionGeneration ? roomUpdate : null
+    const activeConfirmedRoom = confirmedRoom?.sessionGeneration === sessionGeneration ? confirmedRoom.room : null
+
+    function onRoomConfirmed(room: Room) {
+        setConfirmedRoom({ room, sessionGeneration })
+        setRoomDialog(null)
+        onSelectConversation({ kind: 'room', name: room.name })
+    }
+
+    function onRoomRequestChange(action: 'create' | 'join', update: { name: string; sessionGeneration: number; status: string }) {
+        if (update.sessionGeneration !== sessionGeneration) return
+        setRoomUpdate({ name: update.name, action, status: update.status, sessionGeneration })
+        if (update.status === 'success' && authStatus === 'authenticated' && connectionStatus === 'connected') {
+            setConfirmedRoomNames(previous => ({
+                sessionGeneration,
+                names: previous?.sessionGeneration === sessionGeneration
+                    ? [...new Set([...previous.names, update.name])] : [update.name],
+            }))
+            void dispatch(refreshConversations(sessionGeneration))
+        }
+    }
     function selectLookupUser(conversation: ConversationRef) {
         onSelectConversation(resolveLookupConversation(conversation.name, conversations))
     }
@@ -109,6 +144,26 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                 <h2>Hội thoại</h2>
                 <button type="button" onClick={retry} disabled={loading}>Làm mới</button>
             </div>
+
+            {!isMock && authStatus === 'authenticated' && (
+                <div className="cv44-actions">
+                    <button type="button" disabled={connectionStatus !== 'connected'} onClick={() => setRoomDialog({ action: 'create', sessionGeneration })}>Tạo phòng</button>
+                    <button type="button" disabled={connectionStatus !== 'connected'} onClick={() => setRoomDialog({ action: 'join', sessionGeneration })}>Tham gia phòng</button>
+                </div>
+            )}
+            {activeRoomUpdate && !activeRoomDialog && (
+                <p className="cv39-hint" role={activeRoomUpdate.status === 'unknown' ? 'alert' : 'status'}>
+                    {activeRoomUpdate.status === 'pending' ? 'Yêu cầu đang chờ phản hồi:'
+                        : activeRoomUpdate.status === 'unknown' ? 'Chưa rõ máy chủ đã xử lý yêu cầu:'
+                            : activeRoomUpdate.status === 'success' ? 'Máy chủ đã xác nhận:' : 'Yêu cầu thất bại:'}
+                    {' '}{activeRoomUpdate.action === 'create' ? 'Tạo' : 'Tham gia'} {activeRoomUpdate.name}
+                </p>
+            )}
+            {activeConfirmedRoom && !activeRoomDialog && (
+                <p className="cv39-hint" role="status">
+                    {activeConfirmedRoom.name}: {activeConfirmedRoom.membership === 'owner' ? 'Đã xác nhận tạo phòng (chủ phòng)' : 'Đã xác nhận tham gia phòng'}
+                </p>
+            )}
 
             <label className="cv39-search-label" htmlFor="cv39-search">Tìm theo tên</label>
             <input
@@ -210,6 +265,24 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                     </>
                 )}
             </div>
+            {activeRoomDialog === 'create' && (
+                <CreateRoom
+                    createRoom={createRoomApi}
+                    initialName={query.trim()}
+                    onClose={() => setRoomDialog(null)}
+                    onCreated={onRoomConfirmed}
+                    onRequestChange={update => onRoomRequestChange('create', update)}
+                />
+            )}
+            {activeRoomDialog === 'join' && (
+                <JoinRoom
+                    joinRoom={joinRoomApi}
+                    initialName={query.trim()}
+                    onClose={() => setRoomDialog(null)}
+                    onJoined={onRoomConfirmed}
+                    onRequestChange={update => onRoomRequestChange('join', update)}
+                />
+            )}
         </aside>
     )
 }
