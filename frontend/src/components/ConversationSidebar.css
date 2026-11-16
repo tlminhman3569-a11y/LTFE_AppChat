@@ -208,3 +208,58 @@
 .cv39-stale-warning p {
     margin: 0 0 6px;
 }
+
+.cv43-lookup,
+.cv43-presence {
+    margin: 12px 0 18px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.cv43-lookup h3,
+.cv43-presence h3 {
+    margin: 0 0 10px;
+    color: #334155;
+    font-size: 14px;
+}
+
+.cv43-lookup form {
+    display: grid;
+    gap: 8px;
+}
+
+.cv43-lookup label {
+    color: #334155;
+    font-size: 13px;
+}
+
+.cv43-lookup input {
+    min-width: 0;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+.cv43-lookup button,
+.cv43-presence button {
+    padding: 8px 10px;
+    font-size: 12px;
+}
+
+.cv43-feedback {
+    margin: 8px 0 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    font-size: 13px;
+}
+
+.cv43-error,
+.cv43-unknown { color: #92400e; background: #fffbeb; }
+.cv43-success { color: #166534; background: #f0fdf4; }
+
+.cv43-presence-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cv43-presence-heading h3 { margin: 0; }
+.cv43-presence p { margin: 8px 0 0; font-size: 13px; }
