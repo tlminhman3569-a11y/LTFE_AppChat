@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { sendText, subscribeToMessages } from '../services/chatApi'
@@ -13,6 +13,7 @@ import RoomMembersPanel from '../features/rooms/RoomMembersPanel'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
 import type { Message } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
+import { createMessageId, serializeRichMessage } from '../utils/richMessage'
 
 export default function ChatLayout() {
     const dispatch = useAppDispatch()
@@ -23,7 +24,6 @@ export default function ChatLayout() {
     const [showLogoutDialog, setShowLogoutDialog] = useState(false)
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const [pending, setPending] = useState<(Message & { localId: string })[]>([])
-    const nextPendingId = useRef(0)
     const [sendError, setSendError] = useState('')
     const { getDraft, updateDraft, hasAnyDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
@@ -113,14 +113,19 @@ export default function ChatLayout() {
                         updateDraft(conversation, draft)
                     }}
                     onSend={(conversation, draft) => {
-                        const text = draft.map(run => run.text).join('')
-                        if (!canSend || !currentUser || !text.trim() || createConversationKey(conversation) !== conversationKey) return
+                        if (!canSend || !currentUser || createConversationKey(conversation) !== conversationKey) return
                         setSendError('')
                         try {
-                            sendText(conversation, text)
-                            const localId = String(++nextPendingId.current)
+                            const clientMessageId = createMessageId()
+                            const encoded = serializeRichMessage({ version: 1, clientMessageId, runs: draft })
+                            if (encoded.status !== 'success') {
+                                setSendError(encoded.error.message)
+                                return
+                            }
+                            sendText(conversation, encoded.data)
                             setPending(previous => [...previous, {
-                                localId, name: currentUser, kind: conversation.kind, to: conversation.name, mes: text,
+                                localId: clientMessageId, clientMessageId, name: currentUser,
+                                kind: conversation.kind, to: conversation.name, mes: encoded.data,
                             }])
                             clearDraft(conversation)
                         } catch {
