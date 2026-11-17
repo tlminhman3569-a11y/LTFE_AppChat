@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { MemberListProps, RoomConversationRef } from '../../types/room'
+import './room-mobile.css'
 
 type Props = MemberListProps & {
     loadedAt?: string
@@ -27,6 +28,7 @@ export default function MemberList({
 
     return (
         <aside
+            className="cv48-members-panel"
             aria-label={`Thành viên phòng ${room.name}`}
             aria-busy={loading}
             style={{
@@ -71,7 +73,7 @@ export default function MemberList({
             {members?.length === 0 && !loading && <p>Danh sách thành viên trống.</p>}
 
             {members && members.length > 0 && (
-                <ul style={{ listStyle: 'none', margin: '18px 0', padding: 0 }}>
+                <ul className="cv48-members-list" style={{ listStyle: 'none', margin: '18px 0', padding: 0 }}>
                     {members.map(username => {
                         const owner = room.ownerKnown && room.owner === username
                         const me = currentUser === username

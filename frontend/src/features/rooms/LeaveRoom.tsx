@@ -7,6 +7,7 @@ import { store } from '../../store'
 import { getLeaveRequest, subscribeLeaveRequests, updateLeaveRequest } from './leaveRoomRequestState'
 import type { LeaveRequest, LeaveStatus } from './leaveRoomRequestState'
 import { clearRoomRequest, getRoomRequest } from './roomRequestState'
+import './room-mobile.css'
 
 type Props = {
     room: Room
@@ -102,11 +103,12 @@ export default function LeaveRoom({
     }
 
     return (
-        <div style={{
+        <div className="cv48-room-overlay" style={{
             position: 'fixed', inset: 0, zIndex: 1000, display: 'grid',
             placeItems: 'center', padding: 16, overflowY: 'auto', background: '#0f172a77',
         }}>
             <section
+                className="cv48-room-dialog"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="cv41-leave-title"
@@ -116,7 +118,7 @@ export default function LeaveRoom({
                     boxShadow: '0 16px 48px #0f172a25',
                 }}
             >
-                <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <header className="cv48-room-dialog-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <h2 id="cv41-leave-title" style={{ margin: 0, fontSize: 24 }}>Rời phòng {room.name}?</h2>
                     <button type="button" onClick={onClose} style={{ ...buttonStyle, border: 0, color: '#2563eb' }}>
                         Đóng
@@ -143,7 +145,7 @@ export default function LeaveRoom({
                     </p>
                 )}
 
-                <form onSubmit={confirm} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+                <form className="cv48-room-actions" onSubmit={confirm} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
                     <button type="button" onClick={onClose} style={buttonStyle}>{closeLabel}</button>
                     <button
                         type="submit"
