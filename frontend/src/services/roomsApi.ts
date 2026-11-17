@@ -191,3 +191,55 @@ export async function loadRoom(name: string, page: number): Promise<ApiResult<Ro
         return { status: 'error', error: { kind: 'connection', message: 'Không thể tải dữ liệu phòng qua WebSocket.' } }
     }
 }
+
+function readLeaveRoomResponse(response: unknown, requestedName: string): ApiResult<{ roomName: string }> {
+    if (!response || typeof response !== 'object' || Array.isArray(response)) {
+        return { status: 'unknown', error: { kind: 'parse', message: 'Phản hồi rời phòng không hợp lệ. Chưa rõ kết quả.' } }
+    }
+
+    const reply = response as Record<string, unknown>
+    if (reply.event !== 'OUT_ROOM') {
+        return { status: 'unknown', error: { kind: 'parse', message: 'Phản hồi không khớp lệnh OUT_ROOM. Chưa rõ kết quả.' } }
+    }
+
+    if (reply.status === 'error') {
+        const data = reply.data && typeof reply.data === 'object' && !Array.isArray(reply.data)
+            ? reply.data as Record<string, unknown> : null
+        const message = typeof reply.mes === 'string' ? reply.mes
+            : typeof reply.data === 'string' ? reply.data
+                : typeof data?.mes === 'string' ? data.mes : ''
+        return { status: 'error', error: { kind: 'business', message: message.trim().slice(0, 300) || 'Máy chủ từ chối rời phòng.' } }
+    }
+
+    if (reply.status !== 'success' || !reply.data || typeof reply.data !== 'object' || Array.isArray(reply.data)) {
+        return { status: 'unknown', error: { kind: 'parse', message: 'Chưa có xác nhận rời phòng thành công hợp lệ.' } }
+    }
+
+    const data = reply.data as Record<string, unknown>
+    if ('name' in data && data.name !== requestedName) {
+        return { status: 'unknown', error: { kind: 'parse', message: 'Tên phòng trong phản hồi OUT_ROOM không khớp.' } }
+    }
+    if (!(typeof data.mes === 'string' && data.mes.trim()) && data.name !== requestedName) {
+        return { status: 'unknown', error: { kind: 'parse', message: 'Phản hồi OUT_ROOM thiếu xác nhận rời phòng.' } }
+    }
+
+    return { status: 'success', data: { roomName: requestedName } }
+}
+
+export async function leaveRoom(name: string): Promise<ApiResult<{ roomName: string }>> {
+    const roomName = name.trim()
+    if (!roomName) return { status: 'error', error: { kind: 'business', message: 'Tên phòng không được để trống.' } }
+
+    try {
+        const response = await socketClient.request('OUT_ROOM', { name: roomName })
+        return readLeaveRoomResponse(response, roomName)
+    } catch (error) {
+        if (error instanceof SocketRequestError) {
+            const message = error.kind === 'timeout' ? 'Hết thời gian chờ xác nhận rời phòng.' : 'Kết nối bị gián đoạn.'
+            return error.wasSent
+                ? { status: 'unknown', error: { kind: error.kind, message: `${message} Chưa rõ máy chủ đã xử lý OUT_ROOM hay chưa.` } }
+                : { status: 'error', error: { kind: error.kind, message: `${message} Chưa gửi được OUT_ROOM.` } }
+        }
+        return { status: 'error', error: { kind: 'connection', message: 'Không thể gửi OUT_ROOM qua WebSocket.' } }
+    }
+}
