@@ -1,6 +1,8 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { ApiResult, AuthStatus, ConnectionStatus } from '../../types/api'
 import type { RecentConversation } from '../../types/user'
+import type { Room } from '../../types/room'
+import { createConversationKey } from '../../utils/conversationKey'
 import { getRecentConversations } from '../../services/usersApi'
 import {
     emptyConversationsState,
@@ -72,5 +74,28 @@ const conversationsSlice = createSlice({
             })
     },
 })
+
+export function conversationsForSidebar(
+    recent: RecentConversation[],
+    roomsByKey: Record<string, { room: Room }>,
+): RecentConversation[] {
+    const seen = new Set<string>()
+    const visible: RecentConversation[] = []
+
+    function add(conversation: RecentConversation) {
+        const key = createConversationKey(conversation)
+        if (seen.has(key) || (conversation.kind === 'room' && roomsByKey[key]?.room.membership === 'left')) return
+        seen.add(key)
+        visible.push(conversation)
+    }
+
+    recent.forEach(add)
+    Object.values(roomsByKey).forEach(({ room }) => {
+        if (room.membership === 'owner' || room.membership === 'member') {
+            add({ kind: 'room', name: room.name })
+        }
+    })
+    return visible
+}
 
 export default conversationsSlice.reducer

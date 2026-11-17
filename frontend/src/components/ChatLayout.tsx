@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { sendText, subscribeToMessages } from '../services/chatApi'
@@ -13,6 +13,7 @@ import RoomMembersPanel from '../features/rooms/RoomMembersPanel'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
 import type { Message } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
+import { getLeaveRequest, subscribeLeaveRequests } from '../features/rooms/leaveRoomRequestState'
 
 export default function ChatLayout() {
     const dispatch = useAppDispatch()
@@ -27,7 +28,17 @@ export default function ChatLayout() {
     const [sendError, setSendError] = useState('')
     const { getDraft, updateDraft, hasAnyDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
-    const canSend = canUseSocket && !isLoggingOut && selectedConversation?.kind === 'people'
+    const roomMembership = useAppSelector(state => selectedConversation?.kind === 'room' && conversationKey
+        ? state.rooms.byKey[conversationKey]?.room.membership : undefined)
+    const leaveRequest = useSyncExternalStore(subscribeLeaveRequests,
+        () => selectedConversation?.kind === 'room'
+            ? getLeaveRequest(sessionGeneration, selectedConversation.name) : null,
+        () => null)
+    const canSend = canUseSocket && !isLoggingOut && (selectedConversation?.kind === 'people'
+        || (selectedConversation?.kind === 'room'
+            && (roomMembership === 'member' || roomMembership === 'owner')
+            && leaveRequest?.status !== 'pending' && leaveRequest?.status !== 'unknown'
+            && leaveRequest?.status !== 'success'))
 
     const receiveMessage = useEffectEvent((conversation: ConversationRef, message: Message) => {
         if (!canUseSocket || isLoggingOut) return

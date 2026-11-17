@@ -18,7 +18,7 @@ type RequestUpdate = {
 
 interface Props {
     onClose: (request?: { name: string; sessionGeneration: number; status: 'pending' | 'unknown' }) => void
-    onJoined?: (room: Room) => void
+    onJoined?: (room: Room, shouldSelect?: boolean) => void
     onSelectConversation?: (conversation: ConversationRef) => void
     onRequestChange?: (request: RequestUpdate) => void
     joinRoom?: (name: string) => Promise<ApiResult<Room>>
@@ -99,8 +99,8 @@ export default function JoinRoom({
 
         if (result?.status === 'success' && result.data.name === roomName) {
             resetLeaveAfterJoin(sessionGeneration, roomName)
+            onJoined?.(result.data, isOpen.current)
             if (isOpen.current) {
-                onJoined?.(result.data)
                 onSelectConversation?.({ kind: 'room', name: result.data.name })
             }
         }
