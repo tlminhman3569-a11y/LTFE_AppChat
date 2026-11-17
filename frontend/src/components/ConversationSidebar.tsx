@@ -15,6 +15,7 @@ import { roomConfirmed } from '../store/slices/roomsSlice'
 import type { ApiResult, ConversationKind, ConversationRef } from '../types/api'
 import type { OnSelectConversation, RecentConversation } from '../types/user'
 import { filterRecentConversations } from '../utils/filterRecentConversations'
+import { createConversationKey } from '../utils/conversationKey'
 import { resolveLookupConversation } from '../utils/resolveLookupConversation'
 import { applyConversationLoad } from '../utils/conversationLoadState'
 import type { ConversationLoadState } from '../utils/conversationLoadState'
@@ -33,6 +34,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
     const dispatch = useAppDispatch()
     const { authStatus, connectionStatus, currentUser, sessionGeneration } = useAppSelector(state => state.auth)
     const apiList = useAppSelector(state => state.conversations)
+    const roomsByKey = useAppSelector(state => state.rooms.byKey)
     const [query, setQuery] = useState('')
     const [roomDialog, setRoomDialog] = useState<{ action: 'create' | 'join'; sessionGeneration: number } | null>(null)
     const [roomUpdate, setRoomUpdate] = useState<{ name: string; action: 'create' | 'join'; status: string; sessionGeneration: number } | null>(null)
@@ -85,7 +87,7 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         ...apiList.items,
         ...confirmedNames.filter(name => !apiList.items.some(item => item.kind === 'room' && item.name === name))
             .map(name => ({ kind: 'room' as const, name })),
-    ]
+    ].filter(item => item.kind !== 'room' || roomsByKey[createConversationKey(item)]?.room.membership !== 'left')
     const loading = isMock ? mockLoading : apiList.loading
     const loaded = isMock ? mockLoaded : apiList.loaded
     const disconnected = !isMock && authStatus === 'authenticated'

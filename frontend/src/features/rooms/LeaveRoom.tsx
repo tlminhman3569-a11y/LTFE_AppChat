@@ -91,7 +91,7 @@ export default function LeaveRoom({
             return
         }
 
-        if (result.status === 'unknown' || result.error.kind !== 'business') {
+        if (result.status === 'unknown') {
             updateLeaveRequest(sessionGeneration, room.name, { status: 'unknown', message: `${result.error.message} Chưa rõ kết quả. Hãy kiểm tra lại trước khi thao tác tiếp.` })
             onStatusChange?.(conversation, 'unknown')
             return
