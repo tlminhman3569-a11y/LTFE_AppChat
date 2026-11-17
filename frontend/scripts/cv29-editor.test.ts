@@ -1,3 +1,6 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import RichTextEditor from '../src/features/editor/RichTextEditor'
 import { expect, it } from 'vitest'
 import { findTextEdit, replaceRuns, sliceRuns } from '../src/features/editor/editRuns'
 import type { TextRun } from '../src/types/message'
@@ -35,4 +38,19 @@ it('thay toàn bộ vùng chọn dù văn bản dán có tiền tố giống n�
     expect(replaceRuns(runs, edit.start, edit.end, [{ ...plain, text: edit.text }])).toEqual([
         { ...plain, text: 'helloX!' },
     ])
+})
+
+it('hiển thị định dạng ngay trong textbox và giữ nội dung khi render HTML', () => {
+    const html = renderToStaticMarkup(createElement(RichTextEditor, {
+        draft: [{ ...plain, text: 'Nháp đậm', bold: true, size: 24 }],
+        onChange: () => {},
+        onSend: () => {},
+        onComposingChange: () => {},
+    }))
+    expect(html).toContain('contentEditable="true"')
+    expect(html).toContain('role="textbox"')
+    expect(html).toContain('font-weight:bold;font-style:normal;font-size:24px')
+    expect(html).toContain('Nháp đậm')
+    expect(html).not.toContain('<textarea')
+    expect(html).not.toContain('rich-text-preview')
 })

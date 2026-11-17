@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { TextRun, TextSize } from '../../types/message'
 import { defaultFormat, findTextEdit, formatAt, replaceRuns, sliceRuns } from './editRuns'
@@ -16,29 +16,127 @@ interface Props {
 }
 
 export default function RichTextEditor({ draft, onChange, onSend, onComposingChange }: Props) {
-    const input = useRef<HTMLTextAreaElement>(null)
+    const input = useRef<HTMLDivElement>(null)
     const composing = useRef(false)
     const selection = useRef({ start: 0, end: 0 })
+    const beforeInput = useRef<{ start: number; end: number } | null>(null)
     const restore = useRef<{ start: number; end: number } | null>(null)
     const typingFormat = useRef<TextFormat | null>(null)
+    // Giữ nội dung đầu tiên cho render HTML; DOM trong editor được đồng bộ ở layout effect.
+    const [initialContent] = useState(() => draft.map((run, index) => (
+        <span key={index} style={{
+            fontWeight: run.bold ? 'bold' : 'normal',
+            fontStyle: run.italic ? 'italic' : 'normal',
+            fontSize: run.size,
+        }}>{run.text}</span>
+    )))
     const [format, setFormat] = useState<TextFormat>(defaultFormat)
     const [showEmoji, setShowEmoji] = useState(false)
     const text = draft.map(run => run.text).join('')
 
     useLayoutEffect(() => {
+        const editor = input.current
+        if (!editor || composing.current) return
         const range = restore.current
-        if (!range) return
+        const hadFocus = document.activeElement === editor
+        editor.replaceChildren(...draft.map(run => {
+            const span = document.createElement('span')
+            span.textContent = run.text
+            span.style.fontWeight = run.bold ? 'bold' : 'normal'
+            span.style.fontStyle = run.italic ? 'italic' : 'normal'
+            span.style.fontSize = run.size + 'px'
+            return span
+        }))
+        if (draft.at(-1)?.text.endsWith('\n')) editor.append(document.createElement('br'))
         restore.current = null
-        input.current?.focus()
-        input.current?.setSelectionRange(range.start, range.end)
+        if (range) restoreSelection(range)
+        else if (hadFocus) restoreSelection(selection.current)
     }, [draft])
 
-    function recordSelection(element: HTMLTextAreaElement) {
-        const { selectionStart: start, selectionEnd: end } = element
+    const handleBeforeInput = useEffectEvent((event: InputEvent) => {
+        if (event.isComposing || composing.current) return
+        beforeInput.current = readSelection()
+        recordSelection()
+        if (event.inputType === 'insertParagraph' || event.inputType === 'insertLineBreak') {
+            event.preventDefault()
+            if (event.inputType === 'insertLineBreak') insertText('\n')
+            else onSend()
+            beforeInput.current = null
+        }
+    })
+
+    useLayoutEffect(() => {
+        const editor = input.current
+        if (!editor) return
+        const listener = (event: Event) => handleBeforeInput(event as InputEvent)
+        editor.addEventListener('beforeinput', listener)
+        return () => editor.removeEventListener('beforeinput', listener)
+    }, [])
+
+    function readSelection() {
+        const editor = input.current
+        const selected = window.getSelection()
+        if (!editor || !selected?.rangeCount) return selection.current
+        const range = selected.getRangeAt(0)
+        if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return selection.current
+        const prefix = range.cloneRange()
+        prefix.selectNodeContents(editor)
+        prefix.setEnd(range.startContainer, range.startOffset)
+        return { start: prefix.toString().length, end: prefix.toString().length + range.toString().length }
+    }
+
+    function restoreSelection(offsets: { start: number; end: number }) {
+        const editor = input.current
+        if (!editor) return
+        editor.focus()
+        const range = document.createRange()
+        range.selectNodeContents(editor)
+        range.collapse(true)
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
+        let offset = 0
+        let foundStart = false
+        while (walker.nextNode()) {
+            const node = walker.currentNode
+            const end = offset + (node.textContent?.length ?? 0)
+            if (!foundStart && offsets.start <= end) {
+                range.setStart(node, Math.max(0, offsets.start - offset))
+                foundStart = true
+            }
+            if (foundStart && offsets.end <= end) {
+                range.setEnd(node, Math.max(0, offsets.end - offset))
+                break
+            }
+            offset = end
+        }
+        const selected = window.getSelection()
+        selected?.removeAllRanges()
+        selected?.addRange(range)
+    }
+
+    function recordSelection() {
+        if (composing.current) return
+        const { start, end } = readSelection()
         if (start === selection.current.start && end === selection.current.end) return
         selection.current = { start, end }
         typingFormat.current = null
         setFormat(formatAt(draft, end > start ? start + 1 : start))
+    }
+
+    function readInput() {
+        if (composing.current) return
+        const editor = input.current
+        if (!editor) return
+        const value = (editor.textContent ?? '').replace(/\r\n/g, '\n')
+        const caret = readSelection()
+        const original = beforeInput.current ?? selection.current
+        beforeInput.current = null
+        const edit = findTextEdit(text, value, caret.end, original)
+        const next = typingFormat.current ?? formatAt(draft,
+            edit.start + (original.end > original.start ? 1 : 0))
+        selection.current = caret
+        restore.current = caret
+        setFormat(next)
+        onChange(replaceRuns(draft, edit.start, edit.end, [{ ...next, text: edit.text }]))
     }
 
     function applyFormat(patch: Partial<TextFormat>) {
@@ -47,7 +145,7 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
         setFormat(next)
         if (start === end) {
             typingFormat.current = next
-            input.current?.focus()
+            restoreSelection(selection.current)
             return
         }
 
@@ -56,21 +154,22 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
         onChange(replaceRuns(draft, start, end, selected))
     }
 
-    function insertEmoji(emoji: string) {
+    function insertText(value: string) {
         const { start, end } = selection.current
-        const caret = start + emoji.length
+        const caret = start + value.length
         const next = typingFormat.current ?? formatAt(draft, start)
         selection.current = { start: caret, end: caret }
         restore.current = selection.current
         setShowEmoji(false)
-        onChange(replaceRuns(draft, start, end, [{ ...next, text: emoji }]))
+        onChange(replaceRuns(draft, start, end, [{ ...next, text: value }]))
     }
 
-    function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-        if (event.key !== 'Enter' || event.shiftKey) return
+    function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+        if (event.key !== 'Enter') return
         if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) return
         event.preventDefault()
-        if (!event.repeat) onSend()
+        if (event.shiftKey) insertText('\n')
+        else if (!event.repeat) onSend()
     }
 
     return (
@@ -93,40 +192,39 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
             </div>
             {showEmoji && (
                 <div className="chat-composer-toolbar" role="group" aria-label="Chọn emoji">
-                    {emojis.map(emoji => <button key={emoji} type="button" onClick={() => insertEmoji(emoji)}>{emoji}</button>)}
+                    {emojis.map(emoji => <button key={emoji} type="button" onClick={() => insertText(emoji)}>{emoji}</button>)}
                 </div>
             )}
-            <label htmlFor="chat-draft">Tin nhắn</label>
-            <textarea
+            <label id="chat-draft-label">Tin nhắn</label>
+            <div
                 ref={input}
                 id="chat-draft"
-                rows={2}
-                placeholder="Soạn tin nhắn"
-                value={text}
-                onSelect={event => recordSelection(event.currentTarget)}
-                onChange={event => {
-                    const { value, selectionStart, selectionEnd } = event.currentTarget
-                    const edit = findTextEdit(text, value, selectionEnd, selection.current)
-                    const next = typingFormat.current ?? formatAt(draft, edit.start + (selection.current.end > selection.current.start ? 1 : 0))
-                    selection.current = { start: selectionStart, end: selectionEnd }
-                    setFormat(next)
-                    onChange(replaceRuns(draft, edit.start, edit.end, [{ ...next, text: edit.text }]))
+                className="rich-text-input"
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-labelledby="chat-draft-label"
+                aria-multiline="true"
+                data-placeholder="Soạn tin nhắn"
+                onSelect={recordSelection}
+                onKeyUp={recordSelection}
+                onMouseUp={recordSelection}
+                onBlur={recordSelection}
+                onInput={readInput}
+                onPaste={event => {
+                    event.preventDefault()
+                    recordSelection()
+                    insertText(event.clipboardData.getData('text/plain'))
                 }}
+                onDrop={event => { event.preventDefault() }}
                 onKeyDown={handleKeyDown}
-                onCompositionStart={() => { composing.current = true; onComposingChange(true) }}
-                onCompositionEnd={() => { composing.current = false; onComposingChange(false) }}
-            />
-            {text && (
-                <div className="rich-text-preview" role="region" aria-label="Xem trước định dạng">
-                    {draft.map((run, index) => (
-                        <span key={index} style={{
-                            fontWeight: run.bold ? 'bold' : 'normal',
-                            fontStyle: run.italic ? 'italic' : 'normal',
-                            fontSize: run.size,
-                        }}>{run.text}</span>
-                    ))}
-                </div>
-            )}
+                onCompositionStart={() => { beforeInput.current = null; composing.current = true; onComposingChange(true) }}
+                onCompositionEnd={() => {
+                    composing.current = false
+                    readInput()
+                    onComposingChange(false)
+                }}
+            >{initialContent}</div>
         </div>
     )
 }

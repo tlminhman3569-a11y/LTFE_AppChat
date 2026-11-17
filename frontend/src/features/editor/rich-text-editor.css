@@ -11,10 +11,20 @@
     background: #dbeafe;
 }
 
-.rich-text-preview {
+.rich-text-input {
     padding: 8px 12px;
-    background: #f8fafc;
+    min-height: 4.5rem;
+    max-height: 9rem;
+    overflow-y: auto;
+    border: 1px solid #cbd5e1;
+    outline-offset: 2px;
     border-radius: 6px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+.rich-text-input:empty::before {
+    content: attr(data-placeholder);
+    color: #64748b;
+    pointer-events: none;
 }
