@@ -37,7 +37,22 @@ export function replaceRuns(runs: TextRun[], start: number, end: number, replace
     return next
 }
 
-export function findTextEdit(before: string, after: string, caret: number) {
+export function findTextEdit(
+    before: string,
+    after: string,
+    caret: number,
+    selection?: { start: number; end: number },
+) {
+    if (selection && selection.end > selection.start) {
+        const { start, end } = selection
+        const suffixLength = before.length - end
+        const replacementEnd = after.length - suffixLength
+        if (replacementEnd >= start && after.startsWith(before.slice(0, start))
+            && after.endsWith(before.slice(end))) {
+            return { start, end, text: after.slice(start, replacementEnd) }
+        }
+    }
+
     // Ưu tiên con trỏ mới để phân biệt vị trí sửa khi các ký tự liền nhau giống nhau.
     let end = before.length
     let afterEnd = after.length

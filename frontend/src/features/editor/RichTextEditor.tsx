@@ -12,9 +12,10 @@ interface Props {
     draft: TextRun[]
     onChange: (runs: TextRun[]) => void
     onSend: () => void
+    onComposingChange: (composing: boolean) => void
 }
 
-export default function RichTextEditor({ draft, onChange, onSend }: Props) {
+export default function RichTextEditor({ draft, onChange, onSend, onComposingChange }: Props) {
     const input = useRef<HTMLTextAreaElement>(null)
     const composing = useRef(false)
     const selection = useRef({ start: 0, end: 0 })
@@ -105,15 +106,15 @@ export default function RichTextEditor({ draft, onChange, onSend }: Props) {
                 onSelect={event => recordSelection(event.currentTarget)}
                 onChange={event => {
                     const { value, selectionStart, selectionEnd } = event.currentTarget
-                    const edit = findTextEdit(text, value, selectionEnd)
-                    const next = typingFormat.current ?? formatAt(draft, edit.start)
+                    const edit = findTextEdit(text, value, selectionEnd, selection.current)
+                    const next = typingFormat.current ?? formatAt(draft, edit.start + (selection.current.end > selection.current.start ? 1 : 0))
                     selection.current = { start: selectionStart, end: selectionEnd }
                     setFormat(next)
                     onChange(replaceRuns(draft, edit.start, edit.end, [{ ...next, text: edit.text }]))
                 }}
                 onKeyDown={handleKeyDown}
-                onCompositionStart={() => { composing.current = true }}
-                onCompositionEnd={() => { composing.current = false }}
+                onCompositionStart={() => { composing.current = true; onComposingChange(true) }}
+                onCompositionEnd={() => { composing.current = false; onComposingChange(false) }}
             />
             {text && (
                 <div className="rich-text-preview" role="region" aria-label="Xem trước định dạng">

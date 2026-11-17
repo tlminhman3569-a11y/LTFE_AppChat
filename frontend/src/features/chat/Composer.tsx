@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import type { FormEvent } from 'react'
 import type { ComposerProps } from '../../types/message'
 import { previewRichMessage } from '../../utils/richMessage'
@@ -7,13 +8,14 @@ import './composer.css'
 export default function Composer({
     conversation, draft, canSend, onDraftChange, onSend,
 }: ComposerProps) {
+    const composing = useRef(false)
     const text = draft.map(run => run.text).join('')
     const preview = previewRichMessage(draft)
     const sendDisabled = !canSend || !preview.valid
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
-        if (sendDisabled) return
+        if (sendDisabled || composing.current) return
         onSend(conversation, draft)
     }
 
@@ -21,8 +23,9 @@ export default function Composer({
         <form className="chat-composer" onSubmit={handleSubmit}>
             <RichTextEditor
                 draft={draft}
+                onComposingChange={value => { composing.current = value }}
                 onChange={runs => onDraftChange(conversation, runs)}
-                onSend={() => { if (!sendDisabled) onSend(conversation, draft) }}
+                onSend={() => { if (!sendDisabled && !composing.current) onSend(conversation, draft) }}
             />
             {draft.length > 0 && <small>Đang giữ bản nháp cho hội thoại này.</small>}
             <div className="chat-composer-actions">

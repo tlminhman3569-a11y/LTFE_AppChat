@@ -27,3 +27,12 @@ it('chèn emoji vào đúng vùng chọn, giữ các đoạn hai bên', () => {
 it('giữ đúng vị trí định dạng khi thêm ký tự trùng ở giữa', () => {
     expect(findTextEdit('aa', 'aaa', 2)).toEqual({ start: 1, end: 1, text: 'a' })
 })
+
+it('thay toàn bộ vùng chọn dù văn bản dán có tiền tố giống nội dung cũ', () => {
+    const runs = [{ ...plain, text: 'hello' }, { ...plain, text: 'X', bold: true }]
+    const edit = findTextEdit('helloX', 'helloX!', 7, { start: 0, end: 6 })
+    expect(edit).toEqual({ start: 0, end: 6, text: 'helloX!' })
+    expect(replaceRuns(runs, edit.start, edit.end, [{ ...plain, text: edit.text }])).toEqual([
+        { ...plain, text: 'helloX!' },
+    ])
+})
