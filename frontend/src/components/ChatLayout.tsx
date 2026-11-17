@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import type { ConversationRef } from '../types/api'
 import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
+import RoomMembersPanel from '../features/rooms/RoomMembersPanel'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
 import type { Message } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
@@ -96,6 +97,15 @@ export default function ChatLayout() {
                     connectionStatus={connectionStatus}
                     sessionGeneration={sessionGeneration}
                     reconnectCount={reconnectCount}
+                    headerActions={selectedConversation?.kind === 'room' ? (
+                        <RoomMembersPanel
+                            key={`${sessionGeneration}:${selectedConversation.name}`}
+                            conversation={{ kind: 'room', name: selectedConversation.name }}
+                            currentUser={currentUser}
+                            sessionGeneration={sessionGeneration}
+                            canLoad={canUseSocket}
+                        />
+                    ) : undefined}
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
                     canSend={canSend}
                     onDraftChange={(conversation, draft) => {

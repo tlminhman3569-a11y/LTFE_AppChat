@@ -1,3 +1,4 @@
+import type { RoomReadResult } from './room'
 import type {
     ApiResult,
     AuthStatus,
@@ -43,6 +44,7 @@ export interface HistoryPage {
     conversation: ConversationRef
     page: number
     messages: Message[]
+    room?: RoomReadResult<Message>
 }
 
 export interface SendMessageInput {

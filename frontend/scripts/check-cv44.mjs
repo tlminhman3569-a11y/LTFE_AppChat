@@ -183,11 +183,12 @@ await check('Lỗi ngoài dự kiến không ghi đã thành công', async () =>
     assert.equal(result.status, 'error')
 })
 
-await check('CV45 loadRoom vẫn giữ stub, không thay đổi nghiệp vụ', async () => {
+await check('CV45 loadRoom vẫn kiểm tra đầu vào và dùng đúng API đọc phòng', async () => {
     assert.equal((await loadRoom('', 1)).error.kind, 'business')
     assert.equal((await loadRoom('phong', 0)).error.kind, 'business')
-    assert.equal((await loadRoom('phong', 1)).status, 'error')
-    assert.equal(requests.length, 0)
+    respond = async () => ({ event: 'GET_ROOM_CHAT_MES', status: 'success', data: { name: 'phong', chatData: [] } })
+    assert.equal((await loadRoom('phong', 1)).status, 'success')
+    assert.equal(JSON.stringify(requests), JSON.stringify([{ event: 'GET_ROOM_CHAT_MES', data: { name: 'phong', page: 1 } }]))
 })
 
 await check('Sidebar đã gắn cả hai form thật', async () => {

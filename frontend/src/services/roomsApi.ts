@@ -1,5 +1,6 @@
 import type { ApiResult } from '../types/api'
 import type { Room, RoomReadResult } from '../types/room'
+import type { Message } from '../types/message'
 import { socketClient, SocketRequestError } from './socketClient'
 
 function readRoomName(value: unknown): string | null {
@@ -103,23 +104,90 @@ export function joinRoom(name: string): Promise<ApiResult<Room>> {
     return changeRoom('JOIN_ROOM', name)
 }
 
-export async function loadRoom(name: string, page: number): Promise<ApiResult<RoomReadResult>> {
+function invalidRoomRead(message: string): ApiResult<never> {
+    return { status: 'error', error: { kind: 'parse', message } }
+}
+
+function readRoomMessage(value: unknown, roomName: string): Message | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const item = value as Record<string, unknown>
+    if (item.type !== 1 || !readRoomName(item.name) || item.to !== roomName || typeof item.mes !== 'string') return null
+
+    const message: Message = { kind: 'room', name: item.name as string, to: roomName, mes: item.mes }
+    if (typeof item.id === 'string' || typeof item.id === 'number') message.id = item.id
+    if (typeof item.createAt === 'string') message.createAt = item.createAt
+    return message
+}
+
+function readRoomHistory(response: unknown, roomName: string, page: number): ApiResult<RoomReadResult<Message>> {
+    if (!response || typeof response !== 'object' || Array.isArray(response)) {
+        return invalidRoomRead('Phản hồi đọc phòng không hợp lệ.')
+    }
+    const reply = response as Record<string, unknown>
+    if (reply.event !== 'GET_ROOM_CHAT_MES') return invalidRoomRead('Sự kiện phản hồi đọc phòng không khớp.')
+
+    if (reply.status === 'error') {
+        const data = reply.data && typeof reply.data === 'object' && !Array.isArray(reply.data)
+            ? reply.data as Record<string, unknown> : null
+        const message = typeof reply.mes === 'string' ? reply.mes
+            : typeof reply.data === 'string' ? reply.data
+                : typeof data?.mes === 'string' ? data.mes : ''
+        return { status: 'error', error: { kind: 'business', message: message.trim().slice(0, 300) || 'Máy chủ từ chối đọc phòng.' } }
+    }
+
+    if (reply.status !== 'success' || !reply.data || typeof reply.data !== 'object' || Array.isArray(reply.data)) {
+        return invalidRoomRead('Phản hồi đọc phòng không có dữ liệu hợp lệ.')
+    }
+
+    const data = reply.data as Record<string, unknown>
+    if (readRoomName(data.name) !== roomName || ('page' in data && data.page !== page)) {
+        return invalidRoomRead('Tên phòng hoặc trang trong phản hồi không khớp yêu cầu.')
+    }
+
+    const rawMessages = 'chatData' in data ? data.chatData : data.chatMess
+    if (!Array.isArray(rawMessages)) return invalidRoomRead('Phản hồi không có mảng lịch sử phòng hợp lệ.')
+    const messages: Message[] = []
+    for (const item of rawMessages) {
+        const message = readRoomMessage(item, roomName)
+        if (!message) return invalidRoomRead('Phản hồi chứa tin nhắn phòng không hợp lệ.')
+        messages.push(message)
+    }
+
+    const rawOwner = 'own' in data ? data.own : data.owner
+    if (rawOwner != null && typeof rawOwner !== 'string') return invalidRoomRead('Trường chủ phòng không hợp lệ.')
+    const owner = readRoomName(rawOwner)
+    const hasMembers = 'userList' in data || 'user' in data || 'members' in data
+    const rawMembers = 'userList' in data ? data.userList : 'user' in data ? data.user : data.members
+    const members = hasMembers ? readMembers(rawMembers) : null
+    if (hasMembers && members === null) return invalidRoomRead('Danh sách thành viên phòng không hợp lệ.')
+
+    const result: RoomReadResult<Message> = {
+        roomName, page, messages,
+        ownerKnown: owner !== null,
+        membersKnown: members !== null,
+        membership: 'unknown',
+    }
+    if (owner !== null) result.owner = owner
+    if (members !== null) result.members = members
+    return { status: 'success', data: result }
+}
+
+export async function loadRoom(name: string, page: number): Promise<ApiResult<RoomReadResult<Message>>> {
     if (!name.trim()) {
-        return {
-            status: 'error',
-            error: { kind: 'business', message: 'Tên phòng không được để trống' },
-        }
+        return { status: 'error', error: { kind: 'business', message: 'Tên phòng không được để trống' } }
     }
-
     if (!Number.isInteger(page) || page < 1) {
-        return {
-            status: 'error',
-            error: { kind: 'business', message: 'Trang phải là số nguyên từ 1 trở lên' },
-        }
+        return { status: 'error', error: { kind: 'business', message: 'Trang phải là số nguyên từ 1 trở lên' } }
     }
 
-    return {
-        status: 'error',
-        error: { kind: 'connection', message: 'Chưa tích hợp đọc lịch sử phòng qua WebSocket (CV45)' },
+    try {
+        const response = await socketClient.request('GET_ROOM_CHAT_MES', { name, page })
+        return readRoomHistory(response, name, page)
+    } catch (error) {
+        if (error instanceof SocketRequestError) {
+            return { status: 'error', error: { kind: error.kind, message: error.kind === 'timeout'
+                        ? 'Hết thời gian chờ tải dữ liệu phòng.' : 'Kết nối bị gián đoạn khi tải dữ liệu phòng.' } }
+        }
+        return { status: 'error', error: { kind: 'connection', message: 'Không thể tải dữ liệu phòng qua WebSocket.' } }
     }
 }
