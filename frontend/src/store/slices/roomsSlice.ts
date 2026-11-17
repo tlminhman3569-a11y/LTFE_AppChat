@@ -13,6 +13,7 @@ interface RoomEntry {
     loadedAt: string | null
     error: ApiError | null
     requestId?: string
+    leaveUncertain?: boolean
 }
 
 interface RoomsState {
@@ -49,7 +50,7 @@ function mergeMetadata(state: RoomsState, data: RoomReadResult): void {
         room.membersKnown = true
     }
 
-    if (previous.membership !== 'left' && state.currentUser) {
+    if (!entry.leaveUncertain && previous.membership !== 'left' && state.currentUser) {
         if (room.ownerKnown && room.owner === state.currentUser) room.membership = 'owner'
         else if (room.membersKnown && room.members?.includes(state.currentUser)) room.membership = 'member'
         else if (data.membersKnown || (data.ownerKnown && previous.membership === 'owner')) room.membership = 'unknown'
@@ -79,8 +80,23 @@ const roomsSlice = createSlice({
     name: 'rooms',
     initialState: initialState(),
     reducers: {
+        roomLeaveUncertain(state, { payload }: PayloadAction<{ name: string; sessionGeneration: number }>) {
+            if (state.sessionGeneration !== payload.sessionGeneration) return
+            const entry = roomEntry(state, payload.name)
+            if (entry.room.membership !== 'left' && entry.room.membership !== 'owner') {
+                entry.room.membership = 'unknown'
+                entry.leaveUncertain = true
+            }
+        },
+        roomLeft(state, { payload }: PayloadAction<{ name: string; sessionGeneration: number }>) {
+            if (state.sessionGeneration !== payload.sessionGeneration) return
+            const entry = roomEntry(state, payload.name)
+            entry.room.membership = 'left'
+            entry.leaveUncertain = false
+        },
         roomConfirmed(state, { payload }: PayloadAction<Room>) {
             const entry = roomEntry(state, payload.name)
+            entry.leaveUncertain = false
             const previous = entry.room
             entry.room = {
                 ...previous,
@@ -137,5 +153,5 @@ const roomsSlice = createSlice({
     },
 })
 
-export const { roomConfirmed } = roomsSlice.actions
+export const { roomConfirmed, roomLeaveUncertain, roomLeft } = roomsSlice.actions
 export default roomsSlice.reducer

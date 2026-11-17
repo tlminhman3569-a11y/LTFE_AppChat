@@ -104,6 +104,11 @@ export default function ChatLayout() {
                             currentUser={currentUser}
                             sessionGeneration={sessionGeneration}
                             canLoad={canUseSocket}
+                            draft={getDraft(selectedConversation).map(run => run.text).join('')}
+                            onLeaveConfirmed={conversation => {
+                                clearDraft(conversation)
+                                setSelectedConversation(previous => previous?.kind === 'room' && previous.name === conversation.name ? null : previous)
+                            }}
                         />
                     ) : undefined}
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
