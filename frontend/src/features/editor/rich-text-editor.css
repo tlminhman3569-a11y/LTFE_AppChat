@@ -1,0 +1,30 @@
+.rich-text-editor {
+    display: grid;
+    gap: 8px;
+}
+
+.rich-text-editor select {
+    margin-inline-start: 6px;
+}
+
+.rich-text-editor button[aria-pressed='true'] {
+    background: #dbeafe;
+}
+
+.rich-text-input {
+    padding: 8px 12px;
+    min-height: 4.5rem;
+    max-height: 9rem;
+    overflow-y: auto;
+    border: 1px solid #cbd5e1;
+    outline-offset: 2px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.rich-text-input:empty::before {
+    content: attr(data-placeholder);
+    color: #64748b;
+    pointer-events: none;
+}

@@ -4,15 +4,16 @@ import { parseRichMessage } from '../utils/richMessage'
 interface MessageBubbleProps {
     message: Message
     currentUser: string | null
+    pending?: boolean
 }
 
-export default function MessageBubble({ message, currentUser }: MessageBubbleProps) {
-    const isOwnMessage = message.name === currentUser
+export default function MessageBubble({ message, currentUser, pending = false }: MessageBubbleProps) {
+    const isOwnMessage = pending || message.name === currentUser
     const content = parseRichMessage(message.mes)
 
     return (
         <li className={isOwnMessage ? 'chat-message chat-message-own' : 'chat-message'}>
-            <strong>{message.name}</strong>
+            {!pending && <strong>{message.name}</strong>}
             <p>{content ? content.runs.map((run, index) => (
                 <span key={index} style={{
                     fontWeight: run.bold ? 'bold' : 'normal',
@@ -22,7 +23,8 @@ export default function MessageBubble({ message, currentUser }: MessageBubblePro
                     {run.text}
                 </span>
             )) : message.mes}</p>
-            {message.createAt && <small>{message.createAt} · Giờ máy chủ</small>}
+            {pending ? <small>Chưa xác nhận</small>
+                : message.createAt && <small>{message.createAt} · Giờ máy chủ</small>}
         </li>
     )
 }

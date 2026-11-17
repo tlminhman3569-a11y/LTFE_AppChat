@@ -1,6 +1,8 @@
 import { useRef } from 'react'
-import type { FormEvent, KeyboardEvent } from 'react'
+import type { FormEvent } from 'react'
 import type { ComposerProps } from '../../types/message'
+import { previewRichMessage } from '../../utils/richMessage'
+import RichTextEditor from '../editor/RichTextEditor'
 import './composer.css'
 
 export default function Composer({
@@ -8,7 +10,8 @@ export default function Composer({
 }: ComposerProps) {
     const composing = useRef(false)
     const text = draft.map(run => run.text).join('')
-    const sendDisabled = !canSend || !text.trim()
+    const preview = previewRichMessage(draft)
+    const sendDisabled = !canSend || !preview.valid
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -16,38 +19,25 @@ export default function Composer({
         onSend(conversation, draft)
     }
 
-    function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-        if (event.key !== 'Enter' || event.shiftKey) return
-        if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) return
-
-        event.preventDefault()
-        if (!event.repeat && !sendDisabled) onSend(conversation, draft)
-    }
-
     return (
         <form className="chat-composer" onSubmit={handleSubmit}>
-            <div className="chat-composer-toolbar" aria-label="Định dạng tin nhắn" role="group">
-                <button type="button" disabled aria-label="In đậm">B</button>
-                <button type="button" disabled aria-label="In nghiêng">I</button>
-                <button type="button" disabled>16 px</button>
-                <button type="button" disabled>Emoji</button>
-            </div>
-            <label htmlFor="chat-draft">Tin nhắn</label>
-            <textarea
-                id="chat-draft"
-                rows={2}
-                placeholder="Soạn tin nhắn"
-                value={text}
-                onChange={event => {
-                    const value = event.currentTarget.value
-                    onDraftChange(conversation, value ? [{ text: value, bold: false, italic: false, size: 16 }] : [])
-                }}
-                onKeyDown={handleKeyDown}
-                onCompositionStart={() => { composing.current = true }}
-                onCompositionEnd={() => { composing.current = false }}
+            <RichTextEditor
+                draft={draft}
+                onComposingChange={value => { composing.current = value }}
+                onChange={runs => onDraftChange(conversation, runs)}
+                onSend={() => { if (!sendDisabled && !composing.current) onSend(conversation, draft) }}
             />
+            {draft.length > 0 && <small>Đang giữ bản nháp cho hội thoại này.</small>}
             <div className="chat-composer-actions">
                 <small>Enter gửi · Shift+Enter xuống dòng</small>
+                {draft.length > 0 && (
+                    <small>
+                        {preview.remainingBytes < 0
+                            ? 'Vượt ' + Math.abs(preview.remainingBytes) + ' byte. Vui lòng rút ngắn.'
+                            : 'Còn ' + preview.remainingBytes + ' byte.'}
+                        {!preview.valid && preview.remainingBytes >= 0 && text.trim() && ' Vui lòng giảm độ dài hoặc số đoạn.'}
+                    </small>
+                )}
                 <button type="submit" disabled={sendDisabled}>Gửi</button>
             </div>
         </form>

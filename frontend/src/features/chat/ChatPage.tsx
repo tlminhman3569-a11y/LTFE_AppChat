@@ -5,6 +5,7 @@ import type { ChatPageProps, ComposerProps, Message } from '../../types/message'
 import { useChat } from '../../hooks/useChat'
 import Composer from './Composer'
 import MessageList from './MessageList'
+import MessageBubble from '../../components/MessageBubble'
 import './chat.css'
 
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
@@ -96,10 +97,7 @@ export default function ChatPage({
                     {pending.length > 0 && (
                         <ul className="chat-messages chat-pending" aria-label="Tin chưa xác nhận">
                             {pending.map(message => (
-                                <li key={message.localId} className="chat-message chat-message-own">
-                                    <p>{message.mes}</p>
-                                    <small>Chưa xác nhận</small>
-                                </li>
+                                <MessageBubble key={message.localId} message={message} currentUser={currentUser} pending />
                             ))}
                         </ul>
                     )}

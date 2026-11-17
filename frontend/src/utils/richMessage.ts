@@ -50,13 +50,35 @@ function encodingError(message: string): ApiResult<never> {
 export function serializeRichMessage(content: RichMessageContent): ApiResult<string> {
     if (!isRichMessage(content)) return encodingError('Định dạng tin nhắn không hợp lệ.')
 
-    const { clientMessageId, runs } = content
+    const { runs } = content
     if (runs.length > maxRuns) return encodingError('Tin nhắn có quá nhiều đoạn định dạng.')
 
     const text = runs.map(run => run.text).join('')
     if (!text.trim()) return encodingError('Vui lòng nhập nội dung tin nhắn.')
     if (text.length > maxTextUnits) return encodingError('Tin nhắn quá dài. Vui lòng rút ngắn.')
 
+    const mes = encodeRichMessage(content)
+    if (mes.length > maxMesBytes) return encodingError('Tin nhắn vượt giới hạn 1.900 byte. Vui lòng rút ngắn.')
+
+    return { status: 'success', data: mes }
+}
+
+const previewId = '0'.repeat(32)
+
+export function createMessageId(): string {
+    return Array.from(crypto.getRandomValues(new Uint8Array(previewId.length / 2)),
+        byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export function previewRichMessage(runs: TextRun[]) {
+    const content: RichMessageContent = { version: 1, clientMessageId: previewId, runs }
+    return {
+        remainingBytes: maxMesBytes - encodeRichMessage(content).length,
+        valid: serializeRichMessage(content).status === 'success',
+    }
+}
+
+function encodeRichMessage({ clientMessageId, runs }: RichMessageContent): string {
     const json = JSON.stringify({
         version: 1,
         clientMessageId,
@@ -65,10 +87,6 @@ export function serializeRichMessage(content: RichMessageContent): ApiResult<str
     const ascii = json.replace(/[\u007f-\uffff]/g, unit =>
         '\\u' + unit.charCodeAt(0).toString(16).padStart(4, '0'),
     )
-    const mes = prefix + ascii
-
     // Sau escape, mỗi ký tự ASCII chiếm đúng một byte UTF-8.
-    if (mes.length > maxMesBytes) return encodingError('Tin nhắn vượt giới hạn 1.900 byte. Vui lòng rút ngắn.')
-
-    return { status: 'success', data: mes }
+    return prefix + ascii
 }
