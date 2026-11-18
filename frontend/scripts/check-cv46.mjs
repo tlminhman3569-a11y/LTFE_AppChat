@@ -20,9 +20,10 @@ function load(path, dependencies) {
     }).outputText
     const module = { exports: {} }
     runInNewContext(output, { module, exports: module.exports, require: name => {
-        assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`)
-        return dependencies[name]
-    }, console, setTimeout, clearTimeout })
+            if (name.endsWith('.css')) return {}
+            assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`)
+            return dependencies[name]
+        }, console, setTimeout, clearTimeout })
     return module.exports
 }
 function nodes(root) {

@@ -17,6 +17,7 @@ function compile(relativePath, imports) {
         module,
         exports: module.exports,
         require: name => {
+            if (name.endsWith('.css')) return {}
             assert.ok(name in imports, `Unexpected import ${name}`)
             return imports[name]
         },
