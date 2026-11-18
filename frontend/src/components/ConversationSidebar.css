@@ -284,3 +284,58 @@
     cursor: not-allowed;
     opacity: 0.55;
 }
+
+@media (max-width: 640px) {
+    .chat-sidebar.cv39-sidebar {
+        box-sizing: border-box;
+        width: 100%;
+        overflow-x: hidden;
+        padding: 16px 12px 24px;
+    }
+
+    .cv39-sidebar button {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .cv39-heading button,
+    .cv43-lookup button,
+    .cv43-presence button {
+        font-size: 14px;
+    }
+
+    .cv44-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cv44-actions button {
+        min-width: 0;
+        padding: 10px 8px;
+    }
+
+    .cv39-filters button {
+        padding: 10px 4px;
+        font-size: 13px;
+    }
+
+    .cv39-search,
+    .cv43-lookup input {
+        min-height: 44px;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
+
+    .cv39-item-info,
+    .cv39-section-heading,
+    .cv43-presence-heading {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .cv43-lookup,
+    .cv43-presence {
+        min-width: 0;
+        box-sizing: border-box;
+    }
+}

@@ -22,6 +22,7 @@ function load(path, dependencies) {
     runInNewContext(output, {
         module, exports: module.exports, console,
         require: name => {
+            if (name.endsWith('.css')) return {}
             assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`)
             return dependencies[name]
         },

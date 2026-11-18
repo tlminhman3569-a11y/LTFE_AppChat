@@ -7,6 +7,7 @@ import LeaveRoom from './LeaveRoom'
 import { createConversationKey } from '../../utils/conversationKey'
 import type { RoomConversationRef } from '../../types/room'
 import MemberList from './MemberList'
+import './room-mobile.css'
 
 type Props = { conversation: RoomConversationRef; currentUser: string | null; sessionGeneration: number; canLoad: boolean; draft: string; onLeaveConfirmed: (conversation: ConversationRef) => void }
 
@@ -32,10 +33,10 @@ export default function RoomMembersPanel({ conversation, currentUser, sessionGen
 
     return (
         <>
-            <button type="button" onClick={show}>Thành viên</button>
+            <button className="cv48-members-trigger" type="button" onClick={show}>Thành viên</button>
             {open && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 900, background: '#0f172a77', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
-                    <div role="dialog" aria-modal="true" aria-label={`Danh sách thành viên phòng ${conversation.name}`} style={{ width: 'min(100%, 360px)' }}>
+                <div className="cv48-members-overlay" style={{ position: 'fixed', inset: 0, zIndex: 900, background: '#0f172a77', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
+                    <div className="cv48-members-dialog" role="dialog" aria-modal="true" aria-label={`Danh sách thành viên phòng ${conversation.name}`} style={{ width: 'min(100%, 360px)' }}>
                         <MemberList
                             room={room}
                             currentUser={currentUser}

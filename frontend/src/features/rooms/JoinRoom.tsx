@@ -9,6 +9,7 @@ import type { RoomRequestStatus } from './roomRequestState'
 import { useAppSelector } from '../../store/hooks'
 import { store } from '../../store'
 import { resetLeaveAfterJoin } from './leaveRoomRequestState'
+import './room-mobile.css'
 
 type RequestUpdate = {
     name: string
@@ -107,9 +108,9 @@ export default function JoinRoom({
     }
 
     return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto', background: '#0f172a77' }}>
-            <section role="dialog" aria-modal="true" aria-labelledby="cv40-join-title" style={boxStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div className="cv48-room-overlay" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto', background: '#0f172a77' }}>
+            <section className="cv48-room-dialog" role="dialog" aria-modal="true" aria-labelledby="cv40-join-title" style={boxStyle}>
+                <div className="cv48-room-dialog-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                     <h2 id="cv40-join-title" style={{ margin: 0, fontSize: 26 }}>Tham gia phòng</h2>
                     <button type="button" onClick={close} style={{ ...buttonStyle, border: 0, color: '#2563eb' }}>Đóng</button>
                 </div>
@@ -137,7 +138,7 @@ export default function JoinRoom({
                             {inputError || request?.message}
                         </p>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+                    <div className="cv48-room-actions" style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
                         <button type="button" onClick={close} style={buttonStyle}>Hủy</button>
                         <button type="submit" disabled={locked} style={{ ...buttonStyle, background: '#2563eb', borderColor: '#2563eb', color: '#fff', opacity: locked ? 0.7 : 1 }}>
                             {status === 'pending' ? 'Đang tham gia...' : 'Tham gia phòng'}
