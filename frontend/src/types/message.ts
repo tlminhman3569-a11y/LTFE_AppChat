@@ -30,6 +30,14 @@ export interface Message {
     mes: string
     createAt?: string
     clientMessageId?: string
+    deliveryStatus?: 'saved'
+}
+
+export interface OutgoingMessage extends Message {
+    localId: string
+    sentAt: number
+    attempts?: number
+    status: 'pending' | 'unconfirmed' | 'failed'
 }
 
 export interface PendingMessage {
@@ -52,6 +60,7 @@ export interface SendMessageInput {
     content: RichMessageContent
 }
 
+// Service mẫu của giai đoạn mock. API thật gửi qua sendText và hòa giải bằng Redux.
 export interface ChatService {
     loadHistory(conversation: ConversationRef, page: number, currentUser: string | null): Promise<ApiResult<HistoryPage>>
     send(message: SendMessageInput): Promise<ApiResult<void>>

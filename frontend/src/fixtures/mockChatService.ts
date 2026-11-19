@@ -24,7 +24,7 @@ export const mockChatService: ChatService = {
             return { status: 'error', error: { kind: 'business', message: 'Không có hội thoại này trong fixture' } }
         }
 
-        return { status: 'success', data: { conversation, page, messages: pages[page] ?? [] } }
+        return { status: 'success', data: { conversation, page, messages: (pages[page] ?? []).slice().reverse() } }
     },
 
     async send() {

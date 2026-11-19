@@ -1,3 +1,4 @@
+import { parseRichMessage } from '../utils/richMessage'
 import type { ApiResult, ConversationRef } from '../types/api'
 import type { HistoryPage, Message } from '../types/message'
 import { loadRoom } from './roomsApi'
@@ -13,6 +14,8 @@ function readMessage(value: unknown): Message | null {
     const message: Message = { kind: value.type === 0 ? 'people' : 'room', name: value.name, to: value.to, mes: value.mes }
     if ('id' in value && (typeof value.id === 'string' || typeof value.id === 'number')) message.id = value.id
     if ('createAt' in value && typeof value.createAt === 'string') message.createAt = value.createAt
+    const rich = parseRichMessage(message.mes)
+    if (rich) message.clientMessageId = rich.clientMessageId
     return message
 }
 
@@ -29,7 +32,11 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
         const result = await loadRoom(conversation.name, page)
         if (result.status !== 'success') return result
 
-        return { status: 'success', data: { conversation, page, messages: result.data.messages, room: result.data } }
+        return { status: 'success', data: { conversation, page, messages: result.data.messages.map(message => ({
+            ...message,
+            clientMessageId: parseRichMessage(message.mes)?.clientMessageId,
+            deliveryStatus: message.name === currentUser ? 'saved' as const : undefined,
+        })), room: result.data } }
     }
 
     if (!currentUser?.trim()) {
@@ -52,6 +59,7 @@ export async function loadHistory(conversation: ConversationRef, page: number, c
             if (!isIncoming && !isOutgoing) {
                 return invalidHistory()
             }
+            if (isOutgoing) message.deliveryStatus = 'saved'
             messages.push(message)
         }
 
@@ -75,17 +83,21 @@ export function sendText(conversation: ConversationRef, text: string): void {
 export function subscribeToMessages(
     currentUser: string,
     onMessage: (conversation: ConversationRef, message: Message) => void,
-    onError: () => void,
+    onError: (message?: Message) => void,
+    onOwnMessage?: (conversation: ConversationRef, message: Message) => void,
 ) {
     return socketClient.subscribe('SEND_CHAT', response => {
         if (response.status === 'error') {
-            onError()
+            onError(readMessage(response.data) ?? undefined)
             return
         }
         if (response.status !== 'success') return
         const message = readMessage(response.data)
         if (!message) return
-        if (message.name === currentUser) return
+        if (message.name === currentUser) {
+            onOwnMessage?.({ kind: message.kind, name: message.to }, message)
+            return
+        }
         if (message.kind === 'people' && message.to !== currentUser) return
 
         const name = message.kind === 'room' ? message.to : message.name

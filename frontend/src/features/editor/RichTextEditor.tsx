@@ -1,7 +1,7 @@
 import { useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { TextRun, TextSize } from '../../types/message'
-import { defaultFormat, findTextEdit, formatAt, replaceRuns, sliceRuns } from './editRuns'
+import { findTextEdit, formatAt, replaceRuns, sliceRuns } from './editRuns'
 import type { TextFormat } from './editRuns'
 import './rich-text-editor.css'
 
@@ -30,7 +30,11 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
             fontSize: run.size,
         }}>{run.text}</span>
     )))
-    const [format, setFormat] = useState<TextFormat>(defaultFormat)
+    const [toolbar, setToolbar] = useState({
+        start: 0, end: 0, typing: null as TextFormat | null,
+    })
+    const format = toolbar.typing ?? formatAt(draft,
+        toolbar.end > toolbar.start ? toolbar.start + 1 : toolbar.start)
     const [showEmoji, setShowEmoji] = useState(false)
     const text = draft.map(run => run.text).join('')
 
@@ -116,10 +120,10 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
     function recordSelection() {
         if (composing.current) return
         const { start, end } = readSelection()
-        if (start === selection.current.start && end === selection.current.end) return
+        if (start === selection.current.start && end === selection.current.end && typingFormat.current) return
         selection.current = { start, end }
         typingFormat.current = null
-        setFormat(formatAt(draft, end > start ? start + 1 : start))
+        setToolbar({ start, end, typing: null })
     }
 
     function readInput() {
@@ -135,14 +139,14 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
             edit.start + (original.end > original.start ? 1 : 0))
         selection.current = caret
         restore.current = caret
-        setFormat(next)
+        setToolbar({ start: caret.start, end: caret.end, typing: typingFormat.current })
         onChange(replaceRuns(draft, edit.start, edit.end, [{ ...next, text: edit.text }]))
     }
 
     function applyFormat(patch: Partial<TextFormat>) {
         const { start, end } = selection.current
         const next = { ...format, ...patch }
-        setFormat(next)
+        setToolbar({ start, end, typing: start === end ? next : null })
         if (start === end) {
             typingFormat.current = next
             restoreSelection(selection.current)
@@ -157,9 +161,10 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
     function insertText(value: string) {
         const { start, end } = selection.current
         const caret = start + value.length
-        const next = typingFormat.current ?? formatAt(draft, start)
+        const next = typingFormat.current ?? formatAt(draft, start + (end > start ? 1 : 0))
         selection.current = { start: caret, end: caret }
         restore.current = selection.current
+        setToolbar({ start: caret, end: caret, typing: typingFormat.current })
         setShowEmoji(false)
         onChange(replaceRuns(draft, start, end, [{ ...next, text: value }]))
     }
@@ -206,6 +211,7 @@ export default function RichTextEditor({ draft, onChange, onSend, onComposingCha
                 aria-labelledby="chat-draft-label"
                 aria-multiline="true"
                 data-placeholder="Soạn tin nhắn"
+                onFocus={recordSelection}
                 onSelect={recordSelection}
                 onKeyUp={recordSelection}
                 onMouseUp={recordSelection}

@@ -126,8 +126,8 @@ một mục trong danh sách.
 - [types/message.ts](../frontend/src/types/message.ts) dùng lại `ConversationRef`, `ConversationKey` và `ApiResult` của CV02. Dùng `createConversationKey` cho lịch sử và nháp để phân biệt người và phòng cùng tên.
 - `Message` giữ `name` của tác giả, `to`, loại, `mes` thô và ID/giờ máy chủ nếu có. `PendingMessage` giữ mã cục bộ riêng cùng trạng thái chờ, chưa xác nhận hoặc thất bại.
 - `ChatPageProps` nhận hội thoại được chọn và trạng thái phiên/kết nối từ khung. `ComposerProps` nhận nháp và quyền gửi, trả `onDraftChange(conversation, draft)` hoặc `onSend(conversation, draft)`. Phần xử lý gửi chụp hội thoại và nháp lúc nhận callback, kiểm tra quyền rồi tạo mã đối chiếu. Việc chọn hội thoại tiếp tục dùng callback của sidebar ở trên.
-- Mock và service thật dùng chung `ChatService`. `loadHistory(conversation, page, currentUser)` trả hội thoại, số trang và danh sách tin. Trang bắt đầu từ 1, trang rỗng kết thúc lịch sử, còn lỗi trả qua `ApiResult`. Lịch sử phòng lấy từ kết quả chuẩn hóa của `roomsApi.loadRoom`; fixture dùng chung mock đọc phòng.
-- `send({ conversation, content })` trả kết quả tác vụ gửi. Chỉ chuyển sang đã lưu khi đối chiếu được đúng tin. Mock minh họa nhánh chưa xác nhận, không gọi WebSocket.
+- Mock và API thật cùng chữ ký loadHistory(conversation, page, currentUser), trả hội thoại, trang và danh sách mới → cũ. Trang bắt đầu từ 1; trang rỗng kết thúc lịch sử, lỗi trả qua ApiResult. ChatService giữ cho fixture giai đoạn mock. Lịch sử phòng thật dùng roomsApi.loadRoom; fixture dùng chung mock đọc phòng.
+- API thật dùng sendText(conversation, mes) để phát lệnh, lưu tin tạm trong messagesSlice và hòa giải với lịch sử ở CV30. Socket gửi được chưa chứng minh đã lưu. Hàm send của ChatService chỉ mô phỏng nhánh chưa xác nhận trong fixture.
 - [Fixture chat](../frontend/src/fixtures/chat.ts) có text cũ, emoji, định dạng hợp lệ, JSON lỗi, text trông giống HTML, lịch sử nhiều trang và cặp người/phòng trùng tên. Đây là dữ liệu mẫu để dựng UI và kiểm tra tình huống trong các CV sau.
 
 ### Kiểm tra người dùng

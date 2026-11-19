@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { ConversationKey, ConversationRef } from '../../types/api'
-import type { ChatPageProps, ComposerProps, Message } from '../../types/message'
+import type { ChatPageProps, ComposerProps, OutgoingMessage } from '../../types/message'
 import { useChat } from '../../hooks/useChat'
 import Composer from './Composer'
 import MessageList from './MessageList'
@@ -9,7 +9,11 @@ import MessageBubble from '../../components/MessageBubble'
 import './chat.css'
 
 interface ChatProps extends ChatPageProps, Omit<ComposerProps, 'conversation'> {
-    pending: (Message & { localId: string })[]
+    pending: OutgoingMessage[]
+    checkingHistory?: boolean
+    reconcileError?: string
+    onCheckHistory?: () => void
+    onRestorePending?: (message: OutgoingMessage) => void
     sendError: string
     conversationKey: ConversationKey | null
     reconnectCount?: number
@@ -76,8 +80,8 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 }
 
 export default function ChatPage({
-                                     conversation, conversationKey, currentUser, sessionGeneration, reconnectCount = 0, onBack, headerActions,
-                                     draft, canSend, onDraftChange, onSend, pending, sendError,
+                                     conversation, conversationKey, currentUser, connectionStatus, sessionGeneration, reconnectCount = 0, onBack, headerActions,
+                                     draft, canSend, onDraftChange, onSend, pending, sendError, checkingHistory, reconcileError, onCheckHistory, onRestorePending,
                                  }: ChatProps) {
     return (
         <section className="chat-content chat-page" aria-label="Nội dung hội thoại">
@@ -97,10 +101,24 @@ export default function ChatPage({
                     {pending.length > 0 && (
                         <ul className="chat-messages chat-pending" aria-label="Tin chưa xác nhận">
                             {pending.map(message => (
-                                <MessageBubble key={message.localId} message={message} currentUser={currentUser} pending />
+                                <MessageBubble key={message.localId} message={message} currentUser={currentUser}
+                                    pending pendingStatus={message.status}
+                                    onRetry={onRestorePending && message.status !== 'pending' ? () => {
+                                        if (window.confirm('Tin cũ có thể đã được lưu. Gửi lại có thể tạo tin trùng. Đưa nội dung vào ô soạn để kiểm tra trước khi gửi lại?')) {
+                                            onRestorePending(message)
+                                        }
+                                    } : undefined}
+                                />
                             ))}
                         </ul>
                     )}
+                    {pending.length > 0 && onCheckHistory && (
+                        <button type="button" disabled={checkingHistory || connectionStatus !== 'connected'}
+                            onClick={onCheckHistory}>
+                            {checkingHistory ? 'Đang đối chiếu…' : 'Đối chiếu lịch sử trước khi thử lại'}
+                        </button>
+                    )}
+                    {reconcileError && <p role="alert" className="chat-composer-status">Không đối chiếu được lịch sử. {reconcileError}</p>}
                     {sendError && <p role="alert" className="chat-composer-status">{sendError}</p>}
                     <Composer
                         key={conversationKey}
