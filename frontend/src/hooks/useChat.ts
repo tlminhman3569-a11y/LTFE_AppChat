@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { fetchHistoryPage } from '../store/slices/messagesSlice'
+import { fetchHistoryPage, reconcileOutgoing, outgoingExpired } from '../store/slices/messagesSlice'
 import type { ConversationRef } from '../types/api'
 import type { Message } from '../types/message'
 import { createConversationKey } from '../utils/conversationKey'
@@ -37,4 +37,44 @@ export function useChat({ kind, name }: ConversationRef) {
         canLoad,
         loadNextPage,
     }
+}
+
+export function useOutgoingMessages() {
+    const dispatch = useAppDispatch()
+    const histories = useAppSelector(state => state.messages)
+    const { authStatus, connectionStatus, sessionGeneration, reconnectCount } = useAppSelector(state => state.auth)
+    const canCheck = authStatus === 'authenticated' && connectionStatus === 'connected'
+    const signature = Object.values(histories).flatMap(history => history?.outgoing?.map(message => message.localId + ':' + message.status) ?? []).join('|')
+    const hasPending = Object.values(histories).some(history => history?.outgoing?.some(message => message.status === 'pending'))
+
+    useEffect(() => {
+        if (!hasPending) return
+        if (!canCheck) {
+            dispatch(outgoingExpired(Date.now()))
+            return
+        }
+        const timer = setInterval(() => dispatch(outgoingExpired(Date.now() - 10000)), 1000)
+        return () => clearInterval(timer)
+    }, [canCheck, dispatch, hasPending])
+
+    const checkAllPending = useEffectEvent(() => {
+        for (const history of Object.values(histories)) {
+            const message = history?.outgoing?.[0]
+            if (!message) continue
+            const conversation = { kind: message.kind, name: message.to }
+            void dispatch(reconcileOutgoing({ conversation, sessionGeneration }))
+        }
+    })
+
+    useEffect(() => {
+        if (!canCheck || !signature) return
+        const timer = setTimeout(() => checkAllPending(), 500)
+        return () => clearTimeout(timer)
+    }, [canCheck, sessionGeneration, reconnectCount, signature])
+
+    function checkHistory(conversation: ConversationRef) {
+        return dispatch(reconcileOutgoing({ conversation, sessionGeneration }))
+    }
+
+    return { checkHistory }
 }

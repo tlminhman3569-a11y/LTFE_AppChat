@@ -1,8 +1,9 @@
+import { sameTextRuns } from '../utils/matchesOutgoing'
 import { useEffect, useEffectEvent, useState, useSyncExternalStore } from 'react'
 import { useSocket } from '../hooks/useSocket'
 import { retrySocketConnection } from '../features/auth/reconnectSession'
 import { sendText, subscribeToMessages } from '../services/chatApi'
-import { markViewed, messageReceived } from '../store/slices/messagesSlice'
+import { markViewed, messageReceived, outgoingQueued, outgoingSendFailed, outgoingErrorReceived, outgoingExpired } from '../store/slices/messagesSlice'
 import { endSession } from '../features/auth/endSession'
 import LogoutDialog from '../features/auth/LogoutDialog'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
@@ -11,9 +12,10 @@ import ConversationSidebar from './ConversationSidebar'
 import ChatPage from '../features/chat/ChatPage'
 import RoomMembersPanel from '../features/rooms/RoomMembersPanel'
 import { useChatDrafts } from '../features/chat/useChatDrafts'
-import type { Message } from '../types/message'
+import type { Message, OutgoingMessage } from '../types/message'
+import { useOutgoingMessages } from '../hooks/useChat'
 import { createConversationKey } from '../utils/conversationKey'
-import { createMessageId, serializeRichMessage } from '../utils/richMessage'
+import { createMessageId, serializeRichMessage, parseRichMessage } from '../utils/richMessage'
 import { getLeaveRequest, subscribeLeaveRequests } from '../features/rooms/leaveRoomRequestState'
 
 export default function ChatLayout() {
@@ -24,9 +26,10 @@ export default function ChatLayout() {
 
     const [showLogoutDialog, setShowLogoutDialog] = useState(false)
     const [isLoggingOut, setIsLoggingOut] = useState(false)
-    const [pending, setPending] = useState<(Message & { localId: string })[]>([])
+    const { checkHistory } = useOutgoingMessages()
+    const histories = useAppSelector(state => state.messages)
     const [sendError, setSendError] = useState('')
-    const { getDraft, updateDraft, hasAnyDraft, clearDraft } = useChatDrafts()
+    const { getDraft, getRetrySource, updateDraft, hasAnyDraft, hasDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
     const roomMembership = useAppSelector(state => selectedConversation?.kind === 'room' && conversationKey
         ? state.rooms.byKey[conversationKey]?.room.membership : undefined)
@@ -47,14 +50,21 @@ export default function ChatLayout() {
         }))
     })
 
+    const checkOwnMessage = useEffectEvent((conversation: ConversationRef) => { void checkHistory(conversation) })
+
     useEffect(() => {
         if (!currentUser || !canUseSocket || isLoggingOut) return
         return subscribeToMessages(
             currentUser,
             (conversation, message) => receiveMessage(conversation, message),
-            () => setSendError('Máy chủ báo lỗi gửi. Các tin chưa xác nhận cần được đối chiếu.'),
+            message => {
+                dispatch(outgoingExpired(Date.now()))
+                if (message) dispatch(outgoingErrorReceived(message))
+                setSendError('Máy chủ báo lỗi gửi. Chỉ tin có phản hồi khớp mới được đánh dấu thất bại.')
+            },
+            conversation => checkOwnMessage(conversation),
         )
-    }, [currentUser, canUseSocket, isLoggingOut])
+    }, [currentUser, canUseSocket, isLoggingOut, dispatch])
 
     function selectConversation(conversation: ConversationRef | null) {
         setSendError('')
@@ -131,24 +141,46 @@ export default function ChatLayout() {
                     onSend={(conversation, draft) => {
                         if (!canSend || !currentUser || createConversationKey(conversation) !== conversationKey) return
                         setSendError('')
+                        let outgoing: OutgoingMessage | undefined
                         try {
-                            const clientMessageId = createMessageId()
+                            const retrySource = getRetrySource(conversation)
+                            const previousContent = retrySource && parseRichMessage(retrySource.mes)
+                            const sameContent = previousContent && sameTextRuns(previousContent.runs, draft)
+                            const clientMessageId = sameContent ? previousContent.clientMessageId : createMessageId()
                             const encoded = serializeRichMessage({ version: 1, clientMessageId, runs: draft })
                             if (encoded.status !== 'success') {
                                 setSendError(encoded.error.message)
                                 return
                             }
-                            sendText(conversation, encoded.data)
-                            setPending(previous => [...previous, {
+                            outgoing = {
                                 localId: clientMessageId, clientMessageId, name: currentUser,
                                 kind: conversation.kind, to: conversation.name, mes: encoded.data,
-                            }])
+                                sentAt: Date.now(), status: 'pending',
+                                attempts: sameContent ? (retrySource?.attempts ?? 1) + 1 : 1,
+                            }
+                            dispatch(outgoingQueued({ conversation, message: outgoing }))
+                            sendText(conversation, encoded.data)
                             clearDraft(conversation)
                         } catch {
+                            if (outgoing) {
+                                dispatch(outgoingSendFailed({ conversation, localId: outgoing.localId }))
+                                updateDraft(conversation, draft, outgoing)
+                            }
                             setSendError('Không gửi được tin nhắn. Bản nháp vẫn được giữ.')
                         }
                     }}
-                    pending={pending.filter(message => message.kind === selectedConversation?.kind && message.to === selectedConversation.name)}
+                    pending={conversationKey ? histories[conversationKey]?.outgoing ?? [] : []}
+                    reconcileError={conversationKey ? histories[conversationKey]?.reconcileError : undefined}
+                    checkingHistory={Boolean(conversationKey && histories[conversationKey]?.reconcileRequestId)}
+                    onCheckHistory={() => { if (selectedConversation) void checkHistory(selectedConversation) }}
+                    onRestorePending={message => {
+                        if (!selectedConversation || hasDraft(selectedConversation)) {
+                            setSendError('Đang có bản nháp. Hãy xử lý bản nháp trước khi sửa tin này.')
+                            return
+                        }
+                        const content = parseRichMessage(message.mes)
+                        if (content) updateDraft(selectedConversation, content.runs, message)
+                    }}
                     sendError={sendError}
                     onBack={() => selectConversation(null)}
                 />
