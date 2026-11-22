@@ -1,4 +1,4 @@
-import type { ApiResult } from '../types/api'
+import type { RecentConversationsResult } from './normalizeRecentConversations'
 import type { RecentConversation } from '../types/user'
 
 export interface ConversationsState {
@@ -6,6 +6,7 @@ export interface ConversationsState {
     loading: boolean
     loaded: boolean
     error: string | null
+    warning: string | null
     sessionGeneration: number | null
     requestId: string | null
 }
@@ -16,6 +17,7 @@ export function emptyConversationsState(): ConversationsState {
         loading: false,
         loaded: false,
         error: null,
+        warning: null,
         sessionGeneration: null,
         requestId: null,
     }
@@ -39,7 +41,7 @@ export function finishConversationsLoad(
     previous: ConversationsState,
     sessionGeneration: number,
     requestId: string,
-    result: ApiResult<RecentConversation[]>,
+    result: RecentConversationsResult,
 ): ConversationsState {
     if (previous.sessionGeneration !== sessionGeneration || previous.requestId !== requestId) {
         return previous
@@ -52,6 +54,7 @@ export function finishConversationsLoad(
             loaded: true,
             loading: false,
             error: null,
+            warning: result.warning ?? null,
             requestId: null,
         }
     }

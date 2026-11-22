@@ -1,9 +1,10 @@
 import type { ApiResult } from '../types/api'
-import type { RecentConversation, UserPresence } from '../types/user'
+import type { UserPresence } from '../types/user'
 import { parseGetUserListResponse } from '../utils/normalizeRecentConversations'
+import type { RecentConversationsResult } from '../utils/normalizeRecentConversations'
 import { socketClient, SocketRequestError } from './socketClient'
 
-export async function getRecentConversations(): Promise<ApiResult<RecentConversation[]>> {
+export async function getRecentConversations(): Promise<RecentConversationsResult> {
     try {
         const response = await socketClient.request('GET_USER_LIST', {})
         return parseGetUserListResponse(response)
