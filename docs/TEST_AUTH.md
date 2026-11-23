@@ -41,3 +41,36 @@ Ca mã phiên sai cũng đã được đối chiếu riêng trên `localhost:517
 | Mã | Bản kiểm tra | Kết quả | Bằng chứng |
 | --- | --- | --- | --- |
 | CV12 | `feat/man/cv12`, nền `ed45caa`, phần 1 `9463837` | Auth 4/4, Vitest 60/60, build và lint đạt. StrictMode còn 1 listener khi App chạy và 0 sau khi gỡ. Phản hồi đến muộn không mở lại phiên | `CV12-phien-het-han.png`, `CV12-dang-xuat-mat-mang.png` |
+
+## CV15 — Hành trình phiên và kết nối
+
+Kiểm tra ngày 23/11/2026 trên nhánh `test/man/cv15`, nền `develop` tại `6a7aec0`
+
+Chạy từ Terminal WebStorm trong `frontend`
+
+```powershell
+npm test -- scripts/cv15-journey.test.ts
+```
+
+Bốn ca mới dùng adapter auth, storage, Redux và watcher reconnect của dự án, giả lập các hàm socket
+
+| Ca | Kết quả |
+| --- | --- |
+| LOGIN → lưu phiên → mất kết nối → RE_LOGIN → LOGOUT | Mã được đổi, lịch sử còn sau reconnect; logout xóa storage, messages, rooms và yêu cầu phòng |
+| Logout trước timer reconnect 500 ms | Không gửi RE_LOGIN, hết thời gian chờ vẫn chưa đăng nhập |
+| Hết ba lượt tự động rồi bấm thử lại hai lần | Chỉ thêm một lượt, nhận mã mới và đăng xuất được |
+| Dọn watcher khi RE_LOGIN đang chờ | Phản hồi muộn không ghi mã hoặc tăng reconnectCount, không còn listener/timer của watcher |
+
+Test CV15 đạt 4/4, toàn bộ Vitest 101/101, build và lint đạt
+
+### Đối chiếu giao diện với API thật
+
+- Đăng nhập tài khoản thử rồi mở phòng có sẵn, nhập nháp và bấm Đăng xuất → Hủy: vẫn ở /chat, nháp còn nguyên
+- Bấm Đăng xuất → Tiếp tục: về /login, storage đã xóa, messages và rooms trống
+- Chủ động ngắt socket cục bộ trong lúc đang chat: app gửi RE_LOGIN, nhận kết quả từ chối và về /login với thông báo hết phiên, dữ liệu phiên cũ được dọn
+
+Lượt ngắt socket trên API thật chưa xác nhận được nhánh RE_LOGIN thành công. Nhánh thành công và hết lượt thử lại hiện được kiểm tra bằng giả lập trong Vitest
+
+Để thử lại trên web, chạy npm run dev, đăng nhập bằng tài khoản thử và làm các bước trên. Khi thử mất mạng thật bằng DevTools Offline, kết quả phụ thuộc mã phiên máy chủ còn hiệu lực hay không. Nếu mã bị từ chối, kết quả đúng là về đăng nhập và khóa gửi
+
+Lượt kiểm tra này chưa xác nhận lỗi nền tảng mới cần sửa. PR sửa trạng thái phòng CV46 của Khôi chưa nằm trong bản develop đã thử
