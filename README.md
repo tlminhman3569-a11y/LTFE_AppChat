@@ -13,7 +13,7 @@
 - Soạn văn bản, emoji, **đậm**, *nghiêng* và thay đổi cỡ chữ.
 - Xử lý mất kết nối, lỗi gửi và bản nháp trong phiên.
 
-Ảnh/video là phần mở rộng nếu đủ thời gian và có dịch vụ lưu trữ phù hợp. Không triển khai file đính kèm trong phạm vi hiện tại.
+Gửi ảnh được bổ sung trong CV55–CV63, lưu ảnh bằng Cloudinary và gửi URL qua WebSocket. Hợp đồng và phạm vi hiện tại ở [docs/MEDIA_DECISION.md](docs/MEDIA_DECISION.md). Video và các loại file khác chưa nằm trong phần mở rộng này
 
 ## Công nghệ
 
