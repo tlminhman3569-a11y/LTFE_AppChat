@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
-import type { ApiResult } from '../../types/api'
+import type { ApiError, ApiResult } from '../../types/api'
 import type { Room, RoomConversationRef } from '../../types/room'
 import { useAppSelector } from '../../store/hooks'
 import { store } from '../../store'
@@ -16,7 +16,7 @@ type Props = {
     draftPreview?: string
     onClose: () => void
     onLeaveConfirmed: (conversation: RoomConversationRef) => void
-    onStatusChange?: (conversation: RoomConversationRef, status: LeaveStatus) => void
+    onStatusChange?: (conversation: RoomConversationRef, status: LeaveStatus, error?: ApiError) => void
     leaveRoom?: (name: string) => Promise<ApiResult<{ roomName: string }>>
 }
 
@@ -99,7 +99,7 @@ export default function LeaveRoom({
         }
 
         updateLeaveRequest(sessionGeneration, room.name, { status: 'error', message: result.error.message })
-        onStatusChange?.(conversation, 'error')
+        onStatusChange?.(conversation, 'error', result.error)
     }
 
     return (
