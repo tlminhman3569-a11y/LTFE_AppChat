@@ -1,0 +1,439 @@
+{
+  "scenario": "JOIN success -> OUT business error -> manual JOIN request -> JOIN success",
+  "route": "http://localhost:5173/chat",
+  "real_components": [
+    "App",
+    "AppRoutes",
+    "ProtectedRoute",
+    "ChatLayout",
+    "ConversationSidebar",
+    "RoomMembersPanel",
+    "MemberList",
+    "LeaveRoom",
+    "JoinRoom",
+    "ChatPage",
+    "Composer",
+    "RichTextEditor",
+    "Redux auth/rooms/conversations/messages slices"
+  ],
+  "mock_boundary": "Window.WebSocket constructor replaced only in test context; real socketClient, roomsApi, authApi, Redux and components run unchanged",
+  "not_actual_live_server": true,
+  "limitations": [
+    "Real BrowserRouter /chat under Vite",
+    "RE_LOGIN, GET_USER_LIST, GET_ROOM_CHAT_MES and JOIN_ROOM responses also mocked to make a deterministic isolated test; OUT_ROOM/error fault injected",
+    "No proof of live server OUT_ROOM/error"
+  ],
+  "checks": [
+    {
+      "check": "Real app booted",
+      "result": "PASS",
+      "detail": "Original App + AppRoutes(/chat) + ChatLayout + Redux auth via RE_LOGIN; socket mocked"
+    },
+    {
+      "check": "Real sidebar",
+      "result": "PASS",
+      "detail": "ConversationSidebar available under AppRoutes(/chat)"
+    },
+    {
+      "check": "No automatic initial JOIN",
+      "result": "PASS",
+      "detail": "Opening initial JoinRoom causes no socket send"
+    },
+    {
+      "check": "First JOIN confirmed",
+      "result": "PASS",
+      "detail": "One outgoing JOIN_ROOM, server mock status=success"
+    },
+    {
+      "check": "Draft prepared",
+      "result": "PASS",
+      "detail": "CV46 - draft preserved on OUT error /chat"
+    },
+    {
+      "check": "Send enabled before leave",
+      "result": "PASS",
+      "detail": "Real Composer + ChatLayout canSend"
+    },
+    {
+      "check": "Draft visible in actual LeaveRoom",
+      "result": "PASS",
+      "detail": "RoomMembersPanel passed draft into LeaveRoom"
+    },
+    {
+      "check": "OUT business error received",
+      "result": "PASS",
+      "detail": "roomsApi handles mocked socket OUT_ROOM/error"
+    },
+    {
+      "check": "Send blocked by Redux",
+      "result": "PASS",
+      "detail": "ChatLayout sees leaveRejected from RoomMembersPanel dispatch"
+    },
+    {
+      "check": "Draft retained after rejected OUT",
+      "result": "PASS",
+      "detail": "ChatLayout useChatDrafts + real Composer"
+    },
+    {
+      "check": "No automatic JOIN on OUT error",
+      "result": "PASS",
+      "detail": "JOIN request count still 1"
+    },
+    {
+      "check": "Rejoin button enabled",
+      "result": "PASS",
+      "detail": "Previous JOIN success cleared after business error"
+    },
+    {
+      "check": "Open rejoin does not send",
+      "result": "PASS",
+      "detail": "No extra JOIN_ROOM before explicit confirmation"
+    },
+    {
+      "check": "Pending prevents duplicates",
+      "result": "PASS",
+      "detail": "Actual JoinRoom submit disabled while pending"
+    },
+    {
+      "check": "Only one extra JOIN",
+      "result": "PASS",
+      "detail": "Actual disabled button click did not send another JOIN; count 2"
+    },
+    {
+      "check": "Exactly one rejoin",
+      "result": "PASS",
+      "detail": "Total JOIN requests exactly 2"
+    },
+    {
+      "check": "Send re-enabled after JOIN success",
+      "result": "PASS",
+      "detail": "Real Redux roomConfirmed cleared leaveRejected; ChatLayout canSend true"
+    },
+    {
+      "check": "Draft preserved after rejoin",
+      "result": "PASS",
+      "detail": "Real useChatDrafts remains unchanged"
+    },
+    {
+      "check": "No SEND_CHAT",
+      "result": "PASS",
+      "detail": "Draft not automatically sent"
+    },
+    {
+      "check": "Warning removed",
+      "result": "PASS",
+      "detail": "MemberList no leaveRejected after JOIN success"
+    },
+    {
+      "check": "Error banner removed",
+      "result": "PASS",
+      "detail": "Redux + leave request reset"
+    },
+    {
+      "check": "No browser JS exceptions",
+      "result": "PASS",
+      "detail": "[]"
+    },
+    {
+      "check": "Correct response sequence",
+      "result": "PASS",
+      "detail": "JOIN success → OUT error → JOIN success"
+    }
+  ],
+  "socket_trace": [
+    {
+      "seq": 1,
+      "t": 1795427174974,
+      "direction": "client_request",
+      "event": "RE_LOGIN",
+      "payload": {
+        "user": "Khoi",
+        "code": "fake_login_code"
+      },
+      "count": 1
+    },
+    {
+      "seq": 2,
+      "t": 1795427175015,
+      "direction": "mock_server_response",
+      "event": "RE_LOGIN",
+      "payload": {
+        "event": "RE_LOGIN",
+        "status": "success",
+        "data": {
+          "RE_LOGIN_CODE": "fresh_123"
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 3,
+      "t": 1795427175036,
+      "direction": "client_request",
+      "event": "GET_USER_LIST",
+      "payload": {},
+      "count": 1
+    },
+    {
+      "seq": 4,
+      "t": 1795427175126,
+      "direction": "mock_server_response",
+      "event": "GET_USER_LIST",
+      "payload": {
+        "event": "GET_USER_LIST",
+        "status": "success",
+        "data": [
+          {
+            "name": "TestKhoi46",
+            "type": 1,
+            "actionTime": "2026-11-23 15:45:00"
+          }
+        ]
+      },
+      "count": 1
+    },
+    {
+      "seq": 5,
+      "t": 1795427176191,
+      "direction": "client_request",
+      "event": "JOIN_ROOM",
+      "payload": {
+        "name": "TestKhoi46"
+      },
+      "count": 1
+    },
+    {
+      "seq": 6,
+      "t": 1795427176842,
+      "direction": "mock_server_response",
+      "event": "JOIN_ROOM",
+      "payload": {
+        "event": "JOIN_ROOM",
+        "status": "success",
+        "data": {
+          "id": 506,
+          "name": "TestKhoi46",
+          "own": "Owner46",
+          "userList": [
+            {
+              "name": "Owner46"
+            },
+            {
+              "name": "Khoi"
+            }
+          ]
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 7,
+      "t": 1795427176843,
+      "direction": "client_request",
+      "event": "GET_USER_LIST",
+      "payload": {},
+      "count": 2
+    },
+    {
+      "seq": 8,
+      "t": 1795427176880,
+      "direction": "client_request",
+      "event": "GET_ROOM_CHAT_MES",
+      "payload": {
+        "name": "TestKhoi46",
+        "page": 1
+      },
+      "count": 1
+    },
+    {
+      "seq": 9,
+      "t": 1795427176885,
+      "direction": "mock_server_response",
+      "event": "GET_USER_LIST",
+      "payload": {
+        "event": "GET_USER_LIST",
+        "status": "success",
+        "data": [
+          {
+            "name": "TestKhoi46",
+            "type": 1,
+            "actionTime": "2026-11-23 15:45:00"
+          }
+        ]
+      },
+      "count": 2
+    },
+    {
+      "seq": 10,
+      "t": 1795427176921,
+      "direction": "mock_server_response",
+      "event": "GET_ROOM_CHAT_MES",
+      "payload": {
+        "event": "GET_ROOM_CHAT_MES",
+        "status": "success",
+        "data": {
+          "id": 506,
+          "name": "TestKhoi46",
+          "own": "Owner46",
+          "userList": [
+            {
+              "name": "Owner46"
+            },
+            {
+              "name": "Khoi"
+            }
+          ],
+          "chatData": [],
+          "page": 1
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 11,
+      "t": 1795427177173,
+      "direction": "client_request",
+      "event": "OUT_ROOM",
+      "payload": {
+        "name": "TestKhoi46"
+      },
+      "count": 1
+    },
+    {
+      "seq": 12,
+      "t": 1795427177353,
+      "direction": "mock_server_response",
+      "event": "OUT_ROOM",
+      "payload": {
+        "event": "OUT_ROOM",
+        "status": "error",
+        "data": {
+          "mes": "CV46_SIMULATED_BUSINESS_ERROR - blocked by test socket"
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 13,
+      "t": 1795427177355,
+      "direction": "client_request",
+      "event": "GET_ROOM_CHAT_MES",
+      "payload": {
+        "name": "TestKhoi46",
+        "page": 1
+      },
+      "count": 2
+    },
+    {
+      "seq": 14,
+      "t": 1795427177396,
+      "direction": "mock_server_response",
+      "event": "GET_ROOM_CHAT_MES",
+      "payload": {
+        "event": "GET_ROOM_CHAT_MES",
+        "status": "success",
+        "data": {
+          "id": 506,
+          "name": "TestKhoi46",
+          "own": "Owner46",
+          "userList": [
+            {
+              "name": "Owner46"
+            },
+            {
+              "name": "Khoi"
+            }
+          ],
+          "chatData": [],
+          "page": 1
+        }
+      },
+      "count": 2
+    },
+    {
+      "seq": 15,
+      "t": 1795427177909,
+      "direction": "client_request",
+      "event": "JOIN_ROOM",
+      "payload": {
+        "name": "TestKhoi46"
+      },
+      "count": 2
+    },
+    {
+      "seq": 16,
+      "t": 1795427182418,
+      "direction": "mock_server_response",
+      "event": "JOIN_ROOM",
+      "payload": {
+        "event": "JOIN_ROOM",
+        "status": "success",
+        "data": {
+          "id": 506,
+          "name": "TestKhoi46",
+          "own": "Owner46",
+          "userList": [
+            {
+              "name": "Owner46"
+            },
+            {
+              "name": "Khoi"
+            }
+          ]
+        }
+      },
+      "count": 2
+    },
+    {
+      "seq": 17,
+      "t": 1795427182419,
+      "direction": "client_request",
+      "event": "GET_USER_LIST",
+      "payload": {},
+      "count": 3
+    },
+    {
+      "seq": 18,
+      "t": 1795427182460,
+      "direction": "mock_server_response",
+      "event": "GET_USER_LIST",
+      "payload": {
+        "event": "GET_USER_LIST",
+        "status": "success",
+        "data": [
+          {
+            "name": "TestKhoi46",
+            "type": 1,
+            "actionTime": "2026-11-23 15:45:00"
+          }
+        ]
+      },
+      "count": 3
+    }
+  ],
+  "request_counts": {
+    "requests": {
+      "RE_LOGIN": 1,
+      "GET_USER_LIST": 3,
+      "JOIN_ROOM": 2,
+      "GET_ROOM_CHAT_MES": 2,
+      "OUT_ROOM": 1
+    },
+    "responses": {
+      "RE_LOGIN": 1,
+      "GET_USER_LIST": 3,
+      "JOIN_ROOM": 2,
+      "GET_ROOM_CHAT_MES": 2,
+      "OUT_ROOM": 1
+    },
+    "joinPending": false,
+    "sendAttempts": 0,
+    "pendingSnapshot": {
+      "dialogVisible": true,
+      "buttonDisabled": true,
+      "requestsBeforeAttempt": 2,
+      "requestsAfterAttempt": 2
+    }
+  },
+  "console_errors": []
+}
