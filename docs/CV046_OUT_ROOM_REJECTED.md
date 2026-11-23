@@ -66,3 +66,8 @@ Kết quả tại môi trường kiểm tra: TypeScript PASS, ESLint PASS; CV46:
 8. Kiểm tra bằng tài khoản chủ A, thử mở phòng khác trong lúc request pending, đổi tài khoản; không ghi nhầm state vào phiên mới. PR lên `develop`, kiểm tra chéo bởi Mẫn, sau đó mới cập nhật Excel nghiệm thu.
 
 **Chưa xác minh:** nguyên nhân từ chối cụ thể của server và hành vi live, vì không có chứng cứ WebSocket/đăng nhập của hai tài khoản. Không khai báo là “đã sửa hoàn toàn lỗi server” cho đến khi kịch bản trên đạt trên API thật.
+
+
+## Bổ sung ngày 23/11/2026 — JOIN lại sau OUT_ROOM error
+
+Bản trước còn giữ cache `JOIN_ROOM/success` cũ sau khi OUT_ROOM bị máy chủ từ chối, khiến nút Tham gia phòng khóa. Bản vá tích lũy mới chỉ xóa cache `JOIN_ROOM/success` của cùng tên và phiên khi có `OUT_ROOM/error/business`, **không tự JOIN**, giữ các trạng thái JOIN `pending`/`unknown`, và xóa cảnh báo OUT chỉ sau JOIN success mới. Chi tiết, test và giới hạn xem `docs/CV046_JOIN_RETRY_AFTER_OUT_ERROR.md`.
