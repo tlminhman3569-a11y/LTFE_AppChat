@@ -5,26 +5,32 @@ function parseError(message: string): ApiResult<RecentConversation[]> {
     return { status: 'error', error: { kind: 'parse', message } }
 }
 
-export function normalizeRecentConversations(value: unknown): ApiResult<RecentConversation[]> {
+export type RecentConversationsResult = ApiResult<RecentConversation[]> & { warning?: string }
+
+export function normalizeRecentConversations(value: unknown): RecentConversationsResult {
     if (!Array.isArray(value)) {
         return parseError('Danh sách hội thoại trả về không phải mảng.')
     }
 
     const conversations: RecentConversation[] = []
     const seen = new Set<string>()
+    let invalidCount = 0
 
-    for (const [index, entry] of value.entries()) {
+    for (const entry of value) {
         if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-            return parseError(`Hội thoại thứ ${index + 1} không hợp lệ.`)
+            invalidCount += 1
+            continue
         }
 
         const item = entry as Record<string, unknown>
         if (typeof item.name !== 'string' || !item.name.trim() || (item.type !== 0 && item.type !== 1)) {
-            return parseError(`Tên hoặc loại hội thoại thứ ${index + 1} không hợp lệ.`)
+            invalidCount += 1
+            continue
         }
 
         if (item.actionTime != null && typeof item.actionTime !== 'string') {
-            return parseError(`Thời gian hội thoại thứ ${index + 1} không hợp lệ.`)
+            invalidCount += 1
+            continue
         }
 
         const conversation: RecentConversation = {
@@ -43,10 +49,22 @@ export function normalizeRecentConversations(value: unknown): ApiResult<RecentCo
         }
     }
 
+    if (invalidCount > 0 && conversations.length === 0) {
+        return parseError(`Danh sách hội thoại có ${invalidCount} mục không hợp lệ và không có mục hợp lệ để hiển thị.`)
+    }
+
+    if (invalidCount > 0) {
+        return {
+            status: 'success',
+            data: conversations,
+            warning: `Máy chủ trả về ${invalidCount} mục hội thoại không hợp lệ; đã bỏ qua và vẫn hiển thị ${conversations.length} hội thoại hợp lệ.`,
+        }
+    }
+
     return { status: 'success', data: conversations }
 }
 
-export function parseGetUserListResponse(response: unknown): ApiResult<RecentConversation[]> {
+export function parseGetUserListResponse(response: unknown): RecentConversationsResult {
     if (!response || typeof response !== 'object' || Array.isArray(response)) {
         return parseError('Phản hồi GET_USER_LIST không hợp lệ.')
     }

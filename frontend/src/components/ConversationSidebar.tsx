@@ -251,6 +251,10 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
                     </div>
                 )}
 
+                {!isMock && !loading && apiList.loaded && apiList.warning && (
+                    <p role="alert" className="cv39-notice cv39-stale-warning">{apiList.warning}</p>
+                )}
+
                 {!loading && !error && !loaded && (
                     <p role="status" className="cv39-hint">Chưa tải danh sách. Hãy đợi kết nối hoặc nhấn Làm mới.</p>
                 )}

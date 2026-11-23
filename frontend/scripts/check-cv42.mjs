@@ -70,6 +70,55 @@ check('Type 2 la loi parse', () => assert.equal(normalizeRecentConversations([{ 
 check('Type chuoi 0 khong tu ep', () => assert.equal(normalizeRecentConversations([{ name: 'a', type: '0' }]).status, 'error'))
 check('Ten phong rong la loi parse', () => assert.equal(normalizeRecentConversations([{ name: ' ', type: 1 }]).status, 'error'))
 check('ActionTime so khong duoc bien thanh string', () => assert.equal(normalizeRecentConversations([{ name: 'a', type: 1, actionTime: 123 }]).status, 'error'))
+
+const partiallyInvalid = parseGetUserListResponse({
+    event: 'GET_USER_LIST',
+    status: 'success',
+    data: [rawList[0], { name: '  ', type: 1 }, rawList[1], { name: 'loi', type: 2 }, rawList[2]],
+})
+check('Phong ten rong khong lam hong toan bo danh sach', () => {
+    assert.equal(partiallyInvalid.status, 'success')
+    if (partiallyInvalid.status === 'success') {
+        assert.deepEqual(partiallyInvalid.data.map(item => item.name), ['minh_an', 'minh_an', 'nhom_hoc'])
+    }
+})
+check('Co canh bao so muc loi va danh sach van thanh cong', () => {
+    assert.equal(partiallyInvalid.status, 'success')
+    if (partiallyInvalid.status === 'success') {
+        assert.match(partiallyInvalid.warning ?? '', /2 mục hội thoại không hợp lệ/)
+    }
+})
+check('Mang hop le xen null, chuoi va actionTime sai van hien du lieu tot', () => {
+    const result = normalizeRecentConversations([null, 'wrong', rawList[0], { name: 'broken', type: 1, actionTime: 42 }])
+    assert.equal(result.status, 'success')
+    if (result.status === 'success') {
+        assert.equal(result.data.length, 1)
+        assert.match(result.warning ?? '', /3 mục hội thoại không hợp lệ/)
+    }
+})
+check('Neu tat ca muc loi thi khong bao danh sach rong thanh cong', () => {
+    const result = normalizeRecentConversations([{ name: '', type: 1 }, null])
+    assert.equal(result.status, 'error')
+    if (result.status === 'error') assert.equal(result.error.kind, 'parse')
+})
+check('Danh sach rong that khong co canh bao', () => {
+    assert.deepEqual(normalizeRecentConversations([]), success([]))
+})
+check('Khong chinh sua cac ban ghi goc du co phan tu sai', () => {
+    const malformed = { name: '', type: 1 }
+    const entries = [rawList[0], malformed]
+    normalizeRecentConversations(entries)
+    assert.deepEqual(entries[1], malformed)
+})
+check('Trung lap hop le khong tinh la muc loi', () => {
+    const result = normalizeRecentConversations([rawList[0], rawList[0], { name: '', type: 1 }])
+    assert.equal(result.status, 'success')
+    if (result.status === 'success') {
+        assert.equal(result.data.length, 1)
+        assert.match(result.warning ?? '', /1 mục hội thoại không hợp lệ/)
+    }
+})
+
 check('Response sai event la loi parse', () => assert.equal(parseGetUserListResponse({ ...serverResponse, event: 'LOGIN' }).status, 'error'))
 check('Response thieu status la loi parse', () => assert.equal(parseGetUserListResponse({ event: 'GET_USER_LIST', data: [] }).status, 'error'))
 check('Response error khong thanh success rong', () => {
@@ -78,6 +127,31 @@ check('Response error khong thanh success rong', () => {
     assert.equal('data' in result, false)
 })
 check('Response success thieu data la loi parse', () => assert.equal(parseGetUserListResponse({ event: 'GET_USER_LIST', status: 'success' }).status, 'error'))
+
+const partialState = finishConversationsLoad(
+    startConversationsLoad(emptyConversationsState(), 4, 'partial'),
+    4, 'partial', partiallyInvalid,
+)
+check('Redux giu danh sach hop le khi co canh bao', () => {
+    assert.equal(partialState.items.length, 3)
+    assert.equal(partialState.loaded, true)
+    assert.equal(partialState.error, null)
+    assert.match(partialState.warning ?? '', /2 mục hội thoại không hợp lệ/)
+})
+check('Lam moi sach xoa canh bao cu', () => {
+    const state = finishConversationsLoad(startConversationsLoad(partialState, 4, 'clean'), 4, 'clean', success(list))
+    assert.equal(state.warning, null)
+    assert.equal(state.items.length, 3)
+})
+check('Lam moi loi khong mat danh sach va canh bao tu lan tai truoc', () => {
+    const state = finishConversationsLoad(startConversationsLoad(partialState, 4, 'fail'), 4, 'fail', error('Mất kết nối'))
+    assert.equal(state.items.length, 3)
+    assert.equal(state.warning, partialState.warning)
+    assert.equal(state.error, 'Mất kết nối')
+})
+check('Xoa phien phai xoa ca canh bao', () => {
+    assert.equal(emptyConversationsState().warning, null)
+})
 
 const begin = startConversationsLoad(emptyConversationsState(), 4, 'request-1')
 const loaded = finishConversationsLoad(begin, 4, 'request-1', success(list))
@@ -163,6 +237,9 @@ check('Sidebar tu tai khi da xac thuc va connected', () => assert.match(sidebarC
 check('Mock rieng trong dev khong gia lam API', () => {
     assert.match(sidebarCode, /Nguồn: \{isMock \? 'Dữ liệu mẫu CV38' : 'GET_USER_LIST từ máy chủ'\}/)
     assert.match(sidebarCode, /import\.meta\.env\.DEV/)
+})
+check('Sidebar hien canh bao cac muc loi ben canh danh sach hop le', () => {
+    assert.match(sidebarCode, /apiList\.warning/)
 })
 check('Sidebar co canh bao stale va Thu lai', () => {
     assert.match(sidebarCode, /Dữ liệu đang hiển thị có thể đã cũ/)

@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import type { ApiResult, AuthStatus, ConnectionStatus } from '../../types/api'
+import type { AuthStatus, ConnectionStatus } from '../../types/api'
+import type { RecentConversationsResult } from '../../utils/normalizeRecentConversations'
 import type { RecentConversation } from '../../types/user'
 import type { Room } from '../../types/room'
 import { createConversationKey } from '../../utils/conversationKey'
@@ -22,7 +23,7 @@ type ThunkState = {
 
 export const refreshConversations = createAsyncThunk(
     'conversations/refresh',
-    async (sessionGeneration: number, { getState }): Promise<ApiResult<RecentConversation[]>> => {
+    async (sessionGeneration: number, { getState }): Promise<RecentConversationsResult> => {
         const { auth } = getState() as ThunkState
 
         if (auth.authStatus !== 'authenticated' || auth.sessionGeneration !== sessionGeneration) {
