@@ -45,3 +45,7 @@ Thumbs.db
 
 # CV43: khong commit log kiem thu WebSocket
 cv43-live-evidence.json
+
+evidence_out/
+__pycache__/
+*.pyc

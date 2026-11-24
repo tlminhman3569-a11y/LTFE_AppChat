@@ -73,4 +73,71 @@ Lượt ngắt socket trên API thật chưa xác nhận được nhánh RE_LOGI
 
 Để thử lại trên web, chạy npm run dev, đăng nhập bằng tài khoản thử và làm các bước trên. Khi thử mất mạng thật bằng DevTools Offline, kết quả phụ thuộc mã phiên máy chủ còn hiệu lực hay không. Nếu mã bị từ chối, kết quả đúng là về đăng nhập và khóa gửi
 
-Lượt kiểm tra này chưa xác nhận lỗi nền tảng mới cần sửa. PR sửa trạng thái phòng CV46 của Khôi chưa nằm trong bản develop đã thử
+Kết quả phía trên là lượt kiểm tra phần 1 ngày 23/11, trước khi CV46 vào develop. Kết quả sau khi tích hợp nằm ở phần tiếp theo
+
+
+### Phần 2 — sau khi tích hợp CV46
+
+Kiểm tra ngày 24/11/2026, ghép develop tại `4e4427f` vào `test/man/cv15`, có bản sửa CV46 từ PR #45 (`9b30b90`)
+
+Các ca mới kiểm tra qua watcher reconnect, adapter phòng và Redux thật, giả lập phản hồi socket
+
+- RE_LOGIN thành công vẫn giữ lịch sử, quyền member cũ chuyển thành unknown và loadedAt được xóa để đọc lại thành viên
+- Nếu OUT đã bị từ chối thì reconnect và GET_ROOM_CHAT_MES có tên tài khoản vẫn không bỏ cờ leaveRejected, không tự phục hồi quyền member
+- JOIN mới thành công mới xác nhận lại member và bỏ cờ lỗi rời phòng
+
+Chạy từ Terminal WebStorm trong frontend
+
+```powershell
+npm test -- scripts/cv15-journey.test.ts
+```
+
+Đối chiếu giao diện sau khi tích hợp bằng script CV46 có sẵn
+
+```powershell
+# Terminal 1, trong frontend
+npm run dev
+
+# Terminal 2, trong frontend
+python scripts/cv46-chat-integration/run_chat_e2e.py --url http://localhost:5173/chat
+```
+
+Script cần Python, Playwright và Chromium như hướng dẫn trong `scripts/cv46-chat-integration/README.md`. Nếu máy chưa có Chromium của Playwright, cài theo hướng dẫn hoặc truyền `--chromium-path` tới Chrome đang có
+
+Lượt chạy lại trên /chat đạt 23/23: OUT lỗi giữ nháp, hiện cảnh báo và khóa Gửi; mở form không tự JOIN; xác nhận chỉ thêm một JOIN; pending chặn trùng; JOIN success mới bỏ cảnh báo và mở Gửi, nháp vẫn còn và không tự SEND_CHAT. Component, service và Redux là của ứng dụng, phản hồi máy chủ do socket giả lập cung cấp
+
+#### RE_LOGIN với API thật
+
+Lượt thử giao diện ngày 24/11 đã đăng nhập bằng tài khoản thử được phép, tải lại cùng tab rồi ngắt socket cục bộ
+
+| Thao tác | Kết quả quan sát |
+| --- | --- |
+| Tải lại /chat trong cùng tab | RE_LOGIN thành công, vẫn authenticated và connected, storage còn mã phiên hợp lệ |
+| Ngắt socket sau khi khôi phục | Tự RE_LOGIN thành công, vẫn ở /chat, reconnectCount tăng lên 1 |
+
+Bằng chứng: `CV15-reload-API-that.png` và `CV15-reconnect-API-that.png`, đính kèm khi tạo PR
+
+Đây là kết quả của lượt thử này, không khẳng định mọi mã phiên đều còn hiệu lực. Nếu server từ chối mã thì ứng dụng vẫn phải về đăng nhập và khóa gửi như phần 1. Ngắt socket cục bộ chưa thay thế ca mất mạng hệ điều hành kéo dài
+
+Test API thật chạy lại qua Vitest, không dùng socket giả. Chỉ giả lập sessionStorage trong môi trường Node để service lưu mã như trên trình duyệt. Test đăng nhập, ngắt socket, RE_LOGIN, cập nhật mã trong storage, đọc GET_USER_LIST rồi LOGOUT để dọn phiên
+
+```powershell
+$account = Get-Credential -Message 'Nhập tài khoản thử API App Chat'
+if ($account) {
+    $env:APPCHAT_PROBE_USER = $account.UserName
+    $env:APPCHAT_PROBE_PASS = $account.GetNetworkCredential().Password
+    try {
+        npm test -- scripts/cv15-live.test.ts
+    } finally {
+        Remove-Item Env:APPCHAT_PROBE_USER, Env:APPCHAT_PROBE_PASS
+    }
+}
+```
+
+Kỳ vọng 1 test đạt. Test tự bỏ qua nếu không có đủ hai biến môi trường, lượt bỏ qua không tính là đã kiểm tra API thật. Chỉ dùng tài khoản thử không có phiên khác đang sử dụng vì bài test kết thúc bằng LOGOUT
+
+Để đối chiếu trên web: đăng nhập tài khoản thử → mở /chat → tải lại cùng tab, chờ thanh trên báo kết nối và tài khoản vẫn đăng nhập. Muốn thử mất kết nối, mở DevTools Network, bật Offline cho tới khi app báo gián đoạn rồi trả về No throttling, chờ reconnect. Kiểm tra ở /chat nếu server nhận mã; nếu hết lượt thì bấm Thử kết nối lại. Không chụp hoặc sao chép mã phiên vào bằng chứng
+
+Kết quả phần 2: CV15 journey 5/5, test API thật 1/1, luồng phòng trên /chat 23/23, toàn bộ Vitest 102 đạt và 1 bỏ qua khi không nhập tài khoản, build và lint đạt
+
+Chưa xác nhận lỗi nền tảng mới cần sửa trong lượt kiểm tra phần 2

@@ -31,8 +31,9 @@ export default function ChatLayout() {
     const [sendError, setSendError] = useState('')
     const { getDraft, getRetrySource, updateDraft, hasAnyDraft, hasDraft, clearDraft } = useChatDrafts()
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
-    const roomMembership = useAppSelector(state => selectedConversation?.kind === 'room' && conversationKey
-        ? state.rooms.byKey[conversationKey]?.room.membership : undefined)
+    const roomPermission = useAppSelector(state => selectedConversation?.kind === 'room' && conversationKey
+        ? state.rooms.byKey[conversationKey] : undefined)
+    const roomMembership = roomPermission?.room.membership
     const leaveRequest = useSyncExternalStore(subscribeLeaveRequests,
         () => selectedConversation?.kind === 'room'
             ? getLeaveRequest(sessionGeneration, selectedConversation.name) : null,
@@ -40,6 +41,7 @@ export default function ChatLayout() {
     const canSend = canUseSocket && !isLoggingOut && (selectedConversation?.kind === 'people'
         || (selectedConversation?.kind === 'room'
             && (roomMembership === 'member' || roomMembership === 'owner')
+            && !roomPermission?.leaveRejected
             && leaveRequest?.status !== 'pending' && leaveRequest?.status !== 'unknown'
             && leaveRequest?.status !== 'success'))
 

@@ -43,6 +43,15 @@ export function clearRoomRequest(action: RoomAction, name: string, sessionGenera
     if (removed) notifyListeners()
 }
 
+export function allowJoinRetryAfterRejectedLeave(name: string, sessionGeneration: number): boolean {
+    const roomName = name.trim()
+    if (!roomName) return false
+    const previous = getRoomRequest('join', roomName, sessionGeneration)
+    if (previous?.status !== 'success') return false
+    clearRoomRequest('join', roomName, sessionGeneration)
+    return true
+}
+
 export async function sendRoomRequest(
     action: RoomAction,
     name: string,

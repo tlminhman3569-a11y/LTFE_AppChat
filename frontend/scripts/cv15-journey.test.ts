@@ -9,7 +9,7 @@ import { clearLeaveRequests, getLeaveRequest, updateLeaveRequest } from '../src/
 import { store } from '../src/store'
 import { sessionCleared, sessionStarted } from '../src/store/slices/authSlice'
 import { messageReceived } from '../src/store/slices/messagesSlice'
-import { roomConfirmed } from '../src/store/slices/roomsSlice'
+import { refreshRoomMembers, roomConfirmed, roomLeaveRejected } from '../src/store/slices/roomsSlice'
 import { createConversationKey } from '../src/utils/conversationKey'
 import type { ConnectionStatus } from '../src/types/api'
 
@@ -60,7 +60,6 @@ beforeEach(() => {
         listener(socketState)
         return () => { listeners.delete(listener) }
     })
-
     vi.spyOn(socketClient, 'getStatus').mockImplementation(() => socketState)
     vi.spyOn(socketClient, 'connect').mockImplementation(async () => {
         changeConnection('connected')
@@ -130,6 +129,8 @@ describe('Hành trình phiên và kết nối', () => {
         })
         expect(saved).toEqual({ username: 'demo', reLoginCode: 'new-code' })
         expect(state.messages[key]?.messages[0].mes).toBe('Mai họp nhé')
+        expect(state.rooms.byKey[key].room.membership).toBe('unknown')
+        expect(state.rooms.byKey[key].loadedAt).toBeNull()
         expect(listeners.size).toBe(1)
 
         await endSession()
@@ -150,6 +151,61 @@ describe('Hành trình phiên và kết nối', () => {
         expect(joinRequest).toBeNull()
         expect(leaveRequest).toBeNull()
         expect(socketClient.request).toHaveBeenLastCalledWith('LOGOUT')
+    })
+
+    it('kết nối lại và tải thành viên không xóa lỗi OUT, phải có JOIN mới xác nhận', async () => {
+        await signIn()
+        const { sessionGeneration } = store.getState().auth
+        store.dispatch(roomConfirmed(room))
+        store.dispatch(roomLeaveRejected({
+            name: room.name,
+            sessionGeneration,
+            message: 'Máy chủ từ chối rời phòng',
+        }))
+
+        changeConnection('disconnected')
+        await vi.advanceTimersByTimeAsync(500)
+
+        const afterReconnect = store.getState().rooms.byKey[key]
+
+        expect(afterReconnect.room.membership).toBe('unknown')
+        expect(afterReconnect.leaveRejected).toBe('Máy chủ từ chối rời phòng')
+
+        vi.mocked(socketClient.request).mockResolvedValueOnce({
+            event: 'GET_ROOM_CHAT_MES',
+            status: 'success',
+            data: {
+                name: room.name,
+                own: 'chu_phong',
+                userList: [{ name: 'demo' }, { name: 'chu_phong' }],
+                chatData: [],
+            },
+        })
+
+        await store.dispatch(refreshRoomMembers({ name: room.name, sessionGeneration }))
+
+        const afterRefresh = store.getState().rooms.byKey[key]
+
+        // userList có tên mình vẫn chưa đủ để bỏ lần OUT bị từ chối
+        expect(socketClient.request).toHaveBeenLastCalledWith('GET_ROOM_CHAT_MES', { name: room.name, page: 1 })
+        expect(afterRefresh.error).toBeNull()
+        expect(afterRefresh.room.members).toContain('demo')
+        expect(afterRefresh.room.membership).toBe('unknown')
+        expect(afterRefresh.leaveRejected).toBe('Máy chủ từ chối rời phòng')
+
+        await sendRoomRequest(
+            'join', room.name, sessionGeneration,
+            () => sessionGeneration,
+            async () => ({ status: 'success', data: room }),
+            result => {
+                if (result.status === 'success') store.dispatch(roomConfirmed(room))
+            },
+        )
+
+        const afterJoin = store.getState().rooms.byKey[key]
+
+        expect(afterJoin.room.membership).toBe('member')
+        expect(afterJoin.leaveRejected).toBeUndefined()
     })
 
     it('vừa mất mạng đã đăng xuất thì bỏ luôn lượt reconnect đang đợi', async () => {
@@ -235,5 +291,4 @@ describe('Hành trình phiên và kết nối', () => {
         expect(listeners.size).toBe(0)
         expect(vi.getTimerCount()).toBe(0)
     })
-
 })
