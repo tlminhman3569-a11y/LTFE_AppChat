@@ -1,0 +1,173 @@
+TAP version 13
+# Subtest: reject wrong name + nonempty mes
+ok 1 - reject wrong name + nonempty mes
+  ---
+  duration_ms: 1.609717
+  type: 'test'
+  ...
+# Subtest: reject wrong name without mes
+ok 2 - reject wrong name without mes
+  ---
+  duration_ms: 0.172317
+  type: 'test'
+  ...
+# Subtest: reject empty name + mes
+ok 3 - reject empty name + mes
+  ---
+  duration_ms: 0.075942
+  type: 'test'
+  ...
+# Subtest: reject null name + mes
+ok 4 - reject null name + mes
+  ---
+  duration_ms: 0.07038
+  type: 'test'
+  ...
+# Subtest: reject undefined name + mes
+ok 5 - reject undefined name + mes
+  ---
+  duration_ms: 0.072927
+  type: 'test'
+  ...
+# Subtest: reject case mismatch + mes
+ok 6 - reject case mismatch + mes
+  ---
+  duration_ms: 0.969354
+  type: 'test'
+  ...
+# Subtest: reject no name + whitespace mes
+ok 7 - reject no name + whitespace mes
+  ---
+  duration_ms: 0.089381
+  type: 'test'
+  ...
+# Subtest: reject no name + numeric mes
+ok 8 - reject no name + numeric mes
+  ---
+  duration_ms: 0.096847
+  type: 'test'
+  ...
+# Subtest: reject empty data
+ok 9 - reject empty data
+  ---
+  duration_ms: 0.386059
+  type: 'test'
+  ...
+# Subtest: reject null data
+ok 10 - reject null data
+  ---
+  duration_ms: 0.26283
+  type: 'test'
+  ...
+# Subtest: reject array data
+ok 11 - reject array data
+  ---
+  duration_ms: 0.103665
+  type: 'test'
+  ...
+# Subtest: reject string data
+ok 12 - reject string data
+  ---
+  duration_ms: 0.05716
+  type: 'test'
+  ...
+# Subtest: accept correct name
+ok 13 - accept correct name
+  ---
+  duration_ms: 0.167985
+  type: 'test'
+  ...
+# Subtest: accept correct name + mes
+ok 14 - accept correct name + mes
+  ---
+  duration_ms: 0.039358
+  type: 'test'
+  ...
+# Subtest: accept absent name + mes
+ok 15 - accept absent name + mes
+  ---
+  duration_ms: 0.029815
+  type: 'test'
+  ...
+# Subtest: reject error status
+ok 16 - reject error status
+  ---
+  duration_ms: 0.070303
+  type: 'test'
+  ...
+# Subtest: reject wrong event
+ok 17 - reject wrong event
+  ---
+  duration_ms: 0.054172
+  type: 'test'
+  ...
+# Subtest: member list verifies both accounts
+ok 18 - member list verifies both accounts
+  ---
+  duration_ms: 0.361064
+  type: 'test'
+  ...
+# Subtest: member list missing
+ok 19 - member list missing
+  ---
+  duration_ms: 0.057465
+  type: 'test'
+  ...
+# Subtest: member list malformed
+ok 20 - member list malformed
+  ---
+  duration_ms: 0.086816
+  type: 'test'
+  ...
+# Subtest: member B absent
+ok 21 - member B absent
+  ---
+  duration_ms: 0.046404
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132.690143
+DRY-RUN: Không kết nối máy chủ. Dùng --live và biến môi trường CV49_ALLOW_WRITES=YES nếu đã có hai tài khoản/phòng thử được phép.
+SKIPPED: live-server (missing --live)
+Sanitized evidence: /tmp/cv49-dry.json
+Result: not_run; 1 recorded steps
+PASS CV49-01 F13 - tên phòng rỗng không tạo request
+PASS CV49-02 F13 - CREATE_ROOM chỉ xác nhận tên chính xác
+PASS CV49-03 F13 - tên trùng báo lỗi nghiệp vụ, không thành công giả
+PASS CV49-04 F13 - success sai tên là unknown
+PASS CV49-05 F14 - JOIN_ROOM gửi đúng sự kiện và tên
+PASS CV49-06 F14 - không tồn tại/đã tham gia là lỗi nghiệp vụ khi server từ chối
+PASS CV49-07 F14 - success sai event không được mở quyền
+PASS CV49-08 F14 - success thiếu tên không được mở quyền
+PASS CV49-09 F14 - request đã gửi timeout: unknown, không tự gửi lại
+PASS CV49-10 F14 - request chưa gửi thất bại không đổi thành unknown
+PASS CV49-11 F15 - đọc thành viên/chủ phòng với dữ liệu hợp lệ
+PASS CV49-12 F15 - thiếu metadata không suy ra owner/member
+PASS CV49-13 F15 - danh sách rỗng được xác nhận khác trường thiếu
+PASS CV49-14 F15 - member metadata hỏng không biến thành mảng rỗng
+PASS CV49-15 F15 - response sai trang bị chặn
+PASS CV49-16 F15 - timeout tải danh sách không giả 0 thành viên
+PASS CV49-17 F16 - OUT_ROOM có xác nhận hợp lệ
+PASS CV49-18 F16 - OUT_ROOM sai phòng vẫn unknown
+PASS CV49-19 F16 - OUT_ROOM bị từ chối giữ lỗi business
+PASS CV49-20 F16 - OUT_ROOM timeout sau gửi giữ unknown
+PASS CV49-21 F09 - username chính xác có và không tồn tại
+PASS CV49-22 F09 - username không hợp lệ không gửi API
+PASS CV49-23 F09 - lỗi kiểm tra không được hiểu thành không tồn tại
+PASS CV49-24 F07 - GET_USER_LIST không có thao tác JOIN ngầm
+PASS CV49-25 F14 - double click bị khóa khi yêu cầu đang chờ
+PASS CV49-26 F14 - success trả về sai tên không báo thành công ở UI (CV49 fix)
+PASS CV49-27 F14 - unknown chặn tự JOIN lặp lại
+PASS CV49-28 F14 - business error cho phép người dùng bấm thử lại
+PASS CV49-29 F14 - response từ phiên cũ không được công bố thành công
+PASS CV49-30 F18 - phản hồi JOIN thành công mới xóa trạng thái rời
+PASS CV49-31 F18 - không xóa trạng thái đang rời pending
+
+CV49 MOCK CONTRACT TESTS: 31 passed, 0 failed. No live server used.
