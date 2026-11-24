@@ -1,15 +1,17 @@
 .chat-content.chat-page {
     display: flex;
     flex-direction: column;
-    height: max(24rem, calc(100dvh - 72px));
+    height: var(--chat-height, calc(100dvh - 72px));
+    min-height: 0;
+    overflow: hidden;
     padding: 0;
 }
 
 .chat-heading {
     padding: 16px 24px;
-}
-
-.chat-heading {
+    flex-shrink: 0;
+    max-height: 30%;
+    overflow-y: auto;
     border-bottom: 1px solid #e2e8f0;
 }
 
@@ -27,11 +29,37 @@
     margin: 4px 0 0;
 }
 
+.chat-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+}
+
+.chat-history-area {
+    position: relative;
+    display: flex;
+    flex: 1 0 6rem;
+    min-height: 6rem;
+}
+
 .chat-history {
-    flex: 1;
+    width: 100%;
+    min-height: 0;
     overflow-y: auto;
     overflow-anchor: none;
     padding: 16px 24px;
+    overscroll-behavior-y: contain;
+}
+
+.chat-new-messages {
+    position: absolute;
+    right: 16px;
+    bottom: 8px;
+    background: #dbeafe;
+    box-shadow: 0 2px 6px #0002;
 }
 
 .chat-history-notice,
@@ -75,6 +103,7 @@
 .chat-composer-status {
     margin: 0;
     padding: 8px 24px;
+    flex-shrink: 0;
 }
 
 .chat-page button:disabled {
@@ -94,9 +123,10 @@
         display: none;
     }
 
-    .chat-columns.has-conversation .chat-content.chat-page {
+    .chat-layout .chat-columns.has-conversation > .chat-content.chat-page {
         display: flex;
-        height: max(24rem, calc(100dvh - 100px));
+        height: var(--chat-height, calc(100dvh - 100px));
+        overflow: hidden;
     }
 
     .chat-heading,
@@ -110,4 +140,15 @@
     }
 }
 
-.chat-pending { max-height: 9rem; overflow-y: auto; padding: 0 16px; }
+.chat-page .chat-pending {
+    max-height: min(9rem, 20%);
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 16px;
+    margin-top: 8px;
+    flex-shrink: 0;
+}
+
+.chat-body > button {
+    flex-shrink: 0;
+}
