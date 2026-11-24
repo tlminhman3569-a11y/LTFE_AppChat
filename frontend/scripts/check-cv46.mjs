@@ -213,7 +213,7 @@ const LeaveRoom = load('features/rooms/LeaveRoom.tsx', {
     '../../store/hooks': { useAppSelector: select => select({ auth: { sessionGeneration } }) },
     '../../store': { store: { getState: () => ({ auth: { sessionGeneration } }) } },
     './leaveRoomRequestState': leaveState,
-    './roomRequestState': { clearRoomRequest: () => {}, getRoomRequest: () => null },
+    './roomRequestState': { clearRoomRequest: () => {}, getRoomRequest: () => null, allowJoinRetryAfterRejectedLeave: () => true },
 }).default
 const room = { ...known }
 const makeProps = (changes = {}) => ({ room, currentUser: 'Khoi', hasDraft: false, onClose: () => {}, onLeaveConfirmed: () => {}, ...changes })

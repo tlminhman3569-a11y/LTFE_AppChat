@@ -37,7 +37,8 @@ export function updateLeaveRequest(sessionGeneration: number, name: string, requ
 
 export function resetLeaveAfterJoin(sessionGeneration: number, name: string) {
     const key = keyFor(sessionGeneration, name)
-    if (requests.get(key)?.status !== 'success') return false
+    const previous = requests.get(key)
+    if (!previous || previous.status === 'pending') return false
     requests.delete(key)
     notify()
     return true

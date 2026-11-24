@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
-import type { ApiResult } from '../../types/api'
+import type { ApiError, ApiResult } from '../../types/api'
 import type { Room, RoomConversationRef } from '../../types/room'
 import { useAppSelector } from '../../store/hooks'
 import { store } from '../../store'
 import { getLeaveRequest, subscribeLeaveRequests, updateLeaveRequest } from './leaveRoomRequestState'
 import type { LeaveRequest, LeaveStatus } from './leaveRoomRequestState'
-import { clearRoomRequest, getRoomRequest } from './roomRequestState'
+import { allowJoinRetryAfterRejectedLeave, clearRoomRequest, getRoomRequest } from './roomRequestState'
 import './room-mobile.css'
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
     draftPreview?: string
     onClose: () => void
     onLeaveConfirmed: (conversation: RoomConversationRef) => void
-    onStatusChange?: (conversation: RoomConversationRef, status: LeaveStatus) => void
+    onStatusChange?: (conversation: RoomConversationRef, status: LeaveStatus, error?: ApiError) => void
     leaveRoom?: (name: string) => Promise<ApiResult<{ roomName: string }>>
 }
 
@@ -99,7 +99,10 @@ export default function LeaveRoom({
         }
 
         updateLeaveRequest(sessionGeneration, room.name, { status: 'error', message: result.error.message })
-        onStatusChange?.(conversation, 'error')
+        if (result.error.kind === 'business') {
+            allowJoinRetryAfterRejectedLeave(room.name, sessionGeneration)
+        }
+        onStatusChange?.(conversation, 'error', result.error)
     }
 
     return (

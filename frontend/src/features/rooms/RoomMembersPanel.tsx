@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
-import { refreshRoomMembers, roomLeft, roomLeaveUncertain } from '../../store/slices/roomsSlice'
+import { refreshRoomMembers, roomLeft, roomLeaveRejected, roomLeaveUncertain } from '../../store/slices/roomsSlice'
 import { leaveRoom } from '../../services/roomsApi'
 import type { ConversationRef } from '../../types/api'
 import LeaveRoom from './LeaveRoom'
@@ -45,6 +45,7 @@ export default function RoomMembersPanel({ conversation, currentUser, sessionGen
                             onRefresh={refresh}
                             onClose={() => setOpen(false)}
                             loadedAt={loadedAt}
+                            leaveRejection={entry?.leaveRejected}
                             onRequestLeave={() => setShowLeave(true)}
                         />
                     </div>
@@ -58,8 +59,12 @@ export default function RoomMembersPanel({ conversation, currentUser, sessionGen
                     draftPreview={draft.trim().slice(0, 120)}
                     onClose={() => setShowLeave(false)}
                     leaveRoom={leaveRoom}
-                    onStatusChange={(_, status) => {
+                    onStatusChange={(_, status, failure) => {
                         if (status === 'unknown') dispatch(roomLeaveUncertain({ name: conversation.name, sessionGeneration }))
+                        if (status === 'error' && failure?.kind === 'business') {
+                            dispatch(roomLeaveRejected({ name: conversation.name, sessionGeneration, message: failure.message }))
+                            if (canLoad) void dispatch(refreshRoomMembers({ name: conversation.name, sessionGeneration }))
+                        }
                     }}
                     onLeaveConfirmed={() => {
                         dispatch(roomLeft({ name: conversation.name, sessionGeneration }))

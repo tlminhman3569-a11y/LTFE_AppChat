@@ -1,0 +1,23 @@
+[PASS] Real app booted: Original App + AppRoutes(/chat) + ChatLayout + Redux auth via RE_LOGIN; socket mocked
+[PASS] Real sidebar: ConversationSidebar available under AppRoutes(/chat)
+[PASS] No automatic initial JOIN: Opening initial JoinRoom causes no socket send
+[PASS] First JOIN confirmed: One outgoing JOIN_ROOM, server mock status=success
+[PASS] Draft prepared: CV46 - draft preserved on OUT error /chat
+[PASS] Send enabled before leave: Real Composer + ChatLayout canSend
+[PASS] Draft visible in actual LeaveRoom: RoomMembersPanel passed draft into LeaveRoom
+[PASS] OUT business error received: roomsApi handles mocked socket OUT_ROOM/error
+[PASS] Send blocked by Redux: ChatLayout sees leaveRejected from RoomMembersPanel dispatch
+[PASS] Draft retained after rejected OUT: ChatLayout useChatDrafts + real Composer
+[PASS] No automatic JOIN on OUT error: JOIN request count still 1
+[PASS] Rejoin button enabled: Previous JOIN success cleared after business error
+[PASS] Open rejoin does not send: No extra JOIN_ROOM before explicit confirmation
+[PASS] Pending prevents duplicates: Actual JoinRoom submit disabled while pending
+[PASS] Only one extra JOIN: Actual disabled button click did not send another JOIN; count 2
+[PASS] Exactly one rejoin: Total JOIN requests exactly 2
+[PASS] Send re-enabled after JOIN success: Real Redux roomConfirmed cleared leaveRejected; ChatLayout canSend true
+[PASS] Draft preserved after rejoin: Real useChatDrafts remains unchanged
+[PASS] No SEND_CHAT: Draft not automatically sent
+[PASS] Warning removed: MemberList no leaveRejected after JOIN success
+[PASS] Error banner removed: Redux + leave request reset
+[PASS] No browser JS exceptions: []
+[PASS] Correct response sequence: JOIN success → OUT error → JOIN success

@@ -14,6 +14,7 @@ interface RoomEntry {
     error: ApiError | null
     requestId?: string
     leaveUncertain?: boolean
+    leaveRejected?: string
 }
 
 interface RoomsState {
@@ -50,10 +51,12 @@ function mergeMetadata(state: RoomsState, data: RoomReadResult): void {
         room.membersKnown = true
     }
 
-    if (!entry.leaveUncertain && previous.membership !== 'left' && state.currentUser) {
+    if (previous.membership !== 'left' && state.currentUser) {
         if (room.ownerKnown && room.owner === state.currentUser) room.membership = 'owner'
-        else if (room.membersKnown && room.members?.includes(state.currentUser)) room.membership = 'member'
-        else if (data.membersKnown || (data.ownerKnown && previous.membership === 'owner')) room.membership = 'unknown'
+        else if (!entry.leaveUncertain && !entry.leaveRejected) {
+            if (room.membersKnown && room.members?.includes(state.currentUser)) room.membership = 'member'
+            else if (data.membersKnown || (data.ownerKnown && previous.membership === 'owner')) room.membership = 'unknown'
+        }
     }
     entry.room = room
     if (data.membersKnown) {
@@ -88,15 +91,23 @@ const roomsSlice = createSlice({
                 entry.leaveUncertain = true
             }
         },
+        roomLeaveRejected(state, { payload }: PayloadAction<{ name: string; sessionGeneration: number; message: string }>) {
+            if (state.sessionGeneration !== payload.sessionGeneration) return
+            const entry = roomEntry(state, payload.name)
+            if (entry.room.membership === 'left') return
+            entry.leaveRejected = payload.message
+        },
         roomLeft(state, { payload }: PayloadAction<{ name: string; sessionGeneration: number }>) {
             if (state.sessionGeneration !== payload.sessionGeneration) return
             const entry = roomEntry(state, payload.name)
             entry.room.membership = 'left'
             entry.leaveUncertain = false
+            entry.leaveRejected = undefined
         },
         roomConfirmed(state, { payload }: PayloadAction<Room>) {
             const entry = roomEntry(state, payload.name)
             entry.leaveUncertain = false
+            entry.leaveRejected = undefined
             const previous = entry.room
             entry.room = {
                 ...previous,
@@ -118,6 +129,12 @@ const roomsSlice = createSlice({
             .addCase(sessionChecking, state => resetState(state))
             .addCase(sessionCleared, state => resetState(state))
             .addCase(sessionStarted, (state, action) => ({ ...resetState(state), currentUser: action.payload }))
+            .addCase('auth/sessionReconnected', state => {
+                for (const entry of Object.values(state.byKey)) {
+                    if (entry.room.membership === 'member') entry.room.membership = 'unknown'
+                    entry.loadedAt = null
+                }
+            })
             .addCase(fetchHistoryPage.fulfilled, (state, action) => {
                 if (action.payload.status !== 'success' || !action.payload.data.room) return
                 if (action.meta.arg.sessionGeneration !== state.sessionGeneration) return
@@ -153,5 +170,5 @@ const roomsSlice = createSlice({
     },
 })
 
-export const { roomConfirmed, roomLeaveUncertain, roomLeft } = roomsSlice.actions
+export const { roomConfirmed, roomLeaveUncertain, roomLeaveRejected, roomLeft } = roomsSlice.actions
 export default roomsSlice.reducer

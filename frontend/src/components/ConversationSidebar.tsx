@@ -100,9 +100,14 @@ export default function ConversationSidebar({ selectedConversation, onSelectConv
         : apiList.error || (disconnected ? 'Kết nối bị gián đoạn. Chưa thể cập nhật danh sách.' : '')
     const suggestions = filterRecentConversations(conversations, query)
     const activeRoomDialog = roomDialog?.sessionGeneration === sessionGeneration ? roomDialog : null
-    const activeRoomUpdate = roomUpdate?.sessionGeneration === sessionGeneration ? roomUpdate : null
+    const currentRoomUpdate = roomUpdate?.sessionGeneration === sessionGeneration ? roomUpdate : null
+    const activeRoomUpdate = currentRoomUpdate?.action === 'join' && currentRoomUpdate.status === 'success'
+    && roomsByKey[createConversationKey({ kind: 'room', name: currentRoomUpdate.name })]?.leaveRejected
+        ? null : currentRoomUpdate
+    const confirmedEntry = confirmedRoom?.sessionGeneration === sessionGeneration
+        ? roomsByKey[createConversationKey({ kind: 'room', name: confirmedRoom.room.name })] : undefined
     const activeConfirmedRoom = confirmedRoom?.sessionGeneration === sessionGeneration
-    && roomsByKey[createConversationKey({ kind: 'room', name: confirmedRoom.room.name })]?.room.membership !== 'left'
+    && confirmedEntry?.room.membership !== 'left' && !confirmedEntry?.leaveRejected
         ? confirmedRoom.room : null
 
     function onRoomConfirmed(room: Room, shouldSelect = true) {

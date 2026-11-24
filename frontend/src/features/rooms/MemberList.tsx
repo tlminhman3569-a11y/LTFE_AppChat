@@ -5,6 +5,7 @@ import './room-mobile.css'
 type Props = MemberListProps & {
     loadedAt?: string
     onRequestLeave?: (conversation: RoomConversationRef) => void
+    leaveRejection?: string
 }
 
 const buttonStyle: CSSProperties = {
@@ -17,7 +18,7 @@ const buttonStyle: CSSProperties = {
 }
 
 export default function MemberList({
-                                       room, currentUser, loading, error, onRefresh, onClose, loadedAt, onRequestLeave,
+                                       room, currentUser, loading, error, onRefresh, onClose, loadedAt, onRequestLeave, leaveRejection,
                                    }: Props) {
     const conversation: RoomConversationRef = { kind: 'room', name: room.name }
     const members = room.membersKnown && Array.isArray(room.members) ? room.members : null
@@ -56,6 +57,21 @@ export default function MemberList({
                 <p>Chủ phòng: <strong>{room.owner}</strong></p>
             )}
             {!room.ownerKnown && <p>Chưa xác định được chủ phòng.</p>}
+            <p role="status">Quyền phòng: {leaveRejection
+                ? 'Cần xác minh (OUT_ROOM đã bị từ chối)'
+                : room.membership === 'member' ? 'Thành viên (theo dữ liệu đã xác nhận trước đó)'
+                    : room.membership === 'owner' ? 'Chủ phòng'
+                        : room.membership === 'left' ? 'Đã rời phòng' : 'Chưa xác định'}</p>
+            {leaveRejection && (
+                <p role="alert" style={{ color: '#b42318' }}>
+                    Máy chủ từ chối OUT_ROOM: {leaveRejection}. Danh sách bên dưới lấy từ GET_ROOM_CHAT_MES,
+                    không xác nhận quyền rời/gửi hiện tại. Có thể làm mới để đối chiếu hoặc chủ động chọn
+                    “Tham gia phòng” ở danh sách hội thoại. Hệ thống không tự JOIN_ROOM.
+                </p>
+            )}
+            {leaveRejection && currentUser && <p>Đối chiếu userList: {room.membersKnown
+                ? room.members?.includes(currentUser) ? 'còn liệt kê tài khoản này' : 'không liệt kê tài khoản này'
+                : 'chưa có dữ liệu thành viên hợp lệ'}.</p>}
 
             <button type="button" disabled={loading} onClick={() => onRefresh(conversation)} style={buttonStyle}>
                 {loading ? 'Đang tải...' : error ? 'Thử lại' : 'Làm mới'}
@@ -78,6 +94,11 @@ export default function MemberList({
                         const owner = room.ownerKnown && room.owner === username
                         const me = currentUser === username
                         const role = owner ? 'Chủ phòng' : 'Thành viên'
+                        const displayedRole = me && room.membership === 'left'
+                            ? 'Bạn · Đã rời phòng (danh sách có thể cũ)'
+                            : me && leaveRejection
+                                ? 'Bạn · Có trong danh sách, quyền chưa xác minh'
+                                : me ? `Bạn · ${role}` : role
 
                         return (
                             <li key={username} style={{
@@ -89,7 +110,7 @@ export default function MemberList({
                                 borderBottom: '1px solid #e2e8f0',
                             }}>
                                 <span>{username}</span>
-                                <span style={{ color: '#64748b' }}>{me ? `Bạn · ${role}` : role}</span>
+                                <span style={{ color: '#64748b' }}>{displayedRole}</span>
                             </li>
                         )
                     })}
