@@ -1,0 +1,292 @@
+{
+  "result": "PASS",
+  "scope": "actual /chat UI, mock WebSocket; OUT intentionally unanswered; no live server",
+  "url": "about:blank",
+  "offline_transpiled_bundle": true,
+  "checks": [
+    {
+      "result": "PASS",
+      "check": "Send enabled before timeout",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "Draft prepared",
+      "detail": "CV49 timeout - draft must remain"
+    },
+    {
+      "result": "PASS",
+      "check": "Draft visible before OUT",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "OUT pending disables repeat",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "Timeout reports uncertain outcome",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "OUT retry blocked after timeout",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "Unknown membership blocks sending",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "Draft retained after timeout",
+      "detail": "CV49 timeout - draft must remain"
+    },
+    {
+      "result": "PASS",
+      "check": "No automatic repeated write after timeout",
+      "detail": "{'CREATE_ROOM': 0, 'JOIN_ROOM': 1, 'OUT_ROOM': 1, 'SEND_CHAT': 0}"
+    },
+    {
+      "result": "PASS",
+      "check": "No mocked OUT response delivered",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "Draft and send guard persist after observation",
+      "detail": ""
+    },
+    {
+      "result": "PASS",
+      "check": "No browser JS exceptions",
+      "detail": "[]"
+    }
+  ],
+  "socket_trace": [
+    {
+      "seq": 1,
+      "t": 1795527629768,
+      "direction": "client_request",
+      "event": "RE_LOGIN",
+      "payload": {
+        "user": "Khoi",
+        "code": "fake_login_code"
+      },
+      "count": 1
+    },
+    {
+      "seq": 2,
+      "t": 1795527629812,
+      "direction": "mock_server_response",
+      "event": "RE_LOGIN",
+      "payload": {
+        "event": "RE_LOGIN",
+        "status": "success",
+        "data": {
+          "RE_LOGIN_CODE": "fresh_123"
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 3,
+      "t": 1795527629821,
+      "direction": "client_request",
+      "event": "GET_USER_LIST",
+      "payload": {},
+      "count": 1
+    },
+    {
+      "seq": 4,
+      "t": 1795527629863,
+      "direction": "mock_server_response",
+      "event": "GET_USER_LIST",
+      "payload": {
+        "event": "GET_USER_LIST",
+        "status": "success",
+        "data": [
+          {
+            "name": "CV49TimeoutRoom",
+            "type": 1,
+            "actionTime": "2026-11-23 15:45:00"
+          }
+        ]
+      },
+      "count": 1
+    },
+    {
+      "seq": 5,
+      "t": 1795527630000,
+      "direction": "client_request",
+      "event": "JOIN_ROOM",
+      "payload": {
+        "name": "CV49TimeoutRoom"
+      },
+      "count": 1
+    },
+    {
+      "seq": 6,
+      "t": 1795527630151,
+      "direction": "mock_server_response",
+      "event": "JOIN_ROOM",
+      "payload": {
+        "event": "JOIN_ROOM",
+        "status": "success",
+        "data": {
+          "id": 506,
+          "name": "CV49TimeoutRoom",
+          "own": "Owner49",
+          "userList": [
+            {
+              "name": "Owner49"
+            },
+            {
+              "name": "Khoi"
+            }
+          ]
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 7,
+      "t": 1795527630152,
+      "direction": "client_request",
+      "event": "GET_USER_LIST",
+      "payload": {},
+      "count": 2
+    },
+    {
+      "seq": 8,
+      "t": 1795527630179,
+      "direction": "client_request",
+      "event": "GET_ROOM_CHAT_MES",
+      "payload": {
+        "name": "CV49TimeoutRoom",
+        "page": 1
+      },
+      "count": 1
+    },
+    {
+      "seq": 9,
+      "t": 1795527630193,
+      "direction": "mock_server_response",
+      "event": "GET_USER_LIST",
+      "payload": {
+        "event": "GET_USER_LIST",
+        "status": "success",
+        "data": [
+          {
+            "name": "CV49TimeoutRoom",
+            "type": 1,
+            "actionTime": "2026-11-23 15:45:00"
+          }
+        ]
+      },
+      "count": 2
+    },
+    {
+      "seq": 10,
+      "t": 1795527630220,
+      "direction": "mock_server_response",
+      "event": "GET_ROOM_CHAT_MES",
+      "payload": {
+        "event": "GET_ROOM_CHAT_MES",
+        "status": "success",
+        "data": {
+          "id": 506,
+          "name": "CV49TimeoutRoom",
+          "own": "Owner49",
+          "userList": [
+            {
+              "name": "Owner49"
+            },
+            {
+              "name": "Khoi"
+            }
+          ],
+          "chatData": [],
+          "page": 1
+        }
+      },
+      "count": 1
+    },
+    {
+      "seq": 11,
+      "t": 1795527630332,
+      "direction": "client_request",
+      "event": "OUT_ROOM",
+      "payload": {
+        "name": "CV49TimeoutRoom"
+      },
+      "count": 1
+    },
+    {
+      "seq": 12,
+      "t": 1795527630333,
+      "direction": "mock_drop_response",
+      "event": "OUT_ROOM",
+      "payload": {
+        "reason": "intentional silence; real client timeout"
+      }
+    },
+    {
+      "seq": 13,
+      "t": 1795527640851,
+      "direction": "client_request",
+      "event": "RE_LOGIN",
+      "payload": {
+        "user": "Khoi",
+        "code": "fresh_123"
+      },
+      "count": 2
+    },
+    {
+      "seq": 14,
+      "t": 1795527640891,
+      "direction": "mock_server_response",
+      "event": "RE_LOGIN",
+      "payload": {
+        "event": "RE_LOGIN",
+        "status": "success",
+        "data": {
+          "RE_LOGIN_CODE": "fresh_123"
+        }
+      },
+      "count": 2
+    },
+    {
+      "seq": 15,
+      "t": 1795527640895,
+      "direction": "client_request",
+      "event": "GET_USER_LIST",
+      "payload": {},
+      "count": 3
+    },
+    {
+      "seq": 16,
+      "t": 1795527640935,
+      "direction": "mock_server_response",
+      "event": "GET_USER_LIST",
+      "payload": {
+        "event": "GET_USER_LIST",
+        "status": "success",
+        "data": [
+          {
+            "name": "CV49TimeoutRoom",
+            "type": 1,
+            "actionTime": "2026-11-23 15:45:00"
+          }
+        ]
+      },
+      "count": 3
+    }
+  ],
+  "page_errors": [],
+  "failure": null,
+  "requested_url": "http://localhost:5173/chat",
+  "offline_route": "MemoryRouter /chat; CommonJS transpiled source; no Vite"
+}
