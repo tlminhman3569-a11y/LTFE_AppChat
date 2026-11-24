@@ -41,7 +41,7 @@ Nguồn cấu hình: [Upload presets](https://cloudinary.com/documentation/uploa
 
 ## Hợp đồng upload cho CV56
 
-Phần 2 triển khai trong `services/uploadApi.ts` với chữ ký
+Service triển khai trong `services/uploadApi.ts` với chữ ký
 
 ```ts
 uploadImage(file: File, signal?: AbortSignal): Promise<UploadResult>
@@ -67,7 +67,7 @@ Các trường cần đọc trong response Cloudinary
 
 Đây là mẫu cấu trúc, không phải log API thật. Adapter đổi `secure_url` thành `url`, `public_id` thành `publicId`, map `jpg`/`jpeg` sang `image/jpeg`, `png` sang `image/png`, `webp` sang `image/webp`
 
-Chỉ trả success khi URL HTTPS thuộc cloud của nhóm, resource_type là image, định dạng được phép, public_id không rỗng, bytes là số nguyên trong giới hạn và width/height là số nguyên dương. Kiểm tra response ở runtime, không chỉ ép kiểu TypeScript
+Chỉ trả success khi URL HTTPS thuộc cloud của nhóm, resource_type là image, định dạng được phép, public_id không rỗng, bytes là số dương trong giới hạn và width/height là số dương. Kiểm tra response ở runtime, không chỉ ép kiểu TypeScript
 
 Kết quả frontend
 
@@ -130,3 +130,102 @@ npm run lint
 ```
 
 Build kiểm tra types và dữ liệu mẫu khớp nhau, lint kiểm tra các file TypeScript mới. Phần 1 chưa có nút chọn ảnh trên web, chưa có test upload hoặc log upload thật; các phần đó làm ở bước sau
+
+
+## Phần 2 — service upload
+
+Đã có `uploadImage(file, signal?)` dùng Fetch của CV10. Service đọc hai biến VITE_CLOUDINARY trong env, kiểm tra file, gửi FormData và đổi phản hồi Cloudinary thành UploadedImage
+
+- Thiếu cấu hình, file rỗng, quá 5 MiB hoặc MIME ngoài danh sách thì trả lỗi trước khi gọi Fetch
+- FormData chỉ có file và upload_preset, không có mật khẩu hoặc mã phiên AppChat, không tự đặt Content-Type và không gửi cookie
+- Chỉ trả success khi URL và metadata khớp hợp đồng ở trên
+- Lỗi HTTP, mạng, JSON hoặc metadata sai đều trả lỗi, không tự upload lại
+- Chuyển AbortSignal cho Fetch để hủy request hoặc việc đọc phản hồi, dùng cách phân loại lỗi của CV10. Phần tự hủy khi bỏ ảnh/logout/đổi tài khoản và bỏ kết quả tác vụ cũ vẫn thuộc CV58
+
+### Chạy bằng phản hồi giả
+
+Trong Terminal WebStorm, mở frontend
+
+```powershell
+npm test -- scripts/cv55-upload.test.ts
+npm run build
+npm run lint
+```
+
+Kỳ vọng 17 test đạt. Đây là Fetch giả, không tạo ảnh trên Cloudinary và không xác nhận tài khoản/preset thật đã hoạt động
+
+### Thử Cloudinary thật
+
+Điền cloud name và preset Unsigned của nhóm vào frontend/.env.local theo phần cấu hình phía trên. Nếu đang chạy dev server thì khởi động lại để đọc env mới
+
+Chọn một ảnh JPEG/PNG/WebP thử nghiệm, không dùng ảnh riêng tư. Trong Terminal WebStorm tại frontend
+
+```powershell
+$env:APPCHAT_UPLOAD_FILE = 'C:\duong-dan\anh-thu.png'
+try {
+    npm test -- scripts/cv55-upload-live.test.ts
+} finally {
+    Remove-Item Env:APPCHAT_UPLOAD_FILE
+}
+```
+
+Thay đường dẫn bằng ảnh thật trên máy. Test upload qua uploadImage rồi tải lại URL để kiểm tra HTTP thành công, Content-Type là ảnh và body có dữ liệu. Kỳ vọng 1 test đạt, có thể chụp terminal để đính kèm PR
+
+Nếu không đặt APPCHAT_UPLOAD_FILE thì test tự bỏ qua; bỏ qua không tính là đã thử Cloudinary thật. Nếu thiếu cấu hình hoặc preset sai thì test báo lỗi, không chuyển sang dữ liệu mẫu
+
+Mỗi lần chạy thật có thể lưu thêm một ảnh trong tài khoản. Test không tự xóa ảnh, nhóm có thể xem và xóa ảnh thử trong Cloudinary Media Library. Request được giới hạn thời gian, nhưng timeout hoặc hủy chưa chứng minh máy chủ chưa lưu ảnh
+
+### Thử từ trình duyệt
+
+Phần 2 chưa thêm nút chọn ảnh vào /chat. Khi CV56 nối composer, dùng cùng uploadImage và theo dõi Network: request POST tới Cloudinary có file/preset, success trả URL thì mới đóng gói tin qua WebSocket. Không coi test upload đơn lẻ là đã hoàn tất gửi/nhận ảnh trong chat
+
+Đã thử Cloudinary thật ngày 24/11/2026: upload một ảnh PNG mẫu 32 × 32 qua uploadImage bằng preset của nhóm, nhận URL đúng cloud và tải lại được nội dung ảnh từ URL. Test thật đạt 1/1
+
+Lượt phần 2 chạy bằng Vitest trong Node, chưa kiểm tra CORS trong trình duyệt, chưa gửi ảnh qua WebSocket hoặc hiển thị ảnh trong chat. Kết quả thử trình duyệt và ba định dạng thật nằm ở phần 3 bên dưới
+
+Cấu hình nhóm đã điền ở frontend/.env.local, file này được Git bỏ qua. Máy khác cần tự điền cloud name/preset theo hướng dẫn, không lấy kết quả test skip làm bằng chứng upload thành công
+
+Kết quả phần 2: 37/37 test giả, 1/1 test upload thật; toàn bộ bộ test khi không chọn ảnh có 134 ca đạt và 1 ca thật tự bỏ qua; build và lint đạt. Phần kiểm thử gửi–nhận ảnh và ảnh bằng chứng giao diện tiếp tục ở bước tích hợp
+
+
+## Phần 3 — thử trên trình duyệt và bàn giao
+
+Đã thử ngày 24/11/2026 bằng Chrome từ dev server Vite. Trang thử dùng đúng uploadImage, không thay Fetch hoặc phản hồi Cloudinary
+
+| Trường hợp | Kết quả |
+| --- | --- |
+| Ảnh JPEG 80 × 60 | Một POST, upload thành công, trình duyệt đọc được response và tải được ảnh từ URL |
+| Ảnh PNG 80 × 60 | Một POST, upload thành công, trình duyệt đọc được response và tải được ảnh từ URL |
+| Ảnh WebP 80 × 60 | Một POST, upload thành công, trình duyệt đọc được response và tải được ảnh từ URL |
+| File text | Trả lỗi validation, không có POST tới Cloudinary |
+| Ảnh lớn hơn 5 MiB | Trả lỗi validation, không có POST tới Cloudinary |
+
+CORS đã hoạt động cho lượt thử từ `http://127.0.0.1:5188`. Đây chưa phải kết quả cho domain triển khai sau này. Trang đăng nhập vẫn mở được, không có form upload thử trong giao diện sản phẩm
+
+### Cách thử lại trên web
+
+1. Điền hai cấu hình Cloudinary trong frontend/.env.local trên máy đang thử
+2. Trong Terminal WebStorm tại frontend, chạy npm run dev
+3. Mở `http://localhost:5173/scripts/check-upload.html`, nếu Vite báo cổng khác thì thay cổng tương ứng
+4. Chọn ảnh JPEG/PNG/WebP nhỏ hơn 5 MiB, bấm Upload ảnh một lần
+5. Chờ dòng Upload thành công, đã tải được ảnh từ URL, bên dưới có kết quả và ảnh thật tải từ Cloudinary
+6. Mở DevTools Network, lọc upload: có một POST tới api.cloudinary.com cho lượt vừa bấm. Lúc đang upload nút và ô chọn file bị khóa
+7. Thử một ảnh lớn hơn 5 MiB: hiện lỗi dung lượng và không có POST mới. Muốn đối chiếu các lỗi khác, chạy bộ Vitest giả ở phần 2
+
+Đây là trang thử trong scripts, chỉ phục vụ kiểm tra service qua dev server. Không nằm trong menu hoặc route chat, không phải màn hình gửi ảnh của sản phẩm và không được đưa vào entry build chính. Trang không yêu cầu đăng nhập AppChat vì preset unsigned của Cloudinary hoạt động độc lập
+
+Mỗi lần thử thành công có thể lưu thêm một ảnh. Ảnh xem trước trên trang này lấy từ URL Cloudinary trả về, không phải object URL cục bộ. Chưa có nút Gửi tin nhắn và không gọi SEND_CHAT
+
+Bằng chứng để đính kèm PR: `CV55-upload-jpg.png`, `CV55-upload-png.png`, `CV55-upload-webp.png` và `CV55-chan-anh-qua-lon.png`
+
+### Kiệt và Khôi tiếp tục từ đâu
+
+- Kiệt dùng types/media.ts và uploadImage của CV55 cho CV56, giữ file/đích hội thoại tại lúc bắt đầu gửi. Chỉ serialize tin ảnh sau upload success, không coi upload success là tin đã lưu
+- Khôi đối chiếu phương án trong CV51, thử quyền phòng khi nối đầy đủ, không dùng trang upload riêng này làm bằng chứng quyền gửi hoặc thành viên
+- CV58 nối việc hủy và bỏ kết quả tác vụ cũ theo phiên. Caller phải chặn kết quả không còn thuộc file/tài khoản/hội thoại đang gửi
+- Vòng SEND_CHAT → nhận tin → đọc lịch sử cho chat riêng/phòng vẫn phải kiểm tra sau khi CV56/CV60 được tích hợp
+
+CV55 đã có hợp đồng, service upload và kết quả upload thật từ Node/trình duyệt. Chưa nghiệm thu toàn bộ tính năng gửi ảnh trong chat ở giai đoạn này
+
+
+Bộ test upload đã gom 37 ca hiển thị thành 17 test theo hành vi, giữ các đầu vào và ca biên cũ. Lượt chạy sau khi viết lại: 17/17 upload giả, toàn bộ Vitest 114 đạt và 1 test thật bỏ qua khi không chọn ảnh. File test live giữ nguyên

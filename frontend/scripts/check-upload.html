@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kiểm tra upload ảnh</title>
+</head>
+<body>
+    <h1>Kiểm tra upload ảnh Cloudinary</h1>
+    <p>Trang thử service upload, chưa gửi tin nhắn qua chat</p>
+    <p>Mỗi lần upload có thể lưu thêm một ảnh trong tài khoản của nhóm</p>
+    <form id="upload-form">
+        <label>Ảnh thử <input id="file" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+        <button id="submit" type="submit">Upload ảnh</button>
+    </form>
+    <p id="status" role="status">Chưa upload</p>
+    <pre id="result"></pre>
+    <img id="image" alt="Ảnh tải từ URL Cloudinary" width="240" hidden>
+
+    <script type="module">
+        import { uploadImage } from '/src/services/uploadApi.ts'
+
+        const form = document.getElementById('upload-form')
+        const input = document.getElementById('file')
+        const button = document.getElementById('submit')
+        const status = document.getElementById('status')
+        const result = document.getElementById('result')
+        const image = document.getElementById('image')
+
+        image.onload = () => { status.textContent = 'Upload thành công, đã tải được ảnh từ URL' }
+        image.onerror = () => { status.textContent = 'Upload thành công nhưng chưa tải được ảnh từ URL' }
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault()
+            const file = input.files[0]
+            if (!file || button.disabled) return
+
+            button.disabled = true
+            input.disabled = true
+            image.hidden = true
+            image.removeAttribute('src')
+            result.textContent = ''
+            status.textContent = 'Đang upload'
+
+            try {
+                const res = await uploadImage(file, AbortSignal.timeout(30000))
+                result.textContent = JSON.stringify(res, null, 2)
+                if (res.status === 'success') {
+                    status.textContent = 'Upload thành công, đang tải ảnh từ URL'
+                    image.src = res.data.url
+                    image.hidden = false
+                } else {
+                    status.textContent = res.error.message
+                }
+            } catch {
+                status.textContent = 'Không chạy được lượt thử upload'
+            } finally {
+                button.disabled = false
+                input.disabled = false
+            }
+        })
+    </script>
+</body>
+</html>
