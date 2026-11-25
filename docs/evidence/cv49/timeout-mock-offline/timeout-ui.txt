@@ -1,0 +1,14 @@
+RESULT: PASS
+MOCK UI ONLY
+PASS Send enabled before timeout 
+PASS Draft prepared CV49 timeout - draft must remain
+PASS Draft visible before OUT 
+PASS OUT pending disables repeat 
+PASS Timeout reports uncertain outcome 
+PASS OUT retry blocked after timeout 
+PASS Unknown membership blocks sending 
+PASS Draft retained after timeout CV49 timeout - draft must remain
+PASS No automatic repeated write after timeout {'CREATE_ROOM': 0, 'JOIN_ROOM': 1, 'OUT_ROOM': 1, 'SEND_CHAT': 0}
+PASS No mocked OUT response delivered 
+PASS Draft and send guard persist after observation 
+PASS No browser JS exceptions []

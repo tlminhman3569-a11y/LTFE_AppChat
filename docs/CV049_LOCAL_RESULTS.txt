@@ -1,0 +1,208 @@
+CV49 - LOCAL SIMULATION LOG (NOT LIVE SERVER EVIDENCE)
+Captured: 2026-11-24
+
+===== check-cv44.mjs =====
+PASS CV44-01 Tên phòng rỗng không gửi WebSocket
+PASS CV44-02 Tên chính xác và event CREATE_ROOM
+PASS CV44-03 Event JOIN_ROOM và quyền thành viên sau success
+PASS CV44-04 Metadata own/userList đủ: chủ và thành viên
+PASS CV44-05 Danh sách thành viên trống được xác nhận khác trường thiếu
+PASS CV44-06 Danh sách thành viên chứa chuỗi cũng hợp lệ
+PASS CV44-07 Danh sách thành viên không thể parse thì không giả rỗng
+PASS CV44-08 Thành công nhưng tên phòng khác: unknown
+PASS CV44-09 Thành công nhưng thiếu tên phòng: unknown
+PASS CV44-10 Phản hồi khác event không mở phòng
+PASS CV44-11 Lỗi trùng phòng lấy mes cấp ngoài
+PASS CV44-12 Lỗi không có phòng lấy data dạng chuỗi
+PASS CV44-13 Lỗi nghiệp vụ lấy data.mes
+PASS CV44-14 Máy chủ báo lỗi không có mes vẫn giữ phân loại business
+PASS CV44-15 Thiếu status không được coi thành công
+PASS CV44-16 Status success nhưng data sai kiểu: unknown
+PASS CV44-17 Timeout sau khi gửi không được gửi lại tự động
+PASS CV44-18 Mất kết nối sau khi gửi: unknown
+PASS CV44-19 Mất kết nối trước khi gửi: error
+PASS CV44-20 Lỗi ngoài dự kiến không ghi đã thành công
+PASS CV44-21 CV45 loadRoom vẫn kiểm tra đầu vào và dùng đúng API đọc phòng
+PASS CV44-22 Sidebar đã gắn cả hai form thật
+PASS CV44-23 Sidebar truyền service thật vào hai form CV40
+CV44: 23/23 kiểm tra giả lập đạt
+PASS CV44-24 create: connection trước khi gửi là error và được thử lại cùng tên
+PASS CV44-25 create: timeout trước khi gửi là error và không giữ khóa
+PASS CV44-26 create: connection sau khi gửi vẫn unknown và khóa lần sau
+PASS CV44-27 create: timeout sau khi gửi vẫn unknown và khóa lần sau
+PASS CV44-28 create: phản hồi thành công thiếu tên giữ unknown và không gửi lại
+PASS CV44-29 create: hai lần xác nhận khi pending chỉ gọi service một lần
+PASS CV44-30 create: phản hồi lỗi nghiệp vụ cho phép gửi lại
+PASS CV44-31 create: lỗi ném ra chưa phân loại vẫn khóa để an toàn
+PASS CV44-32 create: phản hồi phiên cũ không chuyển success
+PASS CV44-33 join: connection trước khi gửi là error và được thử lại cùng tên
+PASS CV44-34 join: timeout trước khi gửi là error và không giữ khóa
+PASS CV44-35 join: connection sau khi gửi vẫn unknown và khóa lần sau
+PASS CV44-36 join: timeout sau khi gửi vẫn unknown và khóa lần sau
+PASS CV44-37 join: phản hồi thành công thiếu tên giữ unknown và không gửi lại
+PASS CV44-38 join: hai lần xác nhận khi pending chỉ gọi service một lần
+PASS CV44-39 join: phản hồi lỗi nghiệp vụ cho phép gửi lại
+PASS CV44-40 join: lỗi ném ra chưa phân loại vẫn khóa để an toàn
+PASS CV44-41 join: phản hồi phiên cũ không chuyển success
+PASS CV44-42 Sidebar hợp nhất phòng đã xác nhận không hiển thị trùng tên
+CV44: 42/42 kiểm tra giả lập đạt (bao gồm roomRequestState)
+
+===== check-cv45.mjs =====
+PASS CV45-01 GET_ROOM_CHAT_MES giữ nguyên tên, trang và chuẩn hóa tin
+PASS CV45-02 Thiếu metadata không bị suy thành rỗng
+PASS CV45-03 Mảng rỗng có xác nhận thành viên trống
+PASS CV45-04 Biến thể chatMess/user/owner và loại trùng thành viên
+PASS CV45-05 Thiếu hoặc sai mảng lịch sử không giả thành 0 tin
+PASS CV45-06 Thành viên sai kiểu không biến thành mảng rỗng
+PASS CV45-07 Tin sai loại, sai phòng và trường thiếu bị từ chối
+PASS CV45-08 Tên phòng và trang trả về phải khớp
+PASS CV45-09 Sai event và status đều là lỗi parse khi đọc
+PASS CV45-10 Lỗi nghiệp vụ và timeout cho phép đọc lại
+PASS CV45-11 Không gửi request nếu thiếu tên hoặc sai page
+PASS CV45-12 Metadata từ lịch sử cập nhật store và đánh dấu chủ thật
+PASS CV45-13 Trang sau thiếu metadata giữ chủ và thành viên trang đầu
+PASS CV45-14 Mảng rỗng mới được xác nhận thay thế thành viên cũ
+PASS CV45-15 Tài khoản khác không được suy làm chủ từ gần đây
+PASS CV45-16 CREATE/JOIN success mới cập nhật quyền tường minh
+PASS CV45-17 Response phiên cũ không ghi đè metadata tài khoản mới
+PASS CV45-18 Refresh lỗi giữ nguyên metadata đã tải
+PASS CV45-19 Lỗi làm mới vẫn hiện trong lúc thử lại
+PASS CV45-20 Trang lịch sử 2 thiếu userList không xóa cảnh báo hoặc danh sách cũ
+PASS CV45-21 F15 vẫn render cảnh báo, nút Thử lại và danh sách cũ
+PASS CV45-22 Làm mới thành công nhưng không có userList vẫn cảnh báo và giữ dữ liệu
+PASS CV45-23 Chỉ danh sách thành viên mới hợp lệ xóa cảnh báo và cập nhật dữ liệu
+PASS CV45-24 roomConfirmed thiếu danh sách không xóa lỗi tải trước
+PASS CV45-25 Lịch sử Kiệt dùng duy nhất roomsApi, giữ metadata cùng response
+CV45: 25/25 kiểm tra giả lập đạt
+
+===== check-cv46.mjs =====
+PASS CV46-01 Tên trống không gửi yêu cầu
+PASS CV46-02 OUT_ROOM giữ chính xác chữ hoa thường của phòng
+PASS CV46-03 Success theo data.mes không bắt buộc data.name
+PASS CV46-04 Success theo data.name đúng cũng đủ xác nhận
+PASS CV46-05 Success sai tên không đổi trạng thái
+PASS CV46-06 Sai event không xác nhận rời
+PASS CV46-07 Success thiếu thông tin không xác nhận
+PASS CV46-08 Success thiếu data không xác nhận
+PASS CV46-09 Không có response object không xác nhận
+PASS CV46-10 Lỗi nghiệp vụ mes cấp ngoài
+PASS CV46-11 Lỗi nghiệp vụ data dạng chuỗi
+PASS CV46-12 Lỗi nghiệp vụ data.mes
+PASS CV46-13 Timeout đã gửi giữ unknown
+PASS CV46-14 Mất kết nối sau khi gửi giữ unknown
+PASS CV46-15 Mất kết nối trước gửi là error có thể thử lại
+PASS CV46-16 Timeout trước gửi là error, không giả đã gửi
+PASS CV46-17 Không tự gửi JOIN_ROOM hoặc gọi lần hai
+PASS CV46-18 Redux chỉ cập nhật phòng trên phiên hiện tại
+PASS CV46-19 Rời thành công không xóa phòng/metadata khỏi Redux
+PASS CV46-20 Kết quả unknown khóa quyền chưa xác định nhưng không xóa metadata
+PASS CV46-21 Lịch sử tới muộn không tự mở khóa trạng thái OUT_ROOM unknown
+PASS CV46-22 Dữ liệu chủ phòng xác nhận không bị suy ra rời khi unknown
+PASS CV46-23 Lịch sử tải muộn không cấp lại quyền sau rời thành công
+PASS CV46-24 JOIN thành công sau đó khôi phục membership bằng roomConfirmed
+PASS CV46-25 Session đổi không giữ membership của tài khoản trước
+PASS CV46-26 Chủ phòng bị chặn ở UI và không gọi API
+PASS CV46-27 Rời thành công chỉ sau xác nhận và không tự gọi khi mở dialog
+PASS CV46-28 Phản hồi tên sai ở dialog giữ unknown
+PASS CV46-29 Business error cho phép bấm lại
+PASS CV46-30 Lỗi kết nối trước gửi cho phép thử lại, không chuyển unknown
+PASS CV46-31 Timeout unknown khóa gửi lặp cùng tên/phòng
+PASS CV46-32 Đóng dialog khi pending không hủy yêu cầu đã gửi
+PASS CV46-33 Response từ session cũ không cập nhật session mới
+PASS CV46-34 Panel thành viên nối nút Rời phòng sang LeaveRoom
+PASS CV46-35 Panel đánh dấu unknown và success bằng Redux đúng phòng
+CV46: 35/35 giả lập đạt, không gọi API thật.
+
+===== check-cv46-rejected.mjs =====
+PASS CV46-REJECTED-1: OUT_ROOM error giữ nguyên membership cũ nhưng đánh dấu xung đột
+PASS CV46-REJECTED-2: GET_ROOM_CHAT_MES tải muộn, dù vẫn thấy user trong userList, không xóa xung đột
+PASS CV46-REJECTED-3: OUT_ROOM bị từ chối không biến phòng thành left
+PASS CV46-REJECTED-4: JOIN_ROOM success hoặc OUT_ROOM success mới gỡ cờ xung đột
+PASS CV46-REJECTED-5: Response của phiên cũ không ghi trạng thái lỗi vào tài khoản mới
+PASS CV46-REJECTED-6: RE_LOGIN chỉ hạ quyền member cũ xuống unknown, giữ metadata để so sánh
+PASS CV46-REJECTED-7: GET_ROOM_CHAT_MES mới có username sau RE_LOGIN mới được ghi nhận member
+PASS CV46-REJECTED-8: RE_LOGIN không tạo lại quyền đã rời hoặc chủ phòng
+PASS CV46-REJECTED-9: Business error gắn cờ conflict và chỉ truy vấn đọc phòng, không JOIN
+PASS CV46-REJECTED-10: Lỗi trước gửi không tạo xung đột và không GET_ROOM_CHAT_MES
+PASS CV46-REJECTED-11: OUT_ROOM unknown giữ logic cũ, khóa quyền theo đường Redux
+PASS CV46-REJECTED-12: MemberList hiển thị xung đột, không còn khẳng định Bạn · Thành viên
+PASS CV46-REJECTED-13: ChatLayout buộc chặn gửi khi OUT_ROOM đã bị từ chối
+PASS CV46-REJECTED-14: JOIN success xóa lỗi OUT_ROOM đã kết thúc, cho rời lần sau
+PASS CV46-REJECTED-15: JOIN không tự hủy yêu cầu OUT_ROOM còn pending
+CV46 rejected/reconcile: 15/15 ca đạt (offline).
+
+===== check-cv46-rejoin.mjs =====
+PASS CV46-REJOIN-1: Trước JOIN, chỉ mở dialog không gọi service
+PASS CV46-REJOIN-2: JOIN đầu thành công, đúng một lời gọi
+PASS CV46-REJOIN-3: Chưa OUT: JOIN success cũ vẫn chống gửi lặp
+PASS CV46-REJOIN-4: OUT_ROOM error nghiệp vụ giữ nháp, giữ membership, đánh dấu xung đột
+PASS CV46-REJOIN-5: OUT error chỉ giải khóa cache JOIN success, không tự JOIN
+PASS CV46-REJOIN-6: Mở/đóng JOIN sau OUT error vẫn không tự gọi JOIN
+PASS CV46-REJOIN-7: Bấm tham gia sau OUT error tạo JOIN_ROOM thứ hai, không dùng kết quả cũ
+PASS CV46-REJOIN-8: JOIN mới success xóa cảnh báo và OUT error cũ, mở quyền gửi
+PASS CV46-REJOIN-9: JOIN đang pending không thể gửi trùng (đúng tên, đúng phiên)
+PASS CV46-REJOIN-10: JOIN unknown vẫn khóa, không dùng OUT error để tự retry lệnh mơ hồ
+PASS CV46-REJOIN-11: Không động tới kết quả JOIN phòng khác hoặc phiên khác
+PASS CV46-REJOIN-12: Lỗi OUT trước gửi không giải khóa JOIN success
+PASS CV46-REJOIN-13: Chặn điều kiện gửi trong ChatLayout và thông báo JOIN success lỗi thời trên Sidebar
+PASS CV46-REJOIN-14: Cần xác nhận rõ ràng; không có JOIN_ROOM tự động trong luồng xử lý OUT error
+CV46 JOIN retry after OUT rejection: 14/14 local tests PASS.
+
+===== check-cv47.mjs =====
+PASS CV47-01 Phòng đã rời không trở lại danh sách hội thoại dù GET_USER_LIST còn lưu
+PASS CV47-02 JOIN thành công hiện đúng một hội thoại và giữ khóa phòng/người khác nhau
+PASS CV47-03 Danh sách API trùng không tạo hai mục; tên khác chữ hoa không bị đổi
+PASS CV47-04 Rời phòng xóa quyền đã xác nhận; chỉ JOIN success mới khôi phục quyền
+PASS CV47-05 Lịch sử đọc lại không tự khôi phục quyền sau khi đã rời
+PASS CV47-06 Chỉ mở hoặc Hủy hộp Tham gia lại không gửi JOIN_ROOM
+PASS CV47-07 Đóng hộp lúc JOIN đang chờ: success vẫn ghi nhận membership, không tự mở phòng
+PASS CV47-08 JOIN error/unknown không gọi xác nhận thành viên
+CV47: 8/8 ca đạt
+
+===== check-cv49.mjs =====
+PASS CV49-01 F13 - tên phòng rỗng không tạo request
+PASS CV49-02 F13 - CREATE_ROOM chỉ xác nhận tên chính xác
+PASS CV49-03 F13 - tên trùng báo lỗi nghiệp vụ, không thành công giả
+PASS CV49-04 F13 - success sai tên là unknown
+PASS CV49-05 F14 - JOIN_ROOM gửi đúng sự kiện và tên
+PASS CV49-06 F14 - không tồn tại/đã tham gia là lỗi nghiệp vụ khi server từ chối
+PASS CV49-07 F14 - success sai event không được mở quyền
+PASS CV49-08 F14 - success thiếu tên không được mở quyền
+PASS CV49-09 F14 - request đã gửi timeout: unknown, không tự gửi lại
+PASS CV49-10 F14 - request chưa gửi thất bại không đổi thành unknown
+PASS CV49-11 F15 - đọc thành viên/chủ phòng với dữ liệu hợp lệ
+PASS CV49-12 F15 - thiếu metadata không suy ra owner/member
+PASS CV49-13 F15 - danh sách rỗng được xác nhận khác trường thiếu
+PASS CV49-14 F15 - member metadata hỏng không biến thành mảng rỗng
+PASS CV49-15 F15 - response sai trang bị chặn
+PASS CV49-16 F15 - timeout tải danh sách không giả 0 thành viên
+PASS CV49-17 F16 - OUT_ROOM có xác nhận hợp lệ
+PASS CV49-18 F16 - OUT_ROOM sai phòng vẫn unknown
+PASS CV49-19 F16 - OUT_ROOM bị từ chối giữ lỗi business
+PASS CV49-20 F16 - OUT_ROOM timeout sau gửi giữ unknown
+PASS CV49-21 F09 - username chính xác có và không tồn tại
+PASS CV49-22 F09 - username không hợp lệ không gửi API
+PASS CV49-23 F09 - lỗi kiểm tra không được hiểu thành không tồn tại
+PASS CV49-24 F07 - GET_USER_LIST không có thao tác JOIN ngầm
+PASS CV49-25 F14 - double click bị khóa khi yêu cầu đang chờ
+PASS CV49-26 F14 - success trả về sai tên không báo thành công ở UI (CV49 fix)
+PASS CV49-27 F14 - unknown chặn tự JOIN lặp lại
+PASS CV49-28 F14 - business error cho phép người dùng bấm thử lại
+PASS CV49-29 F14 - response từ phiên cũ không được công bố thành công
+PASS CV49-30 F18 - phản hồi JOIN thành công mới xóa trạng thái rời
+PASS CV49-31 F18 - không xóa trạng thái đang rời pending
+
+CV49 MOCK CONTRACT TESTS: 31 passed, 0 failed. No live server used.
+
+===== TYPESCRIPT =====
+Exit 0 (PASS)
+===== ESLINT =====
+Exit 0 (PASS)
+===== VITE BUILD (NOT VERIFIED) =====
+
+> ltfe_ck_appchat@0.0.0 build
+> tsc -b && vite build
+
+sh: 1: vite: Permission denied
+
+Vite direct: missing Linux rolldown native binding. Windows node_modules were provided.

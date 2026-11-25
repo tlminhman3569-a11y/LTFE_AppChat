@@ -280,6 +280,7 @@ await check('roomConfirmed thiếu danh sách không xóa lỗi tải trước',
 })
 
 const chatApi = compile('../src/services/chatApi.ts', {
+    '../utils/richMessage': { parseRichMessage: () => null },
     './roomsApi': roomsApi,
     './socketClient': { socketClient: {}, SocketRequestError },
 })

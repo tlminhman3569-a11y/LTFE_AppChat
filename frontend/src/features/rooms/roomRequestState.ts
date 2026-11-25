@@ -102,6 +102,13 @@ export async function sendRoomRequest(
         return null
     }
 
+    if (result.status === 'success' && result.data?.name !== roomName) {
+        result = {
+            status: 'unknown',
+            error: { kind: 'parse', message: 'Máy chủ trả về tên phòng không khớp yêu cầu. Chưa xác định được kết quả.' },
+        }
+    }
+
     let finished: RoomRequest
     if (result.status === 'success') {
         finished = {
