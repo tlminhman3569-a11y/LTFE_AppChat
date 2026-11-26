@@ -1,0 +1,35 @@
+PASS khóa người/phòng trùng tên tách biệt
+PASS khóa không va chạm với ký tự phân cách trong tên
+PASS danh sách hai loại cùng tên không bị gộp
+PASS số hội thoại cùng tên sau khử trùng theo loại
+PASS lọc theo tên hiển thị đủ hai loại
+PASS lọc phòng không hiển thị user cùng tên
+PASS tra cứu username không nhầm sang phòng cùng tên
+PASS serialize định dạng và size 12
+PASS escape Unicode bên trong mes size 12
+PASS parse giữ nguyên Unicode, cỡ và định dạng 12
+PASS serialize định dạng và size 14
+PASS escape Unicode bên trong mes size 14
+PASS parse giữ nguyên Unicode, cỡ và định dạng 14
+PASS serialize định dạng và size 16
+PASS escape Unicode bên trong mes size 16
+PASS parse giữ nguyên Unicode, cỡ và định dạng 16
+PASS serialize định dạng và size 18
+PASS escape Unicode bên trong mes size 18
+PASS parse giữ nguyên Unicode, cỡ và định dạng 18
+PASS serialize định dạng và size 24
+PASS escape Unicode bên trong mes size 24
+PASS parse giữ nguyên Unicode, cỡ và định dạng 24
+PASS cùng chữ nhưng khác mã tin không gộp
+PASS cùng mã, khác loại hội thoại không gộp
+PASS cùng mã, khác đích nhận không gộp
+PASS tin khớp đủ mã/người/loại/đích thì đối chiếu được
+PASS JSON lỗi không được nhận là rich v1
+PASS schema sai size không được nhận
+PASS HTML thuần được giữ là text, không nhận rich
+PASS vượt giới hạn byte bị chặn thay vì cắt tin
+PASS định dạng đoạn được giữ khi thay vùng chọn
+PASS lấy vùng chọn không làm mất kiểu
+PASS vị trí thêm ký tự lặp đúng
+PASS hai id tạo mới không trùng
+CV50 OFFLINE: 34/34 PASS; không thử API thật, không thử UI/bàn phím.
