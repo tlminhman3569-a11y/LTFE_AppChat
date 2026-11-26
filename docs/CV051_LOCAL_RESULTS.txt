@@ -1,0 +1,45 @@
+CV51 — KET QUA DOI CHIEU & KIEM TRA CUC BO (26/11/2026)
+=====================================================
+Nguon: AppChat_PhanCong_NgayChuan(2).xlsx, dong 63; CV55 PR #49 (merge develop).
+Source ZIP: LTFE_AppChat(6).zip
+HEAD: 33fb587be821d03b7c970de7b6769bc7b7dd6b0b (develop merged CV55)
+Moi truong kiem tra: Linux x64, Node v22.16.0
+Khong dung tai khoan that, Cloudinary credentials, API live hoac WebSocket that.
+
+1) Frontend: node --experimental-strip-types --test scripts/check-cv51.mjs
+   KET QUA: PASS 9/9 (0 fail, 0 skip)
+   CV51-01: JPEG/PNG/WebP sample signature va kich thuoc hop le
+   CV51-02: file rong, text va file gia .jpg
+   CV51-03: 5 MiB va 1900 byte hop dong CV55
+   CV51-04: schema version/type/id/metadata
+   CV51-05: chuoi APPCHAT_IMAGE_V1 + JSON, byte length va id
+   CV51-06: URL cloud hop le, chong host/port/path traversal/blob/data
+   CV51-07: example.com la URL fixture, khong phai production
+   CV51-08: conversation people va room trung ten khong trung key
+   CV51-09: 12 case quyen phong chuan bi cho CV57, KHONG xem la da test UI
+
+2) Frontend: node scripts/cv51-generate-size-fixtures.mjs
+   KET QUA: PASS
+   valid-exactly-5MiB.png: 5242880 bytes; PIL doc duoc PNG 160x100
+   invalid-over-5MiB.png: 5242881 bytes; PIL doc duoc PNG 160x100
+   Hai file nay duoc tao tai generated/ (gitignore), KHONG dua vao zip.
+
+3) TypeScript: node node_modules/typescript/bin/tsc -b --pretty false
+   KET QUA: PASS (exit code 0)
+
+4) ESLint: node node_modules/eslint/bin/eslint.js .
+   KET QUA: PASS (exit code 0)
+
+5) Vite production build: node node_modules/vite/bin/vite.js build
+   KET QUA: CHUA CHAY DUOC TREN MOI TRUONG NAY (exit code 1)
+   Ly do: node_modules trong ZIP nguoi dung dong goi binary Rolldown win32-x64-msvc,
+   nhung he thong kiem tra la Linux x64, thieu @rolldown/binding-linux-x64-gnu.
+   Khong co can cu ket luan code build loi. Can chay lai 'npm run build'
+   tren Windows voi npm install hop le.
+
+6) Vitest CV55 va API/UI 2 tai khoan: KHONG CHAY MOI TRUONG THAT TAI DAY.
+   PR #49 ghi ket qua CV55 (nguon nhom); khong nhan thanh ket qua CV51.
+   CV57 phai cho CV56, CV58, CV60, CV62 va co log API/UI that.
+
+DANH GIA: CV51 da co checklist CV57, anh thu, mau loi, script kiem tra,
+va bao cao doi chieu; KHONG XAC NHAN luong gui anh end-to-end da hoan tat.

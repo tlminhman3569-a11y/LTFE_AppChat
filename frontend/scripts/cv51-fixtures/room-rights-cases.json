@@ -1,0 +1,14 @@
+[
+  {"id":"R01","actor":"owner","state":"owner","action":"send-image","expected":"allow","note":"Chủ phòng đã xác nhận quyền, khi online và không có tác vụ rời đang chờ"},
+  {"id":"R02","actor":"member","state":"member","action":"send-image","expected":"allow","note":"Thành viên đã xác nhận quyền, khi online và không có tác vụ rời đang chờ"},
+  {"id":"R03","actor":"member","state":"unknown","action":"send-image","expected":"block","note":"Mới chọn phòng từ danh sách gần đây, chưa có chứng cứ tư cách thành viên"},
+  {"id":"R04","actor":"member","state":"left","action":"send-image","expected":"block","note":"OUT_ROOM success đã được xác nhận"},
+  {"id":"R05","actor":"member","state":"member","action":"pending-leave","expected":"block","note":"Đã xác nhận rời, OUT_ROOM còn chờ"},
+  {"id":"R06","actor":"member","state":"unknown","action":"leave-timeout","expected":"block","note":"OUT_ROOM timeout: kết quả chưa xác định, không tự gửi lại"},
+  {"id":"R07","actor":"member","state":"member","action":"leave-cancel","expected":"allow","note":"Hủy trước khi gửi OUT_ROOM phải giữ ảnh nháp và quyền cũ"},
+  {"id":"R08","actor":"member","state":"left","action":"pending-join","expected":"block","note":"JOIN_ROOM đang chờ, không tự cho gửi ảnh"},
+  {"id":"R09","actor":"member","state":"member","action":"join-success","expected":"allow","note":"JOIN_ROOM success đúng phòng và đã xác nhận quyền"},
+  {"id":"R10","actor":"member","state":"unknown","action":"offline-or-expired","expected":"block","note":"Mất mạng hoặc phiên hết hạn"},
+  {"id":"R11","actor":"member","state":"member","action":"switch-conversation","expected":"pin-target","note":"Ảnh chọn trong phòng A không được gửi nhầm vào phòng B hoặc chat người trùng tên"},
+  {"id":"R12","actor":"member","state":"member","action":"upload-failure","expected":"retain-draft","note":"Upload lỗi giữ ảnh nháp, không tự SEND_CHAT hoặc upload lại"}
+]
