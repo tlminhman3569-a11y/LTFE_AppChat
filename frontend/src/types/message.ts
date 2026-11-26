@@ -7,6 +7,8 @@ import type {
     ConversationRef,
 } from './api'
 
+export const maxMessageBytes = 1900
+
 export type TextSize = 12 | 14 | 16 | 18 | 24
 
 export interface TextRun {

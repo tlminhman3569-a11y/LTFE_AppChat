@@ -91,7 +91,7 @@ Giới hạn nội bộ cho tin tạo mới: tối đa 1.000 đơn vị UTF-16 t
 
 CV10 chỉ chuẩn bị wrapper Fetch có kiểm tra response.ok/lỗi/hủy, có thể thử bằng response giả. Chỉ nối HTTP thật nếu nguồn hợp lệ phục vụ nhu cầu thật. Không thêm request tải cấu hình chỉ để có Fetch và không gọi đó là API thầy. Thiếu endpoint HTTP nghiệp vụ không chặn WebSocket.
 
-F25–F27 vẫn có điều kiện. Chưa có upload/storage được phép thì ẩn nút hoặc ghi dự kiến, không giả đã upload bằng preview cục bộ, không gửi đường dẫn file máy hay base64 lớn. Nếu muốn triển khai media đầy đủ phải thêm việc và chia lại phạm vi.
+Phần gửi ảnh đã được bổ sung ở CV55–CV63: nhóm dùng Cloudinary lưu ảnh và SEND_CHAT gửi URL trong mes. Kiểu dữ liệu, giới hạn và phần việc ghép code nằm ở [MEDIA_DECISION.md](MEDIA_DECISION.md). Chưa bật nút gửi ảnh trước khi upload, parser/serializer và vòng gửi–nhận–đọc lịch sử được nối và kiểm tra. Preview cục bộ không phải upload thành công, không gửi đường dẫn máy hay base64 lớn. Video và các loại file khác chưa nằm trong phạm vi này
 
 ## 9. Điều kiện trước khi merge main
 
