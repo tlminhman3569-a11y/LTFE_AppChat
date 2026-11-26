@@ -189,6 +189,10 @@ describe('uploadImage', () => {
             'https://res.cloudinary.com/cloud-khac/image/upload/anh.jpg',
             'https://res.cloudinary.com/nhom-chat/video/upload/anh.jpg',
             'https://user:pass@res.cloudinary.com/nhom-chat/image/upload/anh.jpg',
+            'https://res.cloudinary.com:444/nhom-chat/image/upload/anh.jpg',
+            'https://res.cloudinary.com/nhom-chat/image/upload/../../../cloud-khac/image/upload/anh.jpg',
+            'https://res.cloudinary.com/nhom-chat/image/upload/%2e%2e/%2e%2e/%2e%2e/cloud-khac/image/upload/anh.jpg',
+            'https://res.cloudinary.com/nhom-chat/image/upload/..\\..\\..\\cloud-khac/image/upload/anh.jpg',
             'blob:anh-thu',
             'khong-phai-url',
         ]
@@ -200,6 +204,15 @@ describe('uploadImage', () => {
 
             expect(res, url).toMatchObject({ status: 'error', error: { kind: 'parse' } })
         }
+    })
+
+    it('nhận URL hợp lệ sau khi chuẩn hóa cổng HTTPS mặc định', async () => {
+        const url = 'https://res.cloudinary.com:443/nhom-chat/image/upload/v1/anh-thu.jpg'
+        reqSpy.mockResolvedValue(Response.json({ ...fakeReply, secure_url: url }))
+
+        const res = await uploadImage(file)
+
+        expect(res).toMatchObject({ status: 'success', data: { url } })
     })
 
     it('hủy trước khi gửi thì không gọi Fetch', async () => {

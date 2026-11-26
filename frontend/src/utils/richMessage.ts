@@ -1,11 +1,11 @@
 import type { ApiResult } from '../types/api'
+import { maxMessageBytes } from '../types/message'
 import type { RichMessageContent, TextRun, TextSize } from '../types/message'
 
 const prefix = 'APPCHAT_RICH_V1'
 const sizes: ReadonlySet<unknown> = new Set<TextSize>([12, 14, 16, 18, 24])
 const maxTextUnits = 1000
 const maxRuns = 32
-const maxMesBytes = 1900
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -58,7 +58,7 @@ export function serializeRichMessage(content: RichMessageContent): ApiResult<str
     if (text.length > maxTextUnits) return encodingError('Tin nhắn quá dài. Vui lòng rút ngắn.')
 
     const mes = encodeRichMessage(content)
-    if (mes.length > maxMesBytes) return encodingError('Tin nhắn vượt giới hạn 1.900 byte. Vui lòng rút ngắn.')
+    if (mes.length > maxMessageBytes) return encodingError('Tin nhắn vượt giới hạn 1.900 byte. Vui lòng rút ngắn.')
 
     return { status: 'success', data: mes }
 }
@@ -73,7 +73,7 @@ export function createMessageId(): string {
 export function previewRichMessage(runs: TextRun[]) {
     const content: RichMessageContent = { version: 1, clientMessageId: previewId, runs }
     return {
-        remainingBytes: maxMesBytes - encodeRichMessage(content).length,
+        remainingBytes: maxMessageBytes - encodeRichMessage(content).length,
         valid: serializeRichMessage(content).status === 'success',
     }
 }

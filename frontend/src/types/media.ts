@@ -4,7 +4,7 @@ export const maxImageBytes = 5 * 1024 * 1024
 export const imageMimeTypes: ImageMimeType[] = ['image/jpeg', 'image/png', 'image/webp']
 
 export const imageMessagePrefix = 'APPCHAT_IMAGE_V1'
-export const maxImageMessageBytes = 1900
+export { maxMessageBytes as maxImageMessageBytes } from './message'
 
 export interface UploadedImage {
     url: string

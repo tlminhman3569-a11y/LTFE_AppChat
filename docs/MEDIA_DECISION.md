@@ -103,7 +103,7 @@ URL `images.example.com` trong mẫu chỉ để đối chiếu cấu trúc, kh�
 - Tạo clientMessageId một lần cho tác vụ gửi, giữ lại khi đối chiếu hoặc người dùng thử lại cùng tin; giữ nguyên phân biệt người/phòng trong khóa hội thoại
 - 1.900 byte UTF-8 là mức giới hạn frontend chọn cho tin ảnh để thống nhất với tin chữ hiện có, chưa phải giới hạn máy chủ đã xác minh. Tính cả prefix và JSON bằng TextEncoder, báo lỗi nếu vượt, không cắt URL
 - Giữ `APPCHAT_RICH_V1` cho tin chữ, không đổi RichMessageContent hoặc gửi ảnh vào trường runs
-- Parser ảnh kiểm tra version, type, id và toàn bộ metadata như hợp đồng upload, URL chỉ nhận HTTPS từ cloud của nhóm; đọc dữ liệu lịch sử cũng dùng cùng parser
+- Parser ảnh kiểm tra version, type, id và metadata như hợp đồng upload; đọc dữ liệu lịch sử cũng dùng cùng parser. Kiểm tra URL bằng isCloudinaryImageUrl trong utils/imageUrl.ts, không dùng startsWith trên chuỗi thô
 - Chuỗi có prefix ảnh nhưng sai dữ liệu thì báo tin ảnh không hợp lệ, không render HTML hoặc tự tải URL chưa được kiểm tra
 - Upload success chỉ nghĩa đã có ảnh trên storage. Tin chỉ Đã lưu khi đối chiếu được đúng clientMessageId, tác giả và hội thoại từ SEND_CHAT/lịch sử; không tự thêm nhãn Đã đọc hoặc Đã giao
 - Trước khi bật gửi ảnh cho nhóm, phải thử URL thật qua SEND_CHAT ở chat riêng và phòng rồi đọc lại lịch sử, xác nhận payload không bị đổi hoặc cắt
@@ -152,7 +152,7 @@ npm run build
 npm run lint
 ```
 
-Kỳ vọng 17 test đạt. Đây là Fetch giả, không tạo ảnh trên Cloudinary và không xác nhận tài khoản/preset thật đã hoạt động
+Kỳ vọng 18 test đạt. Đây là Fetch giả, không tạo ảnh trên Cloudinary và không xác nhận tài khoản/preset thật đã hoạt động
 
 ### Thử Cloudinary thật
 
@@ -229,3 +229,17 @@ CV55 đã có hợp đồng, service upload và kết quả upload thật từ N
 
 
 Bộ test upload đã gom 37 ca hiển thị thành 17 test theo hành vi, giữ các đầu vào và ca biên cũ. Lượt chạy sau khi viết lại: 17/17 upload giả, toàn bộ Vitest 114 đạt và 1 test thật bỏ qua khi không chọn ảnh. File test live giữ nguyên
+
+
+### Cập nhật sau review CV55
+
+URL upload và URL trong tin nhận/lịch sử phải dùng chung `isCloudinaryImageUrl(value, cloudName)` ở `utils/imageUrl.ts`. Hàm phân tích bằng new URL trước khi so khớp, vì trình duyệt có thể chuẩn hóa dấu .., %2e%2e hoặc gạch chéo ngược thành đường dẫn khác
+
+- protocol là https, hostname đúng res.cloudinary.com
+- Không có username/password hoặc cổng riêng; cổng HTTPS mặc định 443 được URL chuẩn hóa thành cổng trống
+- pathname sau chuẩn hóa bắt đầu bằng /<cloudName>/image/upload/
+- URL không phân tích được hoặc trỏ sang cloud khác thì từ chối, không đưa vào src ảnh
+
+Giới hạn tin chữ/ảnh lấy từ `maxMessageBytes` trong types/message.ts. `maxImageMessageBytes` trong types/media.ts chỉ là tên export lại để giữ hợp đồng CV55, không khai báo thêm giá trị 1900. Giới hạn này vẫn là mức frontend chọn, chưa phải giới hạn máy chủ đã xác minh
+
+Test sau review bổ sung URL đi qua .., %2e%2e, gạch chéo ngược, cổng riêng và cổng HTTPS mặc định. Bộ upload hiện có 18 test; các tình huống URL sai vẫn được gom theo hành vi

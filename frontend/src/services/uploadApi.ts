@@ -1,4 +1,5 @@
 import { fetchJson } from './apiClient'
+import { isCloudinaryImageUrl } from '../utils/imageUrl'
 import { imageMimeTypes, maxImageBytes } from '../types/media'
 import type { ImageMimeType, UploadResult } from '../types/media'
 
@@ -46,8 +47,7 @@ export async function uploadImage(file: File, signal?: AbortSignal): Promise<Upl
     if (res.status === 'error') return res
 
     const image = res.data
-    const imageUrl = `https://res.cloudinary.com/${cloudName}/image/upload/`
-    if (typeof image?.secure_url !== 'string' || !image.secure_url.startsWith(imageUrl)
+    if (typeof image?.secure_url !== 'string' || !isCloudinaryImageUrl(image.secure_url, cloudName)
         || typeof image.public_id !== 'string' || !image.public_id.trim()
         || image.resource_type !== 'image') {
         return { status: 'error', error: { kind: 'parse', message: 'Cloudinary chưa trả về URL ảnh dùng được' } }
