@@ -243,3 +243,36 @@ URL upload và URL trong tin nhận/lịch sử phải dùng chung `isCloudinary
 Giới hạn tin chữ/ảnh lấy từ `maxMessageBytes` trong types/message.ts. `maxImageMessageBytes` trong types/media.ts chỉ là tên export lại để giữ hợp đồng CV55, không khai báo thêm giá trị 1900. Giới hạn này vẫn là mức frontend chọn, chưa phải giới hạn máy chủ đã xác minh
 
 Test sau review bổ sung URL đi qua .., %2e%2e, gạch chéo ngược, cổng riêng và cổng HTTPS mặc định. Bộ upload hiện có 18 test; các tình huống URL sai vẫn được gom theo hành vi
+
+
+## CV58 phần 1 — quản lý lượt upload
+
+Bộ quản lý nằm ở features/upload/uploadTask.ts, dùng lại uploadImage của CV55. Mỗi bộ giữ một lượt đang chạy, không lưu vào Redux hoặc storage
+
+```ts
+const upload = createUploadTask()
+const res = await upload.start(file, conversation, sessionGeneration)
+```
+
+- Giữ lại file, loại/tên hội thoại và sessionGeneration lúc bắt đầu. Đổi đối tượng hội thoại bên ngoài không đổi đích đã chụp
+- start tự hủy lượt trước của cùng bộ quản lý. Hai bộ quản lý riêng không hủy lẫn nhau
+- cancel hủy lượt hiện tại, gọi lại khi không có lượt đang chạy thì không làm gì. Promise của start trả null khi lời gọi upload kết thúc, không phải ngay khi cancel được gọi. Hủy không bảo đảm ảnh chưa được Cloudinary lưu
+- Lượt bị hủy hoặc bị thay thế trả null, kể cả khi service vẫn trả thành công hoặc ném lỗi đến muộn. Caller bỏ qua null, không dùng nó làm lỗi của ảnh mới
+- Lượt hiện tại trả kết quả upload kèm conversation và sessionGeneration. Lỗi upload thông thường giữ nguyên kind/message và không tự thử lại
+- Lỗi ngoài dự kiến được ném lại cho caller, controller vẫn được dọn. Lượt cũ kết thúc không dọn controller của lượt mới
+
+Giữ một bộ quản lý trong vòng đời composer, không tạo lại mỗi lần gõ hoặc mỗi lần chọn ảnh. Khi cần dừng, gọi upload.cancel()
+
+Ở phần 1, sessionGeneration chỉ là thông tin đi kèm, bộ quản lý chưa tự đọc phiên hiện tại hoặc quyền gửi. Phần 2 mới nối cancel vào bỏ ảnh, logout, đổi tài khoản và kiểm tra phiên/đích trước khi sử dụng kết quả. Chưa coi các thao tác UI đó là đã hoàn tất
+
+### Chạy kiểm tra trong WebStorm
+
+Mở Terminal tại frontend
+
+```powershell
+npm test -- scripts/cv58-upload-task.test.ts
+```
+
+Kỳ vọng 9 test đạt. Bộ test dùng uploadImage giả để điều khiển thứ tự trả lời, không gửi ảnh lên Cloudinary. Các ca gồm giữ đích/phiên, lỗi mạng, hủy, đổi lượt, phản hồi muộn, cleanup và hai bộ quản lý độc lập
+
+Phần này chưa thêm thao tác trên giao diện chat. Trang scripts/check-upload.html vẫn chỉ thử service CV55; bằng chứng bỏ ảnh/logout khi đang upload sẽ làm sau khi nối composer ở phần 2
