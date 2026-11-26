@@ -9,7 +9,7 @@ import { createConversationKey } from '../src/utils/conversationKey'
 
 const users = [env.APPCHAT_PROBE_USER, env.APPCHAT_PROBE_PEOPLE]
 const passwords = [env.APPCHAT_PROBE_PASS, env.APPCHAT_PROBE_PEER_PASS]
-const enabled = Boolean(users[0] && users[1] && passwords[0] && passwords[1])
+const enabled = env.APPCHAT_CV32_LIVE === '1' && Boolean(users[0] && users[1] && passwords[0] && passwords[1])
 const marker = 'CV32_' + Date.now()
 const room: ConversationRef = { kind: 'room', name: marker.toLowerCase() }
 

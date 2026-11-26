@@ -49,12 +49,27 @@ Build/lint đạt. Bộ mặc định không cấp tài khoản: 102 PASS, 15 SK
 
 ## Tái lập
 
+Ảnh và bản chụp DOM được giữ ngoài repo; người phụ trách đính kèm ảnh trực tiếp vào mô tả PR #50. Các đường dẫn workspace bên dưới là vị trí gốc của lượt thử, không phải liên kết công khai cho người review. Không coi bằng chứng đã được đính kèm trước khi thực hiện bước này.
+
 Trong thư mục frontend, cấp biến môi trường qua terminal, không ghi vào file được commit:
 
 - `APPCHAT_PROBE_USER`, `APPCHAT_PROBE_PASS`: tài khoản gửi.
 - `APPCHAT_PROBE_PEOPLE`, `APPCHAT_PROBE_PEER_PASS`: tài khoản nhận.
 
-Chạy `npx vitest run scripts/cv32-live.test.ts`. Thiếu tài khoản thì bộ live test bị bỏ qua. Khi đã cấp tài khoản, lỗi hoặc blocker trả mã thoát khác 0.
+CV32 chỉ chạy khi có cả `APPCHAT_CV32_LIVE=1` và bốn biến tài khoản trên. Chỉ đặt tài khoản không bật CV32. Đây là phép thử có ghi dữ liệu: mỗi lượt có thể tạo thêm phòng thật không xóa được qua API, gửi tin thật và kết thúc phiên nếu bật fresh-session.
+
+Trong PowerShell, bật công tắc riêng cho đúng một file rồi gỡ trong finally:
+
+```powershell
+$env:APPCHAT_CV32_LIVE = '1'
+try {
+    npx vitest run scripts/cv32-live.test.ts --maxWorkers=1
+} finally {
+    Remove-Item Env:APPCHAT_CV32_LIVE -ErrorAction SilentlyContinue
+}
+```
+
+Không dùng `npm test` để chạy live khi công tắc đang bật, không chạy suite/script API khác đồng thời với hai tài khoản này. `cv15-live` thuộc phần việc khác và hiện vẫn bật theo biến tài khoản; công tắc riêng CV32 không thay đổi hành vi đó. Thiếu công tắc hoặc tài khoản thì CV32 bị bỏ qua. Khi đã bật đủ, lỗi hoặc blocker trả mã thoát khác 0.
 
 Chạy `node scripts/check-cv32-session.mjs` để đối chiếu trực tiếp LOGIN → CREATE_ROOM → GET_ROOM_CHAT_MES bằng WebSocket gốc. Phép thử tạo một phòng có tên riêng; không tự xóa phòng hoặc rời chủ phòng vì API không có thao tác phù hợp. Các phòng thử chỉ chứa dữ liệu kiểm thử.
 
