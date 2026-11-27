@@ -28,8 +28,12 @@ interface HistoryProps {
 }
 
 function ChatHistory({ conversation, currentUser }: HistoryProps) {
-    const { messages, hasOlder, firstPage, loading, error, canLoad, loadNextPage } = useChat(conversation)
+    const { messages, hasOlder, needsRefresh, firstPage, loading, error, canLoad, loadNextPage } = useChat(conversation)
     const { historyRef, hasNewMessages, handleScroll, scrollToLatest } = useHistoryScroll(messages)
+    let historyAction = 'Xem tin cũ hơn'
+    if (needsRefresh) historyAction = loading ? 'Đang cập nhật lịch sử…' : 'Thử cập nhật lịch sử'
+    else if (loading) historyAction = 'Đang tải tin cũ…'
+    else if (error) historyAction = 'Thử tải lại tin cũ'
 
     return (
         <div className="chat-history-area">
@@ -46,9 +50,9 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
                 {messages.length > 0 && (
                     <>
                         <div className="chat-history-notice">
-                            {hasOlder ? (
+                            {hasOlder || needsRefresh ? (
                                 <button type="button" disabled={loading || !canLoad} onClick={loadNextPage}>
-                                    {loading ? 'Đang tải tin cũ…' : error ? 'Thử tải lại tin cũ' : 'Xem tin cũ hơn'}
+                                    {historyAction}
                                 </button>
                             ) : <p role="status">Đã xem hết lịch sử.</p>}
                             {error && <p role="alert">{error}</p>}
@@ -63,7 +67,7 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 }
 
 export default function ChatPage({
-    conversation, conversationKey, currentUser, connectionStatus, sessionGeneration, reconnectCount = 0, onBack, headerActions,
+    conversation, conversationKey, currentUser, connectionStatus, sessionGeneration, onBack, headerActions,
     draft, canSend, onDraftChange, onSend, pending, sendError, checkingHistory, reconcileError, onCheckHistory, onRestorePending,
 }: ChatProps) {
     const pageRef = useChatViewport(conversationKey)
@@ -79,7 +83,7 @@ export default function ChatPage({
                     </header>
                     <div className="chat-body">
                         <ChatHistory
-                            key={JSON.stringify([sessionGeneration, conversationKey, reconnectCount])}
+                            key={JSON.stringify([sessionGeneration, conversationKey])}
                             conversation={conversation}
                             currentUser={currentUser}
                         />
