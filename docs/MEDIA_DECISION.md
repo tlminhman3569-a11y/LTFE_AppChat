@@ -263,7 +263,7 @@ const res = await upload.start(file, conversation, sessionGeneration)
 
 Giữ một bộ quản lý trong vòng đời composer, không tạo lại mỗi lần gõ hoặc mỗi lần chọn ảnh. Khi cần dừng, gọi upload.cancel()
 
-Ở phần 1, sessionGeneration chỉ là thông tin đi kèm, bộ quản lý chưa tự đọc phiên hiện tại hoặc quyền gửi. Phần 2 mới nối cancel vào bỏ ảnh, logout, đổi tài khoản và kiểm tra phiên/đích trước khi sử dụng kết quả. Chưa coi các thao tác UI đó là đã hoàn tất
+Ở phần 1, sessionGeneration chỉ là thông tin đi kèm, bộ quản lý chưa tự đọc phiên hiện tại hoặc quyền gửi. Phần 2 bên dưới bổ sung lớp quản lý theo phiên và nối vào đăng xuất. Thao tác bỏ ảnh và kiểm tra quyền gửi trên chat vẫn chờ giao diện CV56
 
 ### Chạy kiểm tra trong WebStorm
 
@@ -275,4 +275,40 @@ npm test -- scripts/cv58-upload-task.test.ts
 
 Kỳ vọng 9 test đạt. Bộ test dùng uploadImage giả để điều khiển thứ tự trả lời, không gửi ảnh lên Cloudinary. Các ca gồm giữ đích/phiên, lỗi mạng, hủy, đổi lượt, phản hồi muộn, cleanup và hai bộ quản lý độc lập
 
-Phần này chưa thêm thao tác trên giao diện chat. Trang scripts/check-upload.html vẫn chỉ thử service CV55; bằng chứng bỏ ảnh/logout khi đang upload sẽ làm sau khi nối composer ở phần 2
+Phần này chưa thêm thao tác trên giao diện chat. Trang scripts/check-upload.html vẫn chỉ thử service CV55; bằng chứng bỏ ảnh/logout khi đang upload cần kiểm tra sau khi ghép composer CV56
+
+
+## CV58 phần 2 — hủy upload theo phiên
+
+Dùng createSessionUploadTask ở features/upload/sessionUploadTask.ts khi nối giao diện chọn ảnh. Bộ này bọc createUploadTask của phần 1 và đọc phiên từ Redux
+
+- Giữ phiên tại lúc tạo bộ quản lý, chụp đích khi gọi start(file, conversation). Trả kết quả như phần 1 hoặc null nếu đã hủy/đổi phiên
+- cancel() dùng khi bỏ ảnh, đổi file hoặc đổi hội thoại, sau đó vẫn dùng bộ quản lý đó để upload ảnh khác
+- dispose() dùng khi rời composer, bỏ đăng ký theo dõi Redux và đóng hẳn bộ quản lý. Gọi nhiều lần không gây lỗi
+- Tạo bộ quản lý trong effect của composer theo sessionGeneration và dispose trong cleanup. Không tạo lại khi gõ chữ hoặc tạo subscription trong lúc render
+- Đổi tài khoản, đăng nhập lại cùng username hoặc xóa/kiểm tra phiên đều hủy lượt đang chờ. Kết quả hoặc lỗi cũ đến muộn trả null
+- endSession gọi cancelSessionUploads trước khi chờ LOGOUT. Cả bộ quản lý đã có và bộ mới tạo trong lúc chờ đều không được upload bằng phiên đang đăng xuất
+- Chỉ đổi trạng thái socket hoặc nối lại cùng phiên không tự hủy request HTTP tới Cloudinary. Khi cần gửi tin sau đó vẫn phải chờ quyền gửi hợp lệ
+- Hủy request không bảo đảm Cloudinary chưa lưu ảnh. Không tự upload lại, xóa ảnh trên cloud hoặc phát SEND_CHAT
+
+### Phần chờ ghép CV56
+
+Develop hiện chưa có giao diện chọn ảnh CV56, nên phần này chưa nối nút bỏ ảnh trên chat. Khi ghép, CV56 gọi cancel lúc bỏ/đổi ảnh hoặc chuyển hội thoại, bỏ qua kết quả null và dọn bằng dispose khi rời composer
+
+Trước khi sử dụng URL hoặc gửi SEND_CHAT, caller phải kiểm tra file đang chọn, sessionGeneration, loại/tên hội thoại và quyền gửi hiện tại. Không đổi đích sang hội thoại vừa chọn, không gửi khi đã logout hoặc không còn quyền gửi phòng. Đây vẫn là bước ghép cần kiểm tra trên giao diện khi CV56 có code
+
+### Kiểm tra trong WebStorm
+
+Mở Terminal ở frontend rồi chạy
+
+```powershell
+npm test -- scripts/cv58-upload-task.test.ts scripts/cv58-session-upload.test.ts
+npm run build
+npm run lint
+```
+
+Kỳ vọng 21 test CV58 đạt, gồm 9 test quản lý lượt và 12 test theo phiên. Upload và LOGOUT trong bộ này được giả lập, không dùng tài khoản hoặc tải ảnh thật lên Cloudinary
+
+Các ca mới kiểm tra đăng xuất khi LOGOUT còn chờ, chặn bộ quản lý tạo lại trong phiên cũ, đổi tài khoản, đăng nhập lại cùng username, lỗi trả muộn, hủy nhiều lượt, cleanup và nối lại socket cùng phiên
+
+Chưa có cách thử bỏ ảnh trên giao diện chat ở phần này vì còn chờ CV56. Trang scripts/check-upload.html chỉ kiểm tra service CV55, không dùng làm bằng chứng cho vòng đời upload theo phiên

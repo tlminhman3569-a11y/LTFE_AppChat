@@ -1,3 +1,4 @@
+import { cancelSessionUploads } from '../upload/sessionUploadTask'
 import { logout } from '../../services/authApi'
 import { store } from '../../store'
 import { sessionCleared } from '../../store/slices/authSlice'
@@ -8,6 +9,7 @@ export async function endSession() {
     const { authStatus, sessionGeneration } = store.getState().auth
     if (authStatus !== 'authenticated') return
 
+    cancelSessionUploads()
     const res = await logout()
 
     // Nếu phiên đã đổi trong lúc chờ thì giữ nguyên dữ liệu của phiên mới
