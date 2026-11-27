@@ -1,0 +1,18 @@
+CV50 — TÓM TẮT LOG VITEST DO KHÔI CUNG CẤP (không phải log chạy mới)
+Lệnh: npx vitest run scripts/cv50-crosscheck.test.tsx scripts/cv50-drafts.test.ts --maxWorkers=1
+Vitest v5.1.0 | D:/LTFE_AppChat/frontend | Start at 21:25:18 | Duration 817ms
+scripts/cv50-crosscheck.test.tsx: 12 tests, 11 passed, 1 failed
+  Định danh hội thoại và lịch sử: 5/5 PASS
+  Editor/rich text: 6/7 PASS (5 size 12/14/16/18/24 và khác mã không gộp)
+  FAIL: JSON lỗi hoặc HTML cũ hiển thị text, không tạo img/script
+  AssertionError: expected ... to contain '&lt;'
+  Expected: "&lt;"
+  Received: "<li class="chat-message"><strong>CV50_CUNG_TEN</strong><p>APPCHAT_RICH_V1{invalid-json</p></li>"
+  scripts/cv50-crosscheck.test.tsx:130:20
+scripts/cv50-drafts.test.ts: 3/3 PASS
+Test Files: 1 failed | 1 passed (2)
+Tests: 1 failed | 14 passed (15)
+
+Phân tích: JSON lỗi không chứa dấu <, assertion chung '&lt;' không phù hợp.
+Bản sửa CV50_Fix_Assertion.zip đã bàn giao, chưa có log sau sửa.
+Không có log mới cho UI/API, build/lint/hồi quy hoặc CV50-08 trong dữ liệu nhận được.
