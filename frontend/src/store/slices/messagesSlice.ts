@@ -18,12 +18,15 @@ interface History {
     reconcileError?: string
     reconcileTailIndex?: number
     outgoing?: OutgoingMessage[]
+    needsRefresh?: boolean
+    refreshTailIndex?: number
 }
 
 interface HistoryRequest {
     conversation: ConversationRef
     page: number
     sessionGeneration: number
+    refresh?: boolean
 }
 
 type MessagesState = Partial<Record<string, History>>
@@ -39,20 +42,43 @@ type HistoryStore = {
 
 export const fetchHistoryPage = createAsyncThunk(
     'messages/fetchHistoryPage',
-    async ({ conversation, page }: HistoryRequest, { getState }) => {
+    async ({ conversation, page, refresh }: HistoryRequest, { getState, requestId }) => {
         const { currentUser } = (getState() as HistoryStore).auth
-        return loadHistory(conversation, page, currentUser)
+        const cached = (getState() as HistoryStore).messages[createConversationKey(conversation)]?.messages ?? []
+        const first = await loadHistory(conversation, page, currentUser)
+        if (!refresh || first.status !== 'success') return first
+        const messages = [...first.data.messages]
+        let records = first.data.messages
+        const pages = new Set([JSON.stringify(records)])
+        let nextPage = page + 1
+        // Đọc bù đến tin cũ đã biết, không bỏ cache hoặc giả định chỉ thiếu một trang.
+        while (records.length && !records.some(record => cached.some(message => sameStoredMessage(message, record)))) {
+            const history = (getState() as HistoryStore).messages[createConversationKey(conversation)]
+            if (history?.requestId !== requestId) {
+                return { status: 'error' as const, error: { kind: 'session' as const, message: 'Lượt tải lịch sử đã thay đổi.' } }
+            }
+            const result = await loadHistory(conversation, nextPage++, currentUser)
+            if (result.status !== 'success') return result
+            records = result.data.messages
+            const signature = JSON.stringify(records)
+            if (records.length && pages.has(signature)) {
+                return { status: 'error' as const, error: { kind: 'parse' as const, message: 'Máy chủ trả lặp trang lịch sử. Vui lòng thử lại.' } }
+            }
+            pages.add(signature)
+            messages.push(...records)
+        }
+        return { ...first, data: { ...first.data, messages } }
     },
     {
-        condition: ({ conversation, page, sessionGeneration }, { getState }) => {
+        condition: ({ conversation, page, sessionGeneration, refresh }, { getState }) => {
             const { auth, messages } = getState() as HistoryStore
             const history = messages[createConversationKey(conversation)]
             return auth.authStatus === 'authenticated'
                 && auth.connectionStatus === 'connected'
                 && auth.sessionGeneration === sessionGeneration
                 && !history?.requestId
-                && (history?.hasOlder ?? true)
-                && page === (history?.nextPage ?? 1)
+                && (refresh ? page === 1 && Boolean(history?.needsRefresh)
+                    : (history?.hasOlder ?? true) && page === (history?.nextPage ?? 1))
         },
     },
 )
@@ -106,7 +132,7 @@ function sameStoredMessage(first: Message, second: Message) {
     return matchesOutgoing(first, second)
 }
 
-function mergeConfirmed(history: History, records: Message[], previousTailIndex: number | undefined) {
+function mergeConfirmed(history: History, records: Message[], previousTailIndex: number | undefined, includeIncoming = false) {
     const ordered = mergeHistory(records, [])
     for (let index = 0; index < ordered.length; index++) {
         const record = ordered[index]
@@ -120,7 +146,7 @@ function mergeConfirmed(history: History, records: Message[], previousTailIndex:
             }
             continue
         }
-        if (!history.outgoing?.some(pending => matchesOutgoing(pending, record))) continue
+        if (!includeIncoming && !history.outgoing?.some(pending => matchesOutgoing(pending, record))) continue
 
         // Đặt bản lưu theo các tin lân cận trong trang, giữ nguyên vị trí tin realtime mới.
         let insertAt = -1
@@ -143,6 +169,9 @@ function mergeConfirmed(history: History, records: Message[], previousTailIndex:
                 : Math.min(previousTailIndex + 1, history.messages.length)
         }
         history.messages.splice(insertAt, 0, record)
+        if (includeIncoming && history.reconcileTailIndex != null && insertAt <= history.reconcileTailIndex) {
+            history.reconcileTailIndex++
+        }
     }
 }
 const messagesSlice = createSlice({
@@ -202,7 +231,19 @@ const messagesSlice = createSlice({
             .addCase(sessionCleared, () => ({}))
             .addCase(sessionReconnected, state => {
                 for (const [key, history] of Object.entries(state)) {
-                    if (history?.error && history.nextPage === 1 && history.messages.length === 0 && !history.outgoing?.length) delete state[key]
+                    if (!history) continue
+                    if (history.error && history.nextPage === 1 && history.messages.length === 0 && !history.outgoing?.length) {
+                        delete state[key]
+                        continue
+                    }
+                    delete history.requestId
+                    delete history.refreshTailIndex
+                    delete history.reconcileRequestId
+                    delete history.reconcileTailIndex
+                    if (history.nextPage > 1 || !history.hasOlder || history.messages.length > 0) {
+                        history.needsRefresh = true
+                        history.error = ''
+                    }
                 }
             })
             .addCase(reconcileOutgoing.pending, (state, { meta }) => {
@@ -222,7 +263,7 @@ const messagesSlice = createSlice({
                     delete history.reconcileTailIndex
                     return
                 }
-                history.error = ''
+                if (!history.needsRefresh) history.error = ''
                 history.reconcileError = ''
                 mergeConfirmed(history, payload.data.messages, history.reconcileTailIndex)
                 delete history.reconcileTailIndex
@@ -241,6 +282,7 @@ const messagesSlice = createSlice({
                 const history = state[key] ??= { messages: [], nextPage: 1, hasOlder: true, error: '' }
                 history.requestId = meta.requestId
                 history.error = ''
+                if (meta.arg.refresh) history.refreshTailIndex = history.messages.length - 1
             })
             .addCase(fetchHistoryPage.fulfilled, (state, { meta, payload }) => {
                 const history = state[createConversationKey(meta.arg.conversation)]
@@ -248,9 +290,17 @@ const messagesSlice = createSlice({
                 delete history.requestId
                 if (payload.status !== 'success') {
                     history.error = payload.error.message
+                    delete history.refreshTailIndex
                     return
                 }
                 const { messages } = payload.data
+                if (meta.arg.refresh) {
+                    mergeConfirmed(history, messages, history.refreshTailIndex, true)
+                    reconcilePending(history, messages)
+                    delete history.refreshTailIndex
+                    history.needsRefresh = false
+                    return
+                }
                 reconcilePending(history, messages)
                 history.hasOlder = messages.length > 0
                 if (history.hasOlder) {
@@ -266,6 +316,7 @@ const messagesSlice = createSlice({
                 const history = state[createConversationKey(meta.arg.conversation)]
                 if (history?.requestId !== meta.requestId) return
                 delete history.requestId
+                delete history.refreshTailIndex
                 history.error = 'Không tải được lịch sử tin nhắn.'
             })
     },

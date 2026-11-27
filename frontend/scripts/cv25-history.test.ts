@@ -107,7 +107,7 @@ it('cho tải lại trang đầu sau reconnect và giữ lịch sử đã có', 
 
     store.dispatch(sessionReconnected())
     expect(history(people)).toBeUndefined()
-    expect(history(room)).toEqual(roomHistory)
+    expect(history(room)).toEqual({ ...roomHistory, needsRefresh: true })
 
     read.mockResolvedValueOnce(success(people, 1, [message(1)]))
     await fetchPage(people, 1)
