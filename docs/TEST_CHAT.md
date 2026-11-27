@@ -120,3 +120,20 @@ Lượt thử bổ sung bằng bộ gõ của người dùng: mở lại fixture
 - Đã kiểm thử hai tab giao diện bằng bộ điều khiển trình duyệt trong ứng dụng. Cách khởi chạy Edge/Playwright trước đó timeout không tính là kiểm thử sản phẩm.
 - Đã thử người dùng gõ tiếng Việt có dấu trên UI cục bộ; chưa xác minh luồng IME phát composition. Mất mạng khi gửi trên UI với API production chưa đạt bằng chứng ổn định. Ngắt socket và hòa giải qua UI với máy chủ cục bộ đã đạt; chưa thử bàn phím điện thoại thật.
 - Theo quyết định của người phụ trách, tạm dừng điều tra blocker API và bàn giao phần kiểm thử CV32 kèm giới hạn đã ghi. Sửa backend và chạy lại ma trận production được để lại; không ghi các ca chưa kiểm chứng là đạt. Chưa gửi thông báo/review cho thành viên khác hoặc tự xác nhận nghiệm thu thay người review.
+
+### Bổ sung ngày 27/11/2026 — đối chiếu tin gốc sau kết nối lại (CV30)
+
+Kiểm tra sau sửa CV30 tại commit `7c5c4a5`, trên nền develop `154b1d8`. Lỗi cũ: lượt đối chiếu chỉ đọc trang 1 và 2, nên tin gốc đã lưu ở trang 3 vẫn hiện Chưa xác nhận. Ca hồi quy trang 3 đã thất bại trước khi sửa và đạt sau khi sửa.
+
+Đã chạy toàn bộ ChatLayout trên giao diện với máy chủ WebSocket cục bộ có điều khiển, dùng tài khoản giả dành riêng cho lượt thử. Mỗi ca chỉ gửi một lần, ngắt socket sau khi máy chủ nhận SEND_CHAT rồi nối lại trong cùng trang; không F5, không gửi thêm tin:
+
+| Ca | Kết quả |
+| --- | --- |
+| Tin gốc được lưu ở trang 3 | Đọc tiếp tới trang 3, đối chiếu đúng clientMessageId gốc, người gửi, đích và nội dung. Hiện đúng một bản Đã lưu; danh sách chưa xác nhận rỗng. Tổng SEND_CHAT vẫn là 1. |
+| Tin gốc không có bản lưu | Đọc đến trang rỗng. Giữ nguyên tin Chưa xác nhận với nội dung và clientMessageId ban đầu; không tự xóa hoặc gửi lại. Tổng SEND_CHAT vẫn là 1. |
+
+Bổ sung test hồi quy cho trang 3, tin không có bản lưu/tin của người khác dùng cùng mã, lỗi ở trang sau, lượt đối chiếu bị thay bởi phiên mới và máy chủ trả lặp trang. Bộ mặc định: **160 PASS, 16 SKIP**; build/lint và kiểm tra diff đạt. Đây là tổng test tự động của dự án, không phải số ca API thật.
+
+Bằng chứng nằm ngoài repo trong workspace `cv30-reconnect-evidence/`: `01-saved-before-reconnect.png`, `02-saved-after-reconnect.png`, `03-not-saved-after-reconnect.png`, `not-saved-ui.txt` và `events.jsonl`. Ảnh đính kèm vào phần mô tả PR khi bàn giao, không đưa PNG vào repo. Máy chủ thử và các tab đã được đóng sau khi kiểm tra.
+
+**Giới hạn:** lượt này dùng máy chủ cục bộ, chưa thử lại API production hoặc hai tài khoản thật. Không xác nhận toàn bộ CV50-08 là PASS thay người kiểm thử chéo. Nếu lỗi ở trang sau, giữ trạng thái Chưa xác nhận và báo lỗi đối chiếu, kể cả đã thấy một phần bản lưu ở trang trước. Không bổ sung lưu tin chưa xác nhận qua F5 và không thay đổi phạm vi CV32 khác.
