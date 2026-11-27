@@ -108,6 +108,47 @@ describe('Kết nối lại khi đang đăng nhập', () => {
         })
     })
 
+    it('thử lại khi mạng vẫn lỗi thì dừng sau ba lượt nữa', async () => {
+        vi.mocked(reLogin).mockResolvedValue({
+            status: 'error', error: { kind: 'connection', message: 'Không thể kết nối' },
+        })
+        const before = store.getState().auth
+
+        onStatus('disconnected')
+        await vi.advanceTimersByTimeAsync(3500)
+        retrySocketConnection()
+        retrySocketConnection()
+        await vi.advanceTimersByTimeAsync(30_000)
+
+        expect(reLogin).toHaveBeenCalledTimes(6)
+        expect(store.getState().auth).toMatchObject({
+            authStatus: 'authenticated',
+            connectionStatus: 'disconnected',
+            sessionGeneration: before.sessionGeneration,
+            reconnectCount: before.reconnectCount,
+        })
+        expect(clearStoredSession).not.toHaveBeenCalled()
+    })
+
+    it('mất mã phiên trước lúc bấm thử lại thì yêu cầu đăng nhập lại', async () => {
+        vi.mocked(reLogin).mockResolvedValue({
+            status: 'error', error: { kind: 'connection', message: 'Không thể kết nối' },
+        })
+        onStatus('disconnected')
+        await vi.advanceTimersByTimeAsync(3500)
+        vi.mocked(readStoredSession).mockReturnValue(null)
+
+        retrySocketConnection()
+        await vi.advanceTimersByTimeAsync(30_000)
+
+        expect(reLogin).toHaveBeenCalledTimes(3)
+        expect(store.getState().auth).toMatchObject({
+            authStatus: 'unauthenticated',
+            connectionStatus: 'disconnected',
+            restoreError: 'Không thể khôi phục phiên, vui lòng đăng nhập lại',
+        })
+    })
+
     it('về đăng nhập nếu server từ chối mã phiên', async () => {
         const message = 'Phiên đã hết hạn, vui lòng đăng nhập lại'
         vi.mocked(reLogin).mockResolvedValue({ status: 'error', error: { kind: 'session', message } })
