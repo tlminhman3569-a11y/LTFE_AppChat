@@ -68,7 +68,7 @@ function ChatHistory({ conversation, currentUser }: HistoryProps) {
 
 export default function ChatPage({
     conversation, conversationKey, currentUser, connectionStatus, sessionGeneration, onBack, headerActions,
-    draft, canSend, onDraftChange, onSend, pending, sendError, checkingHistory, reconcileError, onCheckHistory, onRestorePending,
+    draft, canSend, onDraftChange, onSend, pending, sendError, checkingHistory, reconcileError, onCheckHistory, onRestorePending, imagePicker,
 }: ChatProps) {
     const pageRef = useChatViewport(conversationKey)
     return (
@@ -111,6 +111,7 @@ export default function ChatPage({
                         {sendError && <p role="alert" className="chat-composer-status">{sendError}</p>}
                     </div>
                     <Composer
+                        imagePicker={imagePicker}
                         key={conversationKey}
                         conversation={conversation}
                         draft={draft}

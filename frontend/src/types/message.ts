@@ -1,4 +1,5 @@
 import type { RoomReadResult } from './room'
+import type { ReactNode } from 'react'
 import type {
     ApiResult,
     AuthStatus,
@@ -77,6 +78,7 @@ export interface ChatPageProps {
 }
 
 export interface ComposerProps {
+    imagePicker?: ReactNode
     conversation: ConversationRef
     draft: TextRun[]
     canSend: boolean

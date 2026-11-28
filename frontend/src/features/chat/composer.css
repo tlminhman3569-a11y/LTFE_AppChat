@@ -22,6 +22,24 @@
     justify-content: space-between;
 }
 
+.image-picker {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.image-picker input {
+    max-width: 100%;
+}
+
+.image-preview {
+    max-width: 100%;
+    width: 160px;
+    max-height: 100px;
+    object-fit: contain;
+}
+
 .chat-composer button,
 .chat-composer select {
     min-height: 44px;

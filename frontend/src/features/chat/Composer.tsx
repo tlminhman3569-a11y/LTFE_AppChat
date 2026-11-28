@@ -6,7 +6,7 @@ import RichTextEditor from '../editor/RichTextEditor'
 import './composer.css'
 
 export default function Composer({
-    conversation, draft, canSend, onDraftChange, onSend,
+    conversation, draft, canSend, onDraftChange, onSend, imagePicker,
 }: ComposerProps) {
     const composing = useRef(false)
     const text = draft.map(run => run.text).join('')
@@ -21,6 +21,7 @@ export default function Composer({
 
     return (
         <form className="chat-composer" onSubmit={handleSubmit}>
+            {imagePicker}
             <RichTextEditor
                 draft={draft}
                 onComposingChange={value => { composing.current = value }}

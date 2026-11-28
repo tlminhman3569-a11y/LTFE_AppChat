@@ -17,6 +17,8 @@ import { useOutgoingMessages } from '../hooks/useChat'
 import { createConversationKey } from '../utils/conversationKey'
 import { createMessageId, serializeRichMessage, parseRichMessage } from '../utils/richMessage'
 import { getLeaveRequest, subscribeLeaveRequests } from '../features/rooms/leaveRoomRequestState'
+import { useImageDrafts } from '../features/upload/useImageDrafts'
+import ImagePicker from '../features/upload/ImagePicker'
 
 export default function ChatLayout() {
     const dispatch = useAppDispatch()
@@ -30,6 +32,8 @@ export default function ChatLayout() {
     const histories = useAppSelector(state => state.messages)
     const [sendError, setSendError] = useState('')
     const { getDraft, getRetrySource, updateDraft, hasAnyDraft, hasDraft, clearDraft } = useChatDrafts()
+    const images = useImageDrafts(sessionGeneration)
+    const imageDraft = selectedConversation ? images.get(selectedConversation) : undefined
     const conversationKey = selectedConversation ? createConversationKey(selectedConversation) : null
     const roomPermission = useAppSelector(state => selectedConversation?.kind === 'room' && conversationKey
         ? state.rooms.byKey[conversationKey] : undefined)
@@ -78,12 +82,13 @@ export default function ChatLayout() {
         if (isLoggingOut) return
         setShowLogoutDialog(false)
         setIsLoggingOut(true)
+        images.cancelUploads()
 
         await endSession()
     }
 
     function requestLogout() {
-        if (hasAnyDraft()) {
+        if (hasAnyDraft() || images.hasAny()) {
             setShowLogoutDialog(true)
             return
         }
@@ -127,14 +132,23 @@ export default function ChatLayout() {
                             currentUser={currentUser}
                             sessionGeneration={sessionGeneration}
                             canLoad={canUseSocket}
-                            draft={getDraft(selectedConversation).map(run => run.text).join('')}
+                            draft={getDraft(selectedConversation).map(run => run.text).join('')
+                                + (imageDraft?.file ? ' [Ảnh nháp]' : '')}
                             onLeaveConfirmed={conversation => {
                                 clearDraft(conversation)
+                                images.remove(conversation)
                                 setSelectedConversation(previous => previous?.kind === 'room' && previous.name === conversation.name ? null : previous)
                             }}
                         />
                     ) : undefined}
                     draft={selectedConversation ? getDraft(selectedConversation) : []}
+                    imagePicker={selectedConversation && <ImagePicker
+                        {...imageDraft}
+                        canSend={Boolean(canSend)}
+                        onSelect={file => images.select(selectedConversation, file)}
+                        onRemove={() => images.remove(selectedConversation)}
+                        onSend={() => { void images.send(selectedConversation) }}
+                    />}
                     canSend={canSend}
                     onDraftChange={(conversation, draft) => {
                         setSendError('')
