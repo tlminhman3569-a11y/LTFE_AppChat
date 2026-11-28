@@ -85,18 +85,32 @@ export const fetchHistoryPage = createAsyncThunk(
 
 export const reconcileOutgoing = createAsyncThunk(
     'messages/reconcileOutgoing',
-    async ({ conversation, sessionGeneration }: Omit<HistoryRequest, 'page'>, { getState }) => {
+    async ({ conversation, sessionGeneration }: Pick<HistoryRequest, 'conversation' | 'sessionGeneration'>, { getState, requestId }) => {
         const { currentUser } = (getState() as HistoryStore).auth
-        const first = await loadHistory(conversation, 1, currentUser)
-        if (first.status !== 'success' || first.data.messages.length === 0) return first
-        if ((getState() as HistoryStore).auth.sessionGeneration !== sessionGeneration) {
-            return { status: 'error' as const, error: { kind: 'session' as const, message: 'Phiên đã thay đổi.' } }
-        }
-        const second = await loadHistory(conversation, 2, currentUser)
-        return {
-            status: 'success' as const,
-            data: { ...first.data, messages: [...first.data.messages,
-                ...(second.status === 'success' ? second.data.messages : [])] },
+        const key = createConversationKey(conversation)
+        const pending = (getState() as HistoryStore).messages[key]?.outgoing?.filter(message => message.name === currentUser) ?? []
+        const messages: Message[] = []
+        const pages = new Set<string>()
+        let page = 1
+        // Chỉ đọc lịch sử, không gửi lại hoặc cấp mã mới cho tin chưa xác nhận.
+        while (true) {
+            const { auth, messages: histories } = getState() as HistoryStore
+            if (auth.sessionGeneration !== sessionGeneration || auth.connectionStatus !== 'connected'
+                || histories[key]?.reconcileRequestId !== requestId) {
+                return { status: 'error' as const, error: { kind: 'session' as const, message: 'Lượt đối chiếu đã thay đổi.' } }
+            }
+            const result = await loadHistory(conversation, page++, currentUser)
+            if (result.status !== 'success') return result
+            const records = result.data.messages
+            const signature = JSON.stringify(records)
+            if (records.length && pages.has(signature)) {
+                return { status: 'error' as const, error: { kind: 'parse' as const, message: 'Máy chủ trả lặp trang lịch sử. Vui lòng thử đối chiếu lại.' } }
+            }
+            pages.add(signature)
+            messages.push(...records)
+            if (!records.length || pending.every(message => messages.some(record => matchesOutgoing(message, record)))) {
+                return { ...result, data: { ...result.data, page: 1, messages } }
+            }
         }
     },
     {
@@ -105,7 +119,7 @@ export const reconcileOutgoing = createAsyncThunk(
             const history = messages[createConversationKey(conversation)]
             return auth.authStatus === 'authenticated' && auth.connectionStatus === 'connected'
                 && auth.sessionGeneration === sessionGeneration && !history?.reconcileRequestId
-                && Boolean(history?.outgoing?.length)
+                && Boolean(history?.outgoing?.some(message => message.name === auth.currentUser))
         },
     },
 )

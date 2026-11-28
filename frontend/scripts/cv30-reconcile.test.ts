@@ -130,6 +130,88 @@ it('đọc lịch sử lỗi không xóa tin chờ', async () => {
     expect(history().messages).toEqual([])
 })
 
+it('sau reconnect tìm đúng mã tin ban đầu ở trang sau, không phát lại SEND_CHAT', async () => {
+    const original = enqueue('cv30-offline-original')
+    store.dispatch(connectionStatusChanged('disconnected'))
+    store.dispatch(outgoingExpired(Date.now()))
+    store.dispatch(sessionReconnected())
+    const send = vi.spyOn(socketClient, 'send')
+    const request = vi.spyOn(socketClient, 'request')
+        .mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+            { type: 0, id: 30, name: 'peer', to: 'me', mes: 'Tin đến sau' },
+        ] })
+        .mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+            { type: 0, id: 20, name: 'peer', to: 'me', mes: 'Tin ở trang 2' },
+        ] })
+        .mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [{ ...original, type: 0, id: 10 }] })
+
+    await store.dispatch(reconcileOutgoing({ conversation, sessionGeneration: generation() }))
+
+    expect(request.mock.calls.map(call => call[1]?.page)).toEqual([1, 2, 3])
+    expect(history().outgoing).toEqual([])
+    expect(history().messages).toHaveLength(1)
+    expect(history().messages[0]).toMatchObject({ id: 10, clientMessageId: original.clientMessageId, deliveryStatus: 'saved' })
+    expect(send).not.toHaveBeenCalled()
+})
+
+it('chưa thấy bản lưu hoặc chỉ thấy mã trùng của người khác thì giữ nguyên tin gốc', async () => {
+    const original = enqueue('cv30-not-found')
+    store.dispatch(outgoingExpired(Date.now()))
+    store.dispatch(sessionReconnected())
+    const send = vi.spyOn(socketClient, 'send')
+    vi.spyOn(socketClient, 'request')
+        .mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+            { ...original, type: 0, id: 40, name: 'peer', to: 'me' },
+        ] })
+        .mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [] })
+    await store.dispatch(reconcileOutgoing({ conversation, sessionGeneration: generation() }))
+    expect(history().outgoing).toHaveLength(1)
+    expect(history().outgoing![0]).toMatchObject({ clientMessageId: original.clientMessageId,
+        mes: original.mes, status: 'unconfirmed' })
+    expect(history().messages).toEqual([])
+    expect(send).not.toHaveBeenCalled()
+})
+
+it('đọc trang sau bị lỗi phải báo chưa đối chiếu xong và giữ tin chưa xác nhận', async () => {
+    const original = enqueue('cv30-page-error')
+    store.dispatch(outgoingExpired(Date.now()))
+    vi.spyOn(socketClient, 'request')
+        .mockResolvedValueOnce({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+            { type: 0, id: 30, name: 'peer', to: 'me', mes: 'Tin khác' },
+        ] })
+        .mockRejectedValueOnce(new Error('Mất kết nối ở trang sau'))
+    await store.dispatch(reconcileOutgoing({ conversation, sessionGeneration: generation() }))
+    expect(history().reconcileError).not.toBe('')
+    expect(history().outgoing![0]).toMatchObject({ clientMessageId: original.clientMessageId, status: 'unconfirmed' })
+})
+
+it('reconnect lần nữa dừng lượt đối chiếu cũ trước khi phát request trang tiếp', async () => {
+    enqueue()
+    let finish!: (reply: Awaited<ReturnType<typeof socketClient.request>>) => void
+    const request = vi.spyOn(socketClient, 'request').mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+    const checking = store.dispatch(reconcileOutgoing({ conversation, sessionGeneration: generation() }))
+    store.dispatch(sessionReconnected())
+    finish({ event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+        { type: 0, id: 30, name: 'peer', to: 'me', mes: 'Tin khác' },
+    ] })
+    await checking
+    expect(request).toHaveBeenCalledTimes(1)
+    expect(history().outgoing).toHaveLength(1)
+    expect(history().messages).toEqual([])
+})
+
+it('trang lặp thì dừng đối chiếu, không xóa pending hoặc gửi lại', async () => {
+    enqueue()
+    const reply = { event: 'GET_PEOPLE_CHAT_MES', status: 'success', data: [
+        { type: 0, id: 30, name: 'peer', to: 'me', mes: 'Trang lặp' },
+    ] }
+    const request = vi.spyOn(socketClient, 'request').mockResolvedValue(reply)
+    await store.dispatch(reconcileOutgoing({ conversation, sessionGeneration: generation() }))
+    expect(request).toHaveBeenCalledTimes(2)
+    expect(history().reconcileError).toContain('lặp trang')
+    expect(history().outgoing).toHaveLength(1)
+})
+
 it('tin realtime đến lúc đối chiếu vẫn ở đúng vị trí cuối', () => {
     const a = enqueue()
     const b = { ...a, id: 2, mes: 'B' }
