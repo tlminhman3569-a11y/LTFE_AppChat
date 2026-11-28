@@ -263,7 +263,7 @@ const res = await upload.start(file, conversation, sessionGeneration)
 
 Giữ một bộ quản lý trong vòng đời composer, không tạo lại mỗi lần gõ hoặc mỗi lần chọn ảnh. Khi cần dừng, gọi upload.cancel()
 
-Ở phần 1, sessionGeneration chỉ là thông tin đi kèm, bộ quản lý chưa tự đọc phiên hiện tại hoặc quyền gửi. Phần 2 bên dưới bổ sung lớp quản lý theo phiên và nối vào đăng xuất. Thao tác bỏ ảnh và kiểm tra quyền gửi trên chat vẫn chờ giao diện CV56
+Ở phần 1, sessionGeneration chỉ là thông tin đi kèm, bộ quản lý chưa tự đọc phiên hiện tại hoặc quyền gửi. Phần 2 bên dưới bổ sung lớp quản lý theo phiên và nối vào đăng xuất. Hook ghép composer nằm ở phần 3, thao tác trên chat sẽ kiểm tra sau khi CV56 nối giao diện
 
 ### Chạy kiểm tra trong WebStorm
 
@@ -312,3 +312,82 @@ Kỳ vọng 21 test CV58 đạt, gồm 9 test quản lý lượt và 12 test the
 Các ca mới kiểm tra đăng xuất khi LOGOUT còn chờ, chặn bộ quản lý tạo lại trong phiên cũ, đổi tài khoản, đăng nhập lại cùng username, lỗi trả muộn, hủy nhiều lượt, cleanup và nối lại socket cùng phiên
 
 Chưa có cách thử bỏ ảnh trên giao diện chat ở phần này vì còn chờ CV56. Trang scripts/check-upload.html chỉ kiểm tra service CV55, không dùng làm bằng chứng cho vòng đời upload theo phiên
+
+
+## CV58 phần 3 — hook để CV56 ghép composer
+
+Hook useImageUpload nằm ở features/upload/useImageUpload.ts. Chưa thêm nút chọn ảnh vào chat hoặc đổi luồng tin chữ
+
+CV56 giữ selectedFile, preview và object URL. Hook chỉ nhận file đã chọn, đích và hàm kiểm tra quyền để quản lý upload. Khi bỏ ảnh, CV56 gọi cancel và đặt selectedFile về null; khi đổi ảnh thì truyền File mới. Preview vẫn do CV56 tạo và gọi URL.revokeObjectURL khi bỏ/đổi ảnh hoặc unmount
+
+### Cách gọi
+
+Component dùng hook phải nằm trong Redux Provider của ứng dụng
+
+```tsx
+const imageUpload = useImageUpload({
+    file: selectedFile,
+    conversation,
+    canSendNow,
+})
+
+async function confirmImage() {
+    await imageUpload.upload((image, target) => {
+        // CV56 đóng gói tin ảnh, tạo pending và gọi SEND_CHAT theo đích target
+        sendUploadedImage(image, target)
+    })
+}
+
+function removeImage() {
+    imageUpload.cancel()
+    setSelectedFile(null)
+}
+```
+
+selectedFile, canSendNow và sendUploadedImage trong ví dụ là phần CV56 cung cấp, không phải các hàm mới của service upload
+
+canSendNow nhận ConversationRef và trả boolean đồng bộ. Hàm phải đọc quyền hiện tại ở lúc được gọi, ví dụ lấy auth/rooms từ store.getState và yêu cầu rời phòng hiện tại. Không truyền hàm chỉ trả lại một biến canSend đã chụp trước lúc upload
+
+Giữ điều kiện như ChatLayout: phiên hợp lệ, socket đã xác thực, không đang logout; chat phòng cần member/owner, không leaveRejected, không có OUT pending/unknown/success. So sánh cả kind và name, không chỉ tên hiển thị
+
+Hook tự kiểm tra lại phiên, file, đích và kết nối trước khi bàn giao, còn điều kiện gửi phòng do canSendNow xác nhận. Khi đổi tài khoản phải xóa selectedFile và preview của tài khoản cũ trong phần state CV56, hook sẽ hủy lượt cũ và không tự upload ảnh sang phiên mới
+
+### Kết quả trả về
+
+| Trường | Ý nghĩa |
+| --- | --- |
+| status = idle | Chưa có lượt upload hoặc đã hủy |
+| status = uploading | Request upload đang chờ |
+| status = ready | Đã có URL nhưng chưa được gửi, chờ xác nhận lại |
+| status = success | Đã chuyển ảnh cho callback CV56, chưa có nghĩa tin đã được máy chủ lưu |
+| status = error | Không được bắt đầu hoặc upload lỗi, đọc error để hiển thị |
+| status = send-error | Callback bước gửi gặp lỗi, không bàn giao lại cùng ảnh để tránh gửi trùng |
+| error | Thông báo của lượt hiện tại, ảnh cũ không ghi đè lỗi của ảnh mới |
+| upload(callback) | Chỉ chạy khi người dùng xác nhận, mỗi lượt chỉ bàn giao một lần |
+| cancel() | Hủy lượt hiện tại, bỏ URL đã giữ và cho phép bắt đầu lượt mới |
+
+Chọn ảnh, render lại, đổi trạng thái socket hoặc nhận lại quyền không tự gọi upload hay SEND_CHAT. Nút xác nhận nên khóa khi uploading, success hoặc send-error
+
+- Đổi file, đổi loại/tên hội thoại, đổi phiên hoặc unmount đều dọn bộ quản lý cũ
+- Bấm liên tiếp trong lúc upload không tạo thêm request
+- Reconnect cùng phiên không hủy HTTP đang chạy. Nếu ảnh xong khi chưa được gửi thì giữ URL ở ready, nối lại không tự bàn giao; người dùng xác nhận lần nữa mới dùng URL đã có
+- Callback nhận đúng đích đã chụp và được gọi đồng bộ, không chèn await giữa lúc nhận ảnh và tạo pending/gửi. Nếu CV56 cần chờ thêm việc khác thì phải kiểm tra lại phiên/đích/quyền ngay trước SEND_CHAT
+- Nếu callback ném lỗi, hook báo send-error và không tự thử callback lần nữa vì tin có thể đã được gửi. CV56 xử lý bằng pending/clientMessageId và đối chiếu lịch sử, không gọi cancel để gửi lại ngay bằng mã mới
+- Lỗi upload vẫn giữ thông báo gốc và không tự thử lại. Chỉ người dùng xác nhận mới gọi lại service
+- Hook không tự tạo object URL, xóa ảnh trên Cloudinary, serialize tin ảnh hoặc gắn nhãn Đã lưu
+
+### Test trong WebStorm
+
+Sau khi lấy nhánh về, chạy npm ci trong frontend để có jsdom. Package này chỉ dùng cho test, không thêm vào mã chạy trên web
+
+```powershell
+npm test -- scripts/cv58-upload-task.test.ts scripts/cv58-session-upload.test.ts scripts/cv58-image-upload.test.tsx
+npm run build
+npm run lint
+```
+
+Kỳ vọng 41 test CV58 đạt: 9 quản lý lượt, 12 theo phiên, 20 hook composer. Bộ hook chạy React thật với createRoot/act trong jsdom, chỉ giả lập uploadImage và phản hồi LOGOUT. Không mock useState/useEffect, không upload ảnh thật lên Cloudinary
+
+Các ca mới gồm chọn/bỏ/đổi file, người/phòng trùng tên, unmount, StrictMode, đổi tài khoản, logout trả chậm, logout chen trước callback, đổi quyền, ngắt socket, giữ URL để xác nhận lại, lỗi upload và lỗi ở bước gửi
+
+Khung xử lý đã có để CV56 dùng trước. Chưa coi toàn bộ CV58 đã nghiệm thu trên /chat: sau khi ghép CV56 còn phải thử preview, nút bỏ/đổi ảnh, logout lúc upload, quyền phòng và SEND_CHAT/lịch sử bằng API thật

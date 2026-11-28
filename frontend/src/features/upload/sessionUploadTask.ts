@@ -51,5 +51,5 @@ export function createSessionUploadTask() {
         }
     }
 
-    return { start, cancel: task.cancel, dispose }
+    return { start, cancel: task.cancel, dispose, isCurrent: isCurrentSession }
 }
